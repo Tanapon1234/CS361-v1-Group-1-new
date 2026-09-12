@@ -54,6 +54,56 @@ CREATE TABLE faculty_interest (
   CONSTRAINT chk_faculty_interest_visibility CHECK (visibility IN ('PUBLIC', 'INTERNAL', 'RESTRICTED'))
 );
 
+CREATE TABLE app_user (
+  id text PRIMARY KEY,
+  cognito_sub text NOT NULL,
+  email text,
+  display_name text,
+  identity_provider text NOT NULL DEFAULT 'COGNITO',
+  status text NOT NULL DEFAULT 'ACTIVE',
+  last_login_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  CONSTRAINT uq_app_user_cognito_sub UNIQUE (cognito_sub),
+  CONSTRAINT chk_app_user_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DELETED')),
+  CONSTRAINT chk_app_user_identity_provider CHECK (identity_provider IN ('COGNITO', 'SYSTEM'))
+);
+
+CREATE TABLE app_role (
+  code text PRIMARY KEY,
+  label text NOT NULL,
+  description text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE app_user_role (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  role_code text NOT NULL REFERENCES app_role(code),
+  assigned_by_user_id text REFERENCES app_user(id) ON DELETE SET NULL,
+  assigned_at timestamptz NOT NULL DEFAULT now(),
+  revoked_at timestamptz,
+  revoke_reason text,
+  CONSTRAINT chk_app_user_role_revoked_after_assigned CHECK (revoked_at IS NULL OR revoked_at >= assigned_at)
+);
+
+CREATE TABLE auth_login_event (
+  id text PRIMARY KEY,
+  user_id text REFERENCES app_user(id) ON DELETE SET NULL,
+  cognito_sub text,
+  email text,
+  login_status text NOT NULL,
+  failure_reason text,
+  ip_address inet,
+  user_agent text,
+  request_id text,
+  occurred_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_auth_login_event_status CHECK (login_status IN ('SUCCESS', 'FAILED'))
+);
+
 CREATE TABLE academic_period (
   id text PRIMARY KEY,
   academic_year integer NOT NULL,
@@ -327,6 +377,7 @@ CREATE TABLE evidence_reference (
 
 CREATE TABLE audit_event (
   id text PRIMARY KEY,
+  actor_user_id text REFERENCES app_user(id) ON DELETE SET NULL,
   actor_subject text,
   action text NOT NULL,
   entity_type text NOT NULL,
@@ -343,6 +394,19 @@ CREATE INDEX idx_faculty_public_slug ON faculty(public_slug);
 CREATE INDEX idx_faculty_education_faculty ON faculty_education(faculty_id);
 CREATE INDEX idx_faculty_interest_faculty ON faculty_interest(faculty_id);
 CREATE INDEX idx_faculty_interest_value ON faculty_interest(value);
+
+CREATE UNIQUE INDEX uq_app_user_email_lower
+  ON app_user (lower(email))
+  WHERE email IS NOT NULL AND trim(email) <> '';
+CREATE INDEX idx_app_user_status ON app_user(status);
+CREATE INDEX idx_app_user_role_user ON app_user_role(user_id);
+CREATE INDEX idx_app_user_role_role ON app_user_role(role_code);
+CREATE UNIQUE INDEX uq_app_user_active_role
+  ON app_user_role (user_id, role_code)
+  WHERE revoked_at IS NULL;
+CREATE INDEX idx_auth_login_event_user ON auth_login_event(user_id);
+CREATE INDEX idx_auth_login_event_occurred_at ON auth_login_event(occurred_at);
+CREATE INDEX idx_auth_login_event_status ON auth_login_event(login_status);
 
 CREATE INDEX idx_evaluation_period_dates ON evaluation_period(start_date, end_date);
 
@@ -384,7 +448,7 @@ CREATE INDEX idx_evidence_work_item ON evidence_reference(work_item_id);
 CREATE INDEX idx_evidence_visibility ON evidence_reference(visibility);
 
 CREATE INDEX idx_audit_entity ON audit_event(entity_type, entity_id);
+CREATE INDEX idx_audit_actor_user ON audit_event(actor_user_id);
 CREATE INDEX idx_audit_occurred_at ON audit_event(occurred_at);
 
 COMMIT;
-

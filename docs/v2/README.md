@@ -14,6 +14,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [erd.md](./erd.md) | ERD และ relationship baseline ของ V2 repository สำหรับ Issue #47 |
 | [data-contract.md](./data-contract.md) | data dictionary และ query/data contract ขั้นต้นของ schema |
 | [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
+| [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |
 | [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) | Architecture diagram แบบ AWS service-icon style |
 | [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) | Architecture diagram เวอร์ชัน clean/readable |
 

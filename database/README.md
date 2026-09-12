@@ -17,6 +17,7 @@
 
 - table หลักครบตาม `docs/v2/erd.md`
 - constraints สำคัญครบ เช่น visibility, status, public slug, contribution percent
+- auth baseline รองรับ Cognito user mapping, `ADMIN` human role, `SYSTEM` audit actor และ login audit โดยไม่เก็บ password
 - index รองรับ query หลัก เช่น faculty, period, category, type, visibility, status, DOI, source idempotency
 - seed master data พอสำหรับ API และ frontend filter
 - ไม่มี table ที่ copy แบบฟอร์มภาระงาน 1:1
@@ -47,4 +48,4 @@ SQL ชุดนี้เป็น baseline ที่ review ได้ ไม่
 - demo dataset หลายปี
 - scoring engine
 - official workload report generation
-
+- full dynamic RBAC / approval workflow

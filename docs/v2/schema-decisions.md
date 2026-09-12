@@ -149,3 +149,31 @@ V2 baseline ใช้ `text` primary key
 - application/import layer ต้องรับผิดชอบการสร้าง ID
 - production อาจเปลี่ยนเป็น UUID ได้ในอนาคตผ่าน migration ที่ควบคุมแล้ว
 
+---
+
+## Decision 9: Auth tables เป็น identity mapping ไม่ใช่ full RBAC
+
+เพิ่มตาราง:
+
+- `app_user`
+- `app_role`
+- `app_user_role`
+- `auth_login_event`
+
+เหตุผล:
+
+- V2 Admin pilot ต้องตรวจสอบได้ว่า admin คนใด login และทำ mutation อะไร
+- Cognito เป็น source ของ authentication แต่ repository ยังต้องมี user identity สำหรับ audit และ role mapping
+- ไม่ควรเก็บ password/session token ใน database
+
+ขอบเขต:
+
+- รองรับ role ขั้นต่ำ `ADMIN` และ `SYSTEM`
+- ยังไม่ทำ dynamic permission matrix
+- ยังไม่ทำ faculty self-service, reviewer workflow หรือ approval workflow
+
+ผลกระทบ:
+
+- `audit_event.actor_user_id` สามารถอ้างถึง `app_user`
+- `auth_login_event` ช่วยตรวจสอบ login success/failure
+- #55 Configure Admin Authentication สามารถต่อยอดได้โดยไม่ต้องเปลี่ยน schema หลัก

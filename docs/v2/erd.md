@@ -13,6 +13,10 @@ erDiagram
   faculty ||--o{ faculty_education : has
   faculty ||--o{ faculty_interest : has
   faculty ||--o{ faculty_work_item : contributes
+  app_user ||--o{ app_user_role : has
+  app_role ||--o{ app_user_role : grants
+  app_user ||--o{ auth_login_event : records
+  app_user ||--o{ audit_event : performs
 
   academic_period ||--o{ evaluation_period : may_group
   academic_period ||--o{ faculty_work_item : classifies
@@ -46,6 +50,49 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
     timestamptz deleted_at
+  }
+
+  app_user {
+    text id PK
+    text cognito_sub UK
+    text email
+    text display_name
+    text identity_provider
+    text status
+    timestamptz last_login_at
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  app_role {
+    text code PK
+    text label
+    text description
+    boolean is_active
+  }
+
+  app_user_role {
+    text id PK
+    text user_id FK
+    text role_code FK
+    text assigned_by_user_id FK
+    timestamptz assigned_at
+    timestamptz revoked_at
+    text revoke_reason
+  }
+
+  auth_login_event {
+    text id PK
+    text user_id FK
+    text cognito_sub
+    text email
+    text login_status
+    text failure_reason
+    inet ip_address
+    text user_agent
+    text request_id
+    timestamptz occurred_at
   }
 
   faculty_education {
@@ -233,6 +280,7 @@ erDiagram
 
   audit_event {
     text id PK
+    text actor_user_id FK
     text actor_subject
     text action
     text entity_type
@@ -253,6 +301,8 @@ erDiagram
 - `academic_period` และ `evaluation_period` แยกกันเพื่อรองรับกรณีปีการศึกษาไม่ตรงกับปีปฏิทิน
 - `work_category` และ `work_type` เป็น master data สำหรับ filter, API response และ UI dropdown
 - `source_record` และ `import_batch` ทำให้ import ตรวจสอบย้อนกลับและทำ idempotency ได้
+- `app_user`, `app_role`, `app_user_role` เป็น admin identity mapping สำหรับ Cognito ไม่ใช่ password store
+- `auth_login_event` ใช้เก็บ login audit จาก Cognito-authenticated admin flow
 - `audit_event` เก็บ mutation history สำหรับ admin/import ไม่เปิดผ่าน public API
 
 ---
@@ -267,5 +317,12 @@ erDiagram
 - `work_type` ผ่าน `default_visibility`
 - `evidence_reference`
 
-Public API ต้องกรองข้อมูลที่ `visibility = 'PUBLIC'` และต้องไม่ expose `s3_key`, restricted evidence หรือ audit/import raw data โดยตรง
+Auth/audit tables ไม่อยู่ใน public API:
 
+- `app_user`
+- `app_role`
+- `app_user_role`
+- `auth_login_event`
+- `audit_event`
+
+Public API ต้องกรองข้อมูลที่ `visibility = 'PUBLIC'` และต้องไม่ expose `s3_key`, restricted evidence หรือ audit/import raw data โดยตรง

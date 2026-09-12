@@ -48,6 +48,21 @@ Baseline status สำหรับ repository records:
 
 Import/source/audit tables มี status เฉพาะของตัวเอง เช่น `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `WARNING`
 
+### Authentication Boundary
+
+V2 ใช้ Cognito เป็น source ของ authentication
+
+Database ไม่เก็บ password, password reset token หรือ session token
+
+Database เก็บเฉพาะ app-level identity mapping และ audit:
+
+- `app_user`
+- `app_role`
+- `app_user_role`
+- `auth_login_event`
+
+ชุดนี้รองรับ Admin pilot และ audit trail แต่ยังไม่ใช่ full dynamic RBAC/approval workflow ของ V3
+
 ---
 
 ## Table Dictionary
@@ -105,6 +120,75 @@ Rules:
 Rules:
 
 - unique `(faculty_id, interest_type, value)`
+
+### `app_user`
+
+ข้อมูลผู้ใช้ระดับ application ที่ map กับ Cognito user
+
+| Column | Required | Purpose |
+|---|---:|---|
+| `id` | yes | stable internal user id |
+| `cognito_sub` | yes | Cognito subject identifier |
+| `email` | no | email จาก identity provider |
+| `display_name` | no | ชื่อแสดงใน admin/audit |
+| `identity_provider` | yes | `COGNITO` หรือ `SYSTEM` |
+| `status` | yes | `ACTIVE`, `SUSPENDED`, `DELETED` |
+| `last_login_at` | no | เวลาล่าสุดที่ login สำเร็จ |
+
+Rules:
+
+- unique `cognito_sub`
+- unique email แบบ case-insensitive เมื่อ email มีค่า
+- ไม่เก็บ password ใน database
+
+### `app_role`
+
+บทบาท application ขั้นต่ำของ V2
+
+Seed baseline:
+
+- `ADMIN`
+- `SYSTEM`
+
+`ADMIN` ใช้กับ Admin pilot ส่วน `SYSTEM` ใช้กับ import/projection/migration actor ใน audit trail
+
+### `app_user_role`
+
+ความสัมพันธ์ระหว่าง user กับ role
+
+| Column | Required | Purpose |
+|---|---:|---|
+| `user_id` | yes | app user |
+| `role_code` | yes | role |
+| `assigned_by_user_id` | no | admin ที่ assign |
+| `assigned_at` | yes | เวลา assign |
+| `revoked_at` | no | เวลา revoke |
+| `revoke_reason` | no | เหตุผลการ revoke |
+
+Rules:
+
+- active role ซ้ำของ user เดียวกันไม่ได้
+- revoke เก็บประวัติ ไม่ hard delete
+
+### `auth_login_event`
+
+login audit event จาก Cognito-authenticated flow
+
+| Column | Required | Purpose |
+|---|---:|---|
+| `user_id` | no | app user ถ้า resolve ได้ |
+| `cognito_sub` | no | Cognito subject จาก token/event |
+| `email` | no | email จาก token/event |
+| `login_status` | yes | `SUCCESS` หรือ `FAILED` |
+| `failure_reason` | no | เหตุผลเมื่อ failed |
+| `ip_address` | no | IP address |
+| `user_agent` | no | browser/client info |
+| `request_id` | no | request correlation id |
+
+Rules:
+
+- ไม่เปิดผ่าน public API
+- ใช้สำหรับตรวจสอบ admin login เท่านั้น
 
 ### `academic_period`
 
@@ -277,6 +361,8 @@ Rules:
 Rules:
 
 - ไม่เปิดผ่าน public API
+- `actor_user_id` ใช้ link ไป `app_user` เมื่อ actor เป็น human/admin
+- `actor_subject` ยังเก็บได้สำหรับ Cognito subject หรือ system actor
 - ใช้ `before_json` และ `after_json` เพื่อ review การเปลี่ยนแปลงย้อนหลัง
 
 ---
@@ -356,4 +442,3 @@ WHERE source_system = :source_system
   AND source_record_key = :source_record_key
   AND source_hash = :source_hash;
 ```
-

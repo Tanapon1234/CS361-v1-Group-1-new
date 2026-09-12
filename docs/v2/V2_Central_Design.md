@@ -487,7 +487,9 @@ Baseline status codes:
 
 ## 13. Admin Pilot Boundary
 
-V2 Admin pilot มี role เดียวคือ `admin`
+V2 Admin pilot มี human login role เดียวคือ `ADMIN`
+
+Schema มี `SYSTEM` role สำหรับ non-human actor เช่น import, projection, migration และ automated audit event เท่านั้น ไม่ใช่ user ที่ login ผ่านหน้า admin
 
 Admin ทำได้:
 
@@ -594,7 +596,7 @@ Restricted evidence ห้ามเปิดผ่าน public API
 | #52 Build Work Item List/Search/Filter API | query params, response shape, visibility rule | enforce public-safe filtering ที่ backend |
 | #53 Build Faculty Work Items API | `faculty_work_item`, V1 faculty compatibility | faculty detail ต้องโยง work items ได้ |
 | #54 Build Work Item Detail API | detail response shape, subtype detail model | redact restricted/internal fields ใน public response |
-| #55 Configure Admin Authentication | Cognito boundary, admin pilot scope | admin role เดียวใน V2 |
+| #55 Configure Admin Authentication | Cognito boundary, admin pilot scope | human login role เดียวคือ `ADMIN`; `SYSTEM` เป็น audit actor ภายใน |
 | #56 Build Admin Create Work Item API | admin routes, audit/provenance expectation | create transaction + audit event |
 | #57 Build Admin Update / Soft Delete API | admin routes, soft delete rule | DELETE = soft delete |
 | #58 Build Repository Page Shell & Filter UI | frontend route baseline | `/outputs` |

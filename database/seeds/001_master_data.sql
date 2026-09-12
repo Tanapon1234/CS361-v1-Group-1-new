@@ -2,6 +2,16 @@
 
 BEGIN;
 
+INSERT INTO app_role (code, label, description, is_active)
+VALUES
+  ('ADMIN', 'Admin', 'V2 admin pilot user. Can access protected admin repository operations through Cognito-authenticated APIs.', true),
+  ('SYSTEM', 'System', 'Non-human system actor for import, projection, migration, and automated audit events.', true)
+ON CONFLICT (code) DO UPDATE SET
+  label = EXCLUDED.label,
+  description = EXCLUDED.description,
+  is_active = EXCLUDED.is_active,
+  updated_at = now();
+
 INSERT INTO work_category (code, label_th, label_en, description, display_order, is_active)
 VALUES
   ('TEACHING', 'งานสอน', 'Teaching', 'Teaching workload and course-related work', 10, true),
@@ -62,4 +72,3 @@ ON CONFLICT (code) DO UPDATE SET
   updated_at = now();
 
 COMMIT;
-

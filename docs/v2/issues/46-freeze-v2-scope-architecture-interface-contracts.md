@@ -301,7 +301,9 @@ V2 Admin pilot routes:
 
 ## Admin Pilot Boundary
 
-V2 Admin pilot มีเพียง admin role เดียว
+V2 Admin pilot มี human login role เดียวคือ `ADMIN`
+
+ถ้ามี `SYSTEM` role ใน schema ให้ถือเป็น non-human actor สำหรับ import, projection, migration และ audit event เท่านั้น ไม่ใช่ user ที่ login ผ่านหน้า admin
 
 Admin ทำได้:
 
