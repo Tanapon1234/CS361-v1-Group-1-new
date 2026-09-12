@@ -6,6 +6,20 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #60 แต่ GitHub issue จริงใช้ #74
 
+## Production AWS Requirement
+
+หน้า detail ต้องโหลดข้อมูลจาก deployed Detail API จาก #68 จริง:
+
+```text
+Frontend /outputs/{id}
+→ deployed API Gateway `GET /api/v2/work-items/{id}`
+→ Lambda
+→ RDS Data API
+→ Aurora
+```
+
+mock/static detail ใช้ได้เฉพาะ component test เท่านั้น
+
 ## Background
 
 ผู้ใช้ต้องสามารถกดจาก result list เข้าไปดูรายละเอียดของผลงาน/ภาระงานแต่ละรายการได้ โดยหน้า detail ต้องรองรับหลาย category ที่มีข้อมูลไม่เหมือนกัน
@@ -31,7 +45,6 @@ Detail API จาก #68 จะ return `detail.kind` เพื่อบอก su
 - evidence download/signed URL
 - admin edit/delete action
 - official report print/export
-- real API integration เต็มรูปแบบถ้า #75 แยกไว้
 
 ## Scope
 
@@ -52,6 +65,8 @@ Detail API จาก #68 จะ return `detail.kind` เพื่อบอก su
   - service
   - administration
 - เพิ่ม loading/not found/error states
+- ต่อ data fetching กับ deployed `GET /api/v2/work-items/{id}` จาก #68
+- handle `404` และ visibility-safe error จาก AWS endpoint จริง
 - เพิ่ม tests หรือ manual QA checklist สำหรับ demo records
 
 ### ไม่ต้องทำ
@@ -90,6 +105,8 @@ UI ต้อง handle `detail` missing/null ได้อย่างสุภ�
 - [ ] link กลับ repository page ได้
 - [ ] responsive บน mobile/desktop
 - [ ] ไม่มี admin-only/source/audit fields ใน public UI
+- [ ] หน้า detail ใช้ deployed Detail API จริง
+- [ ] มี QA evidence สำหรับ public detail, not found และ restricted/internal case
 
 ## Review Checklist
 
@@ -108,6 +125,7 @@ QA:
 
 - [ ] ทดสอบ demo records ครบหลาย category
 - [ ] ทดสอบ not found และ restricted item
+- [ ] smoke test บน deployed frontend/API Gateway ไม่ใช่ mock เท่านั้น
 
 ## Dependencies
 
@@ -148,4 +166,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อผู้ใช้สามารถเปิดหน้า detail ของ work item ได้ และเห็นข้อมูลกลาง/subtype/faculty/evidence metadata แบบ public-safe ตาม contract ของ V2
+การ์ดนี้ถือว่าเสร็จเมื่อผู้ใช้สามารถเปิดหน้า detail ของ work item โดยโหลดจาก deployed AWS Detail API จริง และเห็นข้อมูลกลาง/subtype/faculty/evidence metadata แบบ public-safe ตาม contract ของ V2 พร้อม QA evidence

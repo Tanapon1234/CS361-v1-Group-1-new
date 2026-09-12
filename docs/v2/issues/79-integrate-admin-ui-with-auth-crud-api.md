@@ -6,6 +6,21 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #65 แต่ GitHub issue จริงใช้ #79
 
+## Production AWS Requirement
+
+การ์ดนี้เป็น admin E2E integration gate ต้องทดสอบ frontend กับ Cognito และ deployed AWS admin APIs จริง:
+
+```text
+Frontend admin deployment
+→ Cognito
+→ API Gateway admin routes
+→ Admin Lambda
+→ RDS Data API transactions
+→ Aurora
+```
+
+ห้ามปิดด้วย local/mock API เท่านั้น
+
 ## Background
 
 การ์ด #69-#71 สร้าง backend admin foundation ส่วน #76-#78 สร้าง UI surface การ์ดนี้รวมทุกอย่างให้เป็น flow ที่ demo ได้จริง
@@ -47,6 +62,8 @@
 - after soft delete record หายจาก active list หรือแสดง status ตาม admin filter
 - add integration tests/manual QA script
 - update docs/env ถ้ามีค่า config เพิ่ม
+- บันทึก deployed frontend/admin URL, API Gateway stage และ Cognito user pool/app client ที่ใช้ทดสอบ
+- ตรวจ CloudWatch logs และ Aurora result หลัง create/update/delete
 
 ### ไม่ต้องทำ
 
@@ -73,6 +90,9 @@
 - [ ] audit event เกิดจาก mutation APIs
 - [ ] public UI ไม่เห็น deleted/restricted data โดยไม่ตั้งใจ
 - [ ] มี QA evidence/checklist สำหรับ demo flow
+- [ ] full admin flow ผ่าน deployed frontend + Cognito + AWS APIs จริง
+- [ ] Aurora มีผลลัพธ์ mutation จริงหลัง create/update/delete
+- [ ] CloudWatch logs มีหลักฐาน auth/mutation flow
 
 ## Review Checklist
 
@@ -98,6 +118,7 @@ QA:
 - [ ] test happy path ครบ
 - [ ] test validation error
 - [ ] test unauthorized/expired session
+- [ ] test ด้วย Cognito admin user และ deployed AWS endpoints จริง
 
 ## Dependencies
 
@@ -142,4 +163,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin pilot ทำงานกับ repository จริงได้ end-to-end ผ่าน Cognito และ CRUD APIs โดยมี error handling, validation mapping และ security boundary ครบพอสำหรับ V2 demo
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin pilot ทำงานกับ repository จริงได้ end-to-end ผ่าน deployed frontend, Cognito และ AWS CRUD APIs โดย mutation เขียน Aurora จริง มี error handling, validation mapping, CloudWatch evidence และ security boundary ครบพอสำหรับ V2 demo

@@ -2,9 +2,22 @@
 
 ## สรุป
 
-สร้าง `GET /api/v2/work-items` สำหรับค้นหา กรอง และแบ่งหน้า work items ของ V2 repository โดยอ่านจาก Aurora/fixture adapter และ enforce public-safe visibility ที่ backend
+สร้าง `GET /api/v2/work-items` สำหรับค้นหา กรอง และแบ่งหน้า work items ของ V2 repository โดยอ่านจาก Aurora ผ่าน AWS Lambda + RDS Data API และ enforce public-safe visibility ที่ backend
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #52 แต่ GitHub issue จริงใช้ #66
+
+## Production AWS Requirement
+
+การ์ดนี้ต้อง implement เป็น production AWS API จริง:
+
+```text
+Amazon API Gateway
+→ AWS Lambda query handler
+→ Amazon RDS Data API
+→ Aurora PostgreSQL Serverless v2
+```
+
+fixture/mock ใช้ได้เฉพาะ unit test หรือ local fallback เท่านั้น ไม่ถือว่าเพียงพอสำหรับปิดการ์ดนี้
 
 ## Background
 
@@ -56,8 +69,13 @@ V2 ต้องให้ผู้ใช้ค้นหาและกรอง�
 - join ข้อมูลจาก `work_item`, `work_type`, `work_category`, `faculty_work_item`, `faculty`, `academic_period`, `evaluation_period`
 - default public route ต้อง return เฉพาะ `status = ACTIVE` และ `visibility = PUBLIC`
 - เพิ่ม mapper/DTO สำหรับ list item
+- เพิ่ม Lambda route/handler สำหรับ `GET /api/v2/work-items`
+- เพิ่ม Data API query layer ที่อ่าน Aurora จริง
+- configure API Gateway route/stage สำหรับ endpoint นี้
+- เพิ่ม CloudWatch log สำหรับ request id, query filters, validation failure และ unexpected errors
 - เพิ่ม input validation และ response envelope
 - เพิ่ม tests สำหรับ success, empty state, invalid query, pagination และ visibility
+- เพิ่ม AWS smoke test สำหรับ deployed endpoint
 - อัปเดต docs contract ถ้า implementation มีรายละเอียดเพิ่ม
 
 ### ไม่ต้องทำ
@@ -132,6 +150,10 @@ Response:
 - [ ] empty result return `items: []` ไม่ crash
 - [ ] มี tests ครอบคลุม happy path และ edge cases
 - [ ] docs/API contract อัปเดตตาม implementation จริง
+- [ ] API Gateway route `GET /api/v2/work-items` deploy แล้ว
+- [ ] Lambda query handler อ่าน Aurora ผ่าน RDS Data API จริง
+- [ ] CloudWatch logs แสดง request/success/error ของ endpoint นี้
+- [ ] smoke test ผ่าน deployed AWS endpoint ด้วย demo data จาก Aurora
 
 ## Review Checklist
 
@@ -140,11 +162,14 @@ Backend:
 - [ ] SQL/query ไม่เกิด N+1 แบบชัดเจน
 - [ ] query มี sorting ที่ stable เช่น `updated_at desc, id asc`
 - [ ] DTO ไม่ expose raw/provenance/admin fields
+- [ ] Lambda role ใช้สิทธิ์ Data API/Secrets เท่าที่จำเป็น
+- [ ] production path ไม่อ่าน fixture file
 
 QA:
 
 - [ ] ใช้ `data/v2/fixtures/dataset-summary.json` เป็น expected baseline ได้
 - [ ] test matrix จาก `docs/v2/demo-dataset.md` ผ่าน
+- [ ] smoke test ใช้ AWS endpoint จริงและบันทึกผลไว้ใน issue/PR
 
 Security:
 
@@ -197,4 +222,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Work Item List/Search/Filter API ที่ค้นหา กรอง แบ่งหน้า และ enforce public visibility ได้จริง พร้อม contract และ tests ที่ frontend ใช้สร้างหน้า repository ต่อได้โดยไม่ต้องเดา response shape เอง
+การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Work Item List/Search/Filter API ที่ deploy บน AWS จริงผ่าน API Gateway + Lambda + RDS Data API + Aurora, ค้นหา กรอง แบ่งหน้า และ enforce public visibility ได้จริง พร้อม contract, tests, CloudWatch/API smoke evidence และ frontend ใช้สร้างหน้า repository ต่อได้โดยไม่ต้องเดา response shape เอง

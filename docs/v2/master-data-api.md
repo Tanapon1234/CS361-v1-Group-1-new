@@ -2,7 +2,9 @@
 
 เอกสารนี้เป็น contract สำหรับ Issue #64 - Build Master Data API
 
-สถานะ: implemented for local/dev through the V2 fixture adapter in `frontend/lib/v2/master-data.mjs`
+สถานะ: local/dev contract prototype exists through the V2 fixture adapter in `frontend/lib/v2/master-data.mjs`
+
+หมายเหตุสำคัญ: local fixture implementation ไม่ถือว่าเพียงพอสำหรับปิด Issue #64 ตาม production scope ใหม่ การ์ด #64 จะปิดได้เมื่อ endpoint ชุดนี้ถูก deploy เป็น AWS API จริงผ่าน `API Gateway -> Lambda -> RDS Data API -> Aurora` และ smoke test ผ่าน AWS endpoint แล้ว
 
 ## Endpoints
 
@@ -165,7 +167,7 @@ Next.js route handler
 → data/v2/fixtures/*.json
 ```
 
-Production target behavior from the V2 central design:
+Required production behavior from the V2 central design:
 
 ```text
 API Gateway / V2 API route

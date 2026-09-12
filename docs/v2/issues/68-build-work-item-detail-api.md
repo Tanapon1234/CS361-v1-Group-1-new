@@ -6,6 +6,19 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #54 แต่ GitHub issue จริงใช้ #68
 
+## Production AWS Requirement
+
+การ์ดนี้ต้อง deploy เป็น production read API จริง:
+
+```text
+Amazon API Gateway
+→ AWS Lambda query handler
+→ Amazon RDS Data API
+→ Aurora PostgreSQL Serverless v2
+```
+
+fixture/mock ใช้ได้เฉพาะ tests เท่านั้น Detail API ต้องอ่าน core/detail/evidence rows จาก Aurora จริง
+
 ## Background
 
 List API แสดงข้อมูลสรุปเท่านั้น แต่ V2 repository ต้องมี detail page ที่อธิบายงานแต่ละรายการ เช่น งานสอน, publication, research project, supervision, service หรือ administration
@@ -57,8 +70,13 @@ List API แสดงข้อมูลสรุปเท่านั้น แ�
   - `evidence_reference`
 - return `detail.kind` ตาม subtype ที่พบ
 - evidence response ต้องเป็น metadata/reference เท่านั้น
+- เพิ่ม Lambda route/handler สำหรับ `GET /api/v2/work-items/{id}`
+- เพิ่ม Data API query layer สำหรับ core row, faculty contributors, subtype detail และ evidence metadata
+- configure API Gateway path parameter และ error handling
+- เพิ่ม CloudWatch logs สำหรับ work item id, visibility decision และ errors
 - add tests สำหรับทุก category ใน demo dataset
 - add tests สำหรับ restricted/internal redaction
+- เพิ่ม AWS smoke test สำหรับ public detail, not found และ restricted/internal case
 
 ### ไม่ต้องทำ
 
@@ -132,6 +150,9 @@ Response:
 - [ ] internal/restricted work item return public-safe error
 - [ ] `404` สำหรับ id ที่ไม่มีอยู่
 - [ ] มี tests ครอบคลุม subtype หลักทั้งหมดใน V2 demo dataset
+- [ ] API Gateway route deploy แล้ว
+- [ ] Lambda อ่าน Aurora subtype/evidence tables ผ่าน RDS Data API จริง
+- [ ] smoke test ผ่าน AWS endpoint อย่างน้อย public detail, not found และ restricted case
 
 ## Review Checklist
 
@@ -140,6 +161,7 @@ Backend:
 - [ ] mapper แยก subtype ชัดเจนและเพิ่ม category ใหม่ได้ภายหลัง
 - [ ] response ไม่ผูกกับ raw fixture shape
 - [ ] query/error path มี request id หรือ log ที่ debug ได้
+- [ ] production path ไม่อ่าน fixture file
 
 QA:
 
@@ -194,4 +216,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Detail API ที่แสดง work item รายการเดียวได้ครบตาม subtype พร้อม faculty, evidence metadata และ public-safe redaction ที่ทดสอบได้
+การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Detail API ที่ deploy บน AWS จริงและแสดง work item รายการเดียวจาก Aurora ได้ครบตาม subtype พร้อม faculty, evidence metadata, public-safe redaction, CloudWatch logs และ AWS smoke evidence ที่ทดสอบได้

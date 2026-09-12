@@ -6,6 +6,21 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #63 แต่ GitHub issue จริงใช้ #77
 
+## Production AWS Requirement
+
+หน้า admin work item list ต้องใช้ admin API ที่ protected ด้วย Cognito จริงและอ่าน Aurora จริง:
+
+```text
+Frontend /admin/work-items
+→ Cognito token
+→ API Gateway admin route
+→ Admin Lambda
+→ RDS Data API
+→ Aurora
+```
+
+adapter/mock ใช้ได้เฉพาะ component test ไม่ใช่ DoD
+
 ## Background
 
 Admin pilot ต้องเห็นรายการ work items เพื่อเลือกแก้ไข ลบ หรือเปิดดูรายละเอียด admin ได้ แต่ต้องอยู่ใน boundary ของ V2 ไม่ใช่ระบบ workflow เต็มรูปแบบ
@@ -56,17 +71,19 @@ Admin pilot ต้องเห็นรายการ work items เพื่�
   - Soft delete placeholder/action hook
 - เพิ่ม loading/empty/error states
 - เพิ่ม filter/search controls ขั้นต้น
+- ต่อ data fetching กับ protected admin list endpoint จริง หรือเพิ่ม `GET /api/v2/admin/work-items` ใน scope นี้ถ้ายังไม่มี endpoint แยก
+- ส่ง Cognito token จริงไปยัง API Gateway admin route
+- handle `401/403` จาก AWS endpoint จริง
 
 ### ไม่ต้องทำ
 
-- final API integration ถ้า #79 จะทำ
 - submit delete จริง
 - create/edit form
 - restore flow เต็ม
 
 ## Data Contract
 
-ถ้ามี admin list endpoint ชัดเจนแล้วให้ใช้ endpoint นั้น แต่ถ้ายังไม่มี contract ให้ใช้ adapter/mock ที่ shape ใกล้กับ #66 และบันทึก open question ไว้ใน card/PR:
+ถ้ามี admin list endpoint ชัดเจนแล้วให้ใช้ endpoint นั้น แต่ถ้ายังไม่มี contract ให้เพิ่มหรือบันทึก decision สำหรับ `GET /api/v2/admin/work-items` ในการ์ดนี้:
 
 ```text
 Open question: Admin list should either reuse GET /api/v2/work-items with admin auth context or add GET /api/v2/admin/work-items for internal/restricted/deleted records.
@@ -83,6 +100,9 @@ Open question: Admin list should either reuse GET /api/v2/work-items with admin 
 - [ ] มี action link ไป create/edit route
 - [ ] loading/empty/error states ครบ
 - [ ] ไม่ใช้ public API เพื่อเปิด internal/restricted/deleted โดยไม่มี auth
+- [ ] ใช้ protected AWS admin endpoint จริง ไม่ใช่ mock data
+- [ ] `401/403` จาก AWS endpoint ถูก handle ถูกต้อง
+- [ ] มี QA evidence จาก admin user จริง
 
 ## Review Checklist
 
@@ -102,6 +122,7 @@ QA:
 - [ ] test logged out redirect
 - [ ] test empty list
 - [ ] test action links
+- [ ] test กับ deployed admin API และ Cognito token จริง
 
 ## Dependencies
 
@@ -144,4 +165,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin มีหน้า browse/manage work items ที่ protected แล้ว พร้อม action paths สำหรับ create/edit/delete และพร้อมต่อ real CRUD integration
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin มีหน้า browse/manage work items ที่ protected แล้ว อ่านข้อมูลจาก deployed AWS admin API จริง พร้อม action paths สำหรับ create/edit/delete และหลักฐานว่า auth/data path ใช้งานกับ Cognito + Aurora ได้

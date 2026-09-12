@@ -4,7 +4,18 @@
 
 สร้าง Master Data API สำหรับ V2 เพื่อให้ frontend/API cards ถัดไปใช้ข้อมูลพื้นฐานร่วมกัน เช่น academic periods, evaluation periods, work categories, work types และ faculty options สำหรับ dropdown/filter/search UI
 
-การ์ดนี้เป็น tracer แรกของ V2 read API หลังจากมี schema, AWS foundation, V1 mapping และ demo dataset แล้ว เป้าหมายคือให้ทีมมี endpoint ที่อ่านข้อมูล master/reference จาก repository ได้จริงก่อนเริ่ม work item search/detail API
+การ์ดนี้เป็น tracer แรกของ V2 read API หลังจากมี schema, AWS foundation, V1 mapping และ demo dataset แล้ว เป้าหมายคือให้ทีมมี endpoint production จริงที่อ่านข้อมูล master/reference จาก Aurora repository ผ่าน AWS runtime ก่อนเริ่ม work item search/detail API
+
+Production runtime ของการ์ดนี้ต้องเป็น:
+
+```text
+Amazon API Gateway
+→ AWS Lambda query handler
+→ Amazon RDS Data API
+→ Aurora PostgreSQL Serverless v2
+```
+
+Next.js API route หรือ fixture adapter ใช้เป็น local contract prototype/test helper ได้เท่านั้น แต่ไม่ถือว่าเพียงพอสำหรับปิดการ์ดนี้
 
 ## Background
 
@@ -33,12 +44,13 @@ V2 ต้องรองรับการค้นหาและกรอง�
 สร้าง read-only API baseline สำหรับ master data ของ V2 ที่:
 
 - ใช้ endpoint ภายใต้ `/api/v2`
-- อ่านข้อมูลจาก V2 repository หรือ fixture adapter สำหรับ local/dev
+- อ่านข้อมูลจาก Aurora V2 repository ผ่าน Lambda + RDS Data API ใน AWS environment จริง
 - return response shape ที่ frontend ใช้กับ dropdown/filter ได้ทันที
 - enforce visibility และ public-safe fields สำหรับ public route
 - รองรับ work type filter ตาม category
 - มี tests สำหรับ response shape, sorting, validation และ empty state
 - มีเอกสาร contract ให้การ์ด API ถัดไปใช้ต่อ
+- มี deployed API Gateway endpoint และ smoke-test evidence จาก CloudWatch/AWS endpoint
 
 ## Non-Goals
 
@@ -53,6 +65,7 @@ V2 ต้องรองรับการค้นหาและกรอง�
 - ทำ cache/CDN optimization ขั้นสูง
 - เขียน migration runner หรือ seed runner
 - insert fixture data เข้า Aurora ถ้ายังไม่ได้ทำในการ์ดอื่น
+- ทำเฉพาะ local fixture/Next.js route โดยไม่มี AWS deploy
 
 ## Scope
 
@@ -64,10 +77,16 @@ V2 ต้องรองรับการค้นหาและกรอง�
 - implement `GET /api/v2/work-types`
 - implement `GET /api/v2/faculties`
 - เพิ่ม response DTO/mapper สำหรับ master data
-- เพิ่ม repository/data-access layer ที่อ่านจาก Aurora ผ่าน RDS Data API หรือ fallback fixture adapter ใน dev/test
+- เพิ่ม Lambda query handler สำหรับ master data routes
+- เพิ่ม repository/data-access layer ที่อ่านจาก Aurora ผ่าน RDS Data API
+- configure API Gateway routes ให้ชี้ไปยัง Lambda
+- ใช้ IAM role/secret/resource ARN จาก #48 โดยไม่ hardcode secret
+- เพิ่ม CloudWatch logging ที่ตรวจสอบ request/error ได้
+- fixture adapter ใช้ได้เฉพาะ automated tests/local fallback แต่ production handler ต้อง query Aurora จริง
 - เพิ่ม validation สำหรับ query parameters สำคัญ
 - เพิ่ม tests สำหรับ endpoint หรือ handler
 - เพิ่ม docs contract สำหรับ Master Data API
+- เพิ่ม AWS smoke test evidence สำหรับ endpoint ทั้ง 5 ตัว
 
 ### ไม่ต้องทำ
 
@@ -248,7 +267,7 @@ Error response:
 
 ## Data Source Rules
 
-Preferred production path:
+Required production path:
 
 ```text
 API Gateway
@@ -257,7 +276,7 @@ API Gateway
 → Aurora PostgreSQL
 ```
 
-Local/dev/test path:
+Allowed test/local fallback path:
 
 ```text
 handler/repository
@@ -271,6 +290,7 @@ Rules:
 - mapper ต้องแปลง DB rows เป็น DTO เดียวกับ fixture adapter
 - fixture adapter ใช้เพื่อ test และ local development เท่านั้น
 - production path ต้องไม่อ่าน fixture files
+- Definition of Done ต้องพิสูจน์ด้วย deployed API Gateway URL หรือ documented AWS endpoint จริง
 
 ## Security / Visibility Rules
 
@@ -340,7 +360,7 @@ ORDER BY wc.display_order ASC, wt.display_order ASC, wt.code ASC;
 docs/v2/master-data-api.md
 ```
 
-และ implementation/test files ตามโครงสร้าง backend ที่ทีมเลือก
+และ implementation/test/deploy files ตามโครงสร้าง backend ที่ทีมเลือก
 
 เอกสารควรบอก:
 
@@ -351,79 +371,90 @@ docs/v2/master-data-api.md
 - visibility rules
 - local fixture/dev behavior
 - production Data API behavior
+- AWS endpoint URL หรือ route mapping
+- Lambda name / API Gateway stage / CloudWatch log group ที่ใช้ตรวจสอบ
 
 ## Acceptance Criteria
 
-- [x] `GET /api/v2/academic-periods` ใช้งานได้
-- [x] `GET /api/v2/evaluation-periods` ใช้งานได้
-- [x] `GET /api/v2/work-categories` ใช้งานได้
-- [x] `GET /api/v2/work-types` ใช้งานได้
-- [x] `GET /api/v2/faculties` ใช้งานได้สำหรับ dropdown/filter
-- [x] response envelope เป็นรูปแบบเดียวกันทุก endpoint
-- [x] invalid query parameter return error shape ที่ชัดเจน
-- [x] work type filter by category ใช้งานได้
-- [x] faculties endpoint preserve `public_slug`
-- [x] public-safe fields เท่านั้นที่ถูก expose
-- [x] ไม่ expose source/audit/auth/secret fields
-- [x] มี repository/data-access boundary ไม่ผูก handler กับ SQL ตรงทุกจุด
-- [x] มี mapper จาก DB/fixture row เป็น DTO
-- [x] มี tests สำหรับ success, empty, invalid query และ visibility-safe response
-- [x] มี docs contract สำหรับ master data API
-- [x] endpoint พร้อมให้ Work Item Search API และ Repository Filter UI ใช้ต่อ
+- [ ] `GET /api/v2/academic-periods` ใช้งานได้
+- [ ] `GET /api/v2/evaluation-periods` ใช้งานได้
+- [ ] `GET /api/v2/work-categories` ใช้งานได้
+- [ ] `GET /api/v2/work-types` ใช้งานได้
+- [ ] `GET /api/v2/faculties` ใช้งานได้สำหรับ dropdown/filter
+- [ ] response envelope เป็นรูปแบบเดียวกันทุก endpoint
+- [ ] invalid query parameter return error shape ที่ชัดเจน
+- [ ] work type filter by category ใช้งานได้
+- [ ] faculties endpoint preserve `public_slug`
+- [ ] public-safe fields เท่านั้นที่ถูก expose
+- [ ] ไม่ expose source/audit/auth/secret fields
+- [ ] มี repository/data-access boundary ไม่ผูก handler กับ SQL ตรงทุกจุด
+- [ ] มี mapper จาก DB/fixture row เป็น DTO
+- [ ] มี tests สำหรับ success, empty, invalid query และ visibility-safe response
+- [ ] มี docs contract สำหรับ master data API
+- [ ] endpoint พร้อมให้ Work Item Search API และ Repository Filter UI ใช้ต่อ
+- [ ] มี Lambda query handler ที่ deploy แล้ว
+- [ ] API Gateway route ทั้ง 5 ตัวชี้ไป Lambda จริง
+- [ ] Lambda อ่าน Aurora ผ่าน RDS Data API จริง
+- [ ] ใช้ Secrets Manager และ IAM role จาก #48 โดยไม่ hardcode secret
+- [ ] CloudWatch log group มี request/error logs สำหรับ endpoint ชุดนี้
+- [ ] smoke test ผ่าน deployed AWS endpoint ทั้ง success และ invalid query
 
-## Implementation Evidence
+## Existing Local Prototype Evidence
 
-- Implemented route handlers under `frontend/app/api/v2/*`
-- Implemented fixture-backed repository/mapper/validation in `frontend/lib/v2/master-data.mjs`
-- Added targeted tests in `frontend/lib/v2/master-data.test.mjs`
-- Added API contract docs in `docs/v2/master-data-api.md`
-- Verification passed:
-  - `npm run test:v2:master-data` passed 9/9 tests
-  - `npm run lint` passed
-  - `npx next build --webpack` passed
-  - HTTP smoke tests passed for all five endpoints and invalid category `400 INVALID_QUERY`
+มี local/dev contract prototype แล้วจาก commit `1fdb741`:
+
+- Next.js route handlers under `frontend/app/api/v2/*`
+- Fixture-backed repository/mapper/validation in `frontend/lib/v2/master-data.mjs`
+- Targeted tests in `frontend/lib/v2/master-data.test.mjs`
+- API contract docs in `docs/v2/master-data-api.md`
+
+หลักฐานชุดนี้ช่วยลดความเสี่ยงเรื่อง contract/mapper/test แต่ยังไม่ถือว่าปิดการ์ดนี้ เพราะ production requirement คือ API Gateway + Lambda + RDS Data API + Aurora
 
 ## Review Checklist
 
 Data / Database:
 
-- [x] query สอดคล้องกับ schema จาก #47
-- [x] sort order predictable
-- [x] active/inactive handling ชัดเจน
-- [x] academic period ไม่ derive จาก calendar date ผิดๆ
+- [ ] query สอดคล้องกับ schema จาก #47
+- [ ] sort order predictable
+- [ ] active/inactive handling ชัดเจน
+- [ ] academic period ไม่ derive จาก calendar date ผิดๆ
 
 Backend:
 
-- [x] handler แยก validation, repository, mapper ชัดเจน
-- [x] error handling ไม่ leak implementation detail
-- [x] response shape stable
-- [x] fixture/dev adapter ไม่ปนกับ production path
+- [ ] handler แยก validation, repository, mapper ชัดเจน
+- [ ] error handling ไม่ leak implementation detail
+- [ ] response shape stable
+- [ ] Lambda handler ใช้ repository/data-access boundary ไม่เขียน SQL กระจาย
+- [ ] fixture/dev adapter ไม่ปนกับ production path
+- [ ] API Gateway route/stage ถูก document และ test ได้
 
 Frontend:
 
-- [x] field เพียงพอสำหรับ dropdown/filter UI
-- [x] label ไทย/อังกฤษพร้อมใช้
-- [x] faculty option ใช้ `public_slug` ต่อกับ V1 compatibility ได้
-- [x] endpoint count/empty state ใช้งานง่าย
+- [ ] field เพียงพอสำหรับ dropdown/filter UI
+- [ ] label ไทย/อังกฤษพร้อมใช้
+- [ ] faculty option ใช้ `public_slug` ต่อกับ V1 compatibility ได้
+- [ ] endpoint count/empty state ใช้งานง่าย
 
 QA / Integration:
 
-- [x] smoke test master data endpoint ได้
-- [x] invalid category/semester test ได้
-- [x] visibility-safe response test ได้
-- [x] dataset จาก #50 ใช้เป็น expected baseline ได้
+- [ ] smoke test master data endpoint ได้
+- [ ] invalid category/semester test ได้
+- [ ] visibility-safe response test ได้
+- [ ] dataset จาก #50 ใช้เป็น expected baseline ได้
+- [ ] smoke test ใช้ AWS endpoint จริง ไม่ใช่ local route อย่างเดียว
 
 Security:
 
-- [x] ไม่ return secret/config/ARN
-- [x] ไม่ return restricted/internal faculty-only fields ผ่าน public endpoint
-- [x] ไม่ expose source/audit/auth tables
+- [ ] ไม่ return secret/config/ARN
+- [ ] ไม่ return restricted/internal faculty-only fields ผ่าน public endpoint
+- [ ] ไม่ expose source/audit/auth tables
+- [ ] Lambda role มีสิทธิ์เท่าที่จำเป็นต่อ Data API/Secrets เท่านั้น
 
 Tech Lead:
 
-- [x] scope ไม่ล้ำไป Work Item Search/Detail API
-- [x] API contract พร้อมให้ frontend/API cards ถัดไปใช้
-- [x] implementation ไม่ผูกกับ fixture format มากเกินไป
+- [ ] scope ไม่ล้ำไป Work Item Search/Detail API
+- [ ] API contract พร้อมให้ frontend/API cards ถัดไปใช้
+- [ ] implementation ไม่ผูกกับ fixture format มากเกินไป
 
 ## Dependencies
 
@@ -473,4 +504,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Master Data API ที่ return academic periods, evaluation periods, work categories, work types และ faculty options ได้ด้วย response shape ที่ stable, ทดสอบได้, public-safe และพร้อมให้ Work Item API กับ frontend filter UI ใช้ต่อโดยไม่ต้องเดา contract เอง
+การ์ดนี้ถือว่าเสร็จเมื่อ V2 มี Master Data API ที่ deploy บน AWS จริงผ่าน API Gateway + Lambda + RDS Data API + Aurora และ return academic periods, evaluation periods, work categories, work types และ faculty options ได้ด้วย response shape ที่ stable, ทดสอบได้, public-safe, มี CloudWatch/API smoke evidence และพร้อมให้ Work Item API กับ frontend filter UI ใช้ต่อโดยไม่ต้องเดา contract เอง

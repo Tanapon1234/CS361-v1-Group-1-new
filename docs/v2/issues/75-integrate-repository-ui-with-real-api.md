@@ -6,6 +6,20 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #61 แต่ GitHub issue จริงใช้ #75
 
+## Production AWS Requirement
+
+การ์ดนี้เป็น public repository E2E integration gate ต้องทดสอบ frontend กับ deployed AWS APIs จริงทั้งหมด:
+
+```text
+Frontend deployment
+→ API Gateway public routes
+→ Lambda read handlers
+→ RDS Data API
+→ Aurora
+```
+
+ห้ามปิดการ์ดด้วย local/mock API เท่านั้น
+
 ## Background
 
 การ์ด #72-#74 สร้าง UI surface ส่วน #64-#68 สร้าง read APIs การ์ดนี้คือจุดรวมที่พิสูจน์ว่า public repository ใช้งานกับข้อมูลจริงใน Aurora/API ได้ครบ flow
@@ -26,7 +40,6 @@
 การ์ดนี้ยังไม่ต้อง:
 
 - admin login/CRUD integration
-- deploy production จริงถ้ายังอยู่ใน dev
 - evidence download
 - official reporting/export
 
@@ -43,6 +56,8 @@
 - preserve filter/page state ระหว่าง navigation
 - เพิ่ม integration tests/manual QA steps
 - เพิ่ม env/config docs ถ้าต้องตั้ง `NEXT_PUBLIC_API_BASE_URL` หรือ route proxy เพิ่ม
+- บันทึก deployed frontend URL และ API Gateway base URL ที่ใช้ทดสอบ
+- ตรวจ CloudWatch/API logs เมื่อเกิด error จาก flow หลัก
 
 ### ไม่ต้องทำ
 
@@ -71,6 +86,9 @@
 - [ ] URL query แปลงเป็น API query ถูกต้อง
 - [ ] no V1 regression บน `/faculties` และ `/api/v1/faculties`
 - [ ] มี QA evidence หรือ checklist สำหรับ demo dataset
+- [ ] frontend deployment ใช้ API Gateway base URL จริง
+- [ ] smoke test public flow ผ่าน deployed frontend ไม่ใช่ local/mock เท่านั้น
+- [ ] CloudWatch/API evidence ไม่มี error ที่ block demo flow
 
 ## Review Checklist
 
@@ -83,7 +101,7 @@ Frontend:
 Backend:
 
 - [ ] API response shape ตรงกับ frontend expectation
-- [ ] CORS/proxy/env path ทำงานใน local/dev
+- [ ] CORS/proxy/env path ทำงานกับ deployed frontend และ API Gateway
 
 QA:
 
@@ -134,4 +152,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ public V2 repository ใช้ real API ได้ครบตั้งแต่ filter/search/list จนถึง detail และมีหลักฐานว่า V1 public pages ยังไม่พัง
+การ์ดนี้ถือว่าเสร็จเมื่อ public V2 repository ที่ deploy แล้วใช้ AWS API Gateway/Lambda/Aurora ได้ครบตั้งแต่ filter/search/list จนถึง detail และมีหลักฐานว่า V1 public pages ยังไม่พัง
