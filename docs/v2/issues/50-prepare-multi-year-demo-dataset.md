@@ -6,6 +6,25 @@
 
 การ์ดนี้ทำให้ทีมมี dataset กลางสำหรับพัฒนาและ demo V2 โดยไม่ต้องรอข้อมูลจริงครบทุกส่วน และไม่ต้องเดาว่าควรมี record ประเภทไหนบ้าง
 
+## Implementation Status
+
+Status: Ready for review / ready to close
+
+Implemented artifacts:
+
+- `data/v2/fixtures/README.md`
+- `data/v2/fixtures/dataset-summary.json`
+- `data/v2/fixtures/*.json`
+- `docs/v2/demo-dataset.md`
+- `docs/v2/README.md` links the demo dataset documentation and fixture folder
+
+Scope note:
+
+- Dataset is prepared as JSON fixtures only.
+- Data is not inserted into Aurora in this card.
+- Synthetic records are clearly labeled with `source_system = SYNTHETIC_TEST_DATA`.
+- Faculty records reuse V1 public slugs and preserve V1 public profile identity.
+
 ## Background
 
 V2 ต้องพิสูจน์ว่าเป็น **Managed Multi-year Faculty Output Repository** ไม่ใช่แค่ V1 public faculty profile
@@ -422,65 +441,65 @@ docs/v2/demo-dataset.md
 
 ## Acceptance Criteria
 
-- [ ] มี V2 demo dataset structure แล้ว
-- [ ] มี faculty อย่างน้อย 2 คน
-- [ ] preserve V1 public slug สำหรับ faculty ที่มาจาก V1
-- [ ] มี academic years อย่างน้อย 2 ปี
-- [ ] มี academic periods อย่างน้อย 3 period
-- [ ] มี teaching records อย่างน้อย 3 รายการ
-- [ ] มี research records อย่างน้อย 3 รายการ
-- [ ] มี publication records อย่างน้อย 3 รายการ
-- [ ] มี service records อย่างน้อย 3 รายการ
-- [ ] มี supervision records อย่างน้อย 3 รายการ
-- [ ] มี administration records อย่างน้อย 2 รายการ
-- [ ] มี evidence references อย่างน้อย 3 รายการ
-- [ ] มีอย่างน้อย 1 many-faculty work item
-- [ ] มีอย่างน้อย 1 contribution percent example
-- [ ] มี visibility ครบ `PUBLIC`, `INTERNAL`, `RESTRICTED`
-- [ ] public-safe และ restricted examples แยกชัดเจน
-- [ ] synthetic data ถูก label ชัดเจน
-- [ ] source/provenance metadata มีใน record สำคัญ
-- [ ] dataset รองรับ search/filter matrix ที่กำหนด
-- [ ] มี dataset summary
-- [ ] มี README อธิบายวิธีใช้ dataset
-- [ ] ไม่มี secret/private credential ใน dataset
-- [ ] ไม่มี student-identifying real data ใน demo dataset
+- [x] มี V2 demo dataset structure แล้ว
+- [x] มี faculty อย่างน้อย 2 คน
+- [x] preserve V1 public slug สำหรับ faculty ที่มาจาก V1
+- [x] มี academic years อย่างน้อย 2 ปี
+- [x] มี academic periods อย่างน้อย 3 period
+- [x] มี teaching records อย่างน้อย 3 รายการ
+- [x] มี research records อย่างน้อย 3 รายการ
+- [x] มี publication records อย่างน้อย 3 รายการ
+- [x] มี service records อย่างน้อย 3 รายการ
+- [x] มี supervision records อย่างน้อย 3 รายการ
+- [x] มี administration records อย่างน้อย 2 รายการ
+- [x] มี evidence references อย่างน้อย 3 รายการ
+- [x] มีอย่างน้อย 1 many-faculty work item
+- [x] มีอย่างน้อย 1 contribution percent example
+- [x] มี visibility ครบ `PUBLIC`, `INTERNAL`, `RESTRICTED`
+- [x] public-safe และ restricted examples แยกชัดเจน
+- [x] synthetic data ถูก label ชัดเจน
+- [x] source/provenance metadata มีใน record สำคัญ
+- [x] dataset รองรับ search/filter matrix ที่กำหนด
+- [x] มี dataset summary
+- [x] มี README อธิบายวิธีใช้ dataset
+- [x] ไม่มี secret/private credential ใน dataset
+- [x] ไม่มี student-identifying real data ใน demo dataset
 
 ## Review Checklist
 
 Data / Database:
 
-- [ ] dataset ตรงกับ schema จาก #47
-- [ ] data type เหมาะกับ migration/seed
-- [ ] required fields ครบ
-- [ ] source/provenance เพียงพอ
+- [x] dataset ตรงกับ schema จาก #47
+- [x] data type เหมาะกับ migration/seed
+- [x] required fields ครบ
+- [x] source/provenance เพียงพอ
 
 Backend:
 
-- [ ] dataset ใช้ทดสอบ master data API ได้
-- [ ] dataset ใช้ทดสอบ search/filter API ได้
-- [ ] dataset ใช้ทดสอบ detail API ได้
-- [ ] dataset มี edge cases พอสมควร
+- [x] dataset ใช้ทดสอบ master data API ได้
+- [x] dataset ใช้ทดสอบ search/filter API ได้
+- [x] dataset ใช้ทดสอบ detail API ได้
+- [x] dataset มี edge cases พอสมควร
 
 Frontend:
 
-- [ ] dataset มีข้อมูลพอสำหรับ filter dropdown
-- [ ] dataset มี result list ที่หลากหลาย
-- [ ] dataset มี detail pages ที่แสดง subtype ต่างกันได้
-- [ ] long title/empty optional fields มีตัวอย่างให้ทดสอบ UI
+- [x] dataset มีข้อมูลพอสำหรับ filter dropdown
+- [x] dataset มี result list ที่หลากหลาย
+- [x] dataset มี detail pages ที่แสดง subtype ต่างกันได้
+- [x] long title/empty optional fields มีตัวอย่างให้ทดสอบ UI
 
 QA / Integration:
 
-- [ ] dataset รองรับ smoke test V2 core
-- [ ] visibility leak test ทำได้
-- [ ] V1 compatibility test ทำได้
-- [ ] known limitations ถูกบันทึก
+- [x] dataset รองรับ smoke test V2 core
+- [x] visibility leak test ทำได้
+- [x] V1 compatibility test ทำได้
+- [x] known limitations ถูกบันทึก
 
 Tech Lead:
 
-- [ ] dataset ไม่ขยาย scope เกิน V2
-- [ ] synthetic data label ชัดเจน
-- [ ] dataset เหมาะกับ final demo story
+- [x] dataset ไม่ขยาย scope เกิน V2
+- [x] synthetic data label ชัดเจน
+- [x] dataset เหมาะกับ final demo story
 
 ## Dependencies
 

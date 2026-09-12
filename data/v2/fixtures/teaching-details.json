@@ -1,0 +1,58 @@
+[
+  {
+    "work_item_id": "wi-teach-2566-1-cs222",
+    "course_code": "CS222",
+    "course_title": "Data Structures",
+    "degree_level": "UNDERGRADUATE",
+    "teaching_mode": "LECTURE",
+    "section_count": 1,
+    "student_count": 85,
+    "credits": 3,
+    "lecture_hours": 45,
+    "lab_hours": 0,
+    "workload_hours": 45,
+    "reference_label": "Synthetic table workload section 1.1"
+  },
+  {
+    "work_item_id": "wi-teach-2567-2-cs333",
+    "course_code": "CS333",
+    "course_title": "Cloud Application Development",
+    "degree_level": "UNDERGRADUATE",
+    "teaching_mode": "LECTURE",
+    "section_count": 1,
+    "student_count": 120,
+    "credits": 3,
+    "lecture_hours": 45,
+    "lab_hours": 0,
+    "workload_hours": 45,
+    "reference_label": "Synthetic table workload section 1.1"
+  },
+  {
+    "work_item_id": "wi-teach-2567-2-cs333-lab",
+    "course_code": "CS333",
+    "course_title": "Cloud Application Development Laboratory",
+    "degree_level": "UNDERGRADUATE",
+    "teaching_mode": "LAB",
+    "section_count": 1,
+    "student_count": 120,
+    "credits": 1,
+    "lecture_hours": 0,
+    "lab_hours": 30,
+    "workload_hours": 30,
+    "reference_label": "Synthetic lab workload section 1.2"
+  },
+  {
+    "work_item_id": "wi-teach-2568-1-cs498",
+    "course_code": "CS498",
+    "course_title": "Research Seminar in Human Computer Interaction",
+    "degree_level": "GRADUATE",
+    "teaching_mode": "SEMINAR",
+    "section_count": 1,
+    "student_count": 24,
+    "credits": 3,
+    "lecture_hours": 30,
+    "lab_hours": 0,
+    "workload_hours": 30,
+    "reference_label": "Synthetic graduate seminar workload"
+  }
+]

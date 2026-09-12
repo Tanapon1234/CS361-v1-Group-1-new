@@ -1,0 +1,132 @@
+{
+  "dataset_id": "cs361-v2-demo-multi-year-001",
+  "issue": 50,
+  "status": "ready_for_review",
+  "purpose": "Multi-year V2 demo dataset for search, filter, detail, visibility, and migration seed planning.",
+  "scope": {
+    "database_inserted": false,
+    "aurora_migration_executed": false,
+    "workload_pdf_extracted_automatically": false,
+    "contains_secret_or_private_credential": false,
+    "contains_real_student_identifying_data": false
+  },
+  "counts": {
+    "faculties": 3,
+    "academic_years": 3,
+    "academic_periods": 5,
+    "evaluation_periods": 3,
+    "work_categories": 5,
+    "work_types": 14,
+    "work_items": 18,
+    "faculty_work_items": 20,
+    "teaching_details": 4,
+    "research_project_details": 3,
+    "publication_details": 3,
+    "supervision_details": 3,
+    "service_details": 3,
+    "administration_details": 2,
+    "evidence_references": 8
+  },
+  "work_item_counts_by_category": {
+    "TEACHING": 4,
+    "RESEARCH": 6,
+    "SUPERVISION": 3,
+    "ACADEMIC_SERVICE": 3,
+    "ADMINISTRATION": 2
+  },
+  "work_item_counts_by_visibility": {
+    "PUBLIC": 4,
+    "INTERNAL": 12,
+    "RESTRICTED": 2
+  },
+  "evidence_counts_by_visibility": {
+    "PUBLIC": 3,
+    "INTERNAL": 3,
+    "RESTRICTED": 2
+  },
+  "source_breakdown": {
+    "faculty_from_v1_public_profile": 3,
+    "work_items_from_v1_public_profile": 1,
+    "synthetic_work_items": 17
+  },
+  "minimum_requirements": {
+    "faculty_at_least_2": "pass",
+    "academic_years_at_least_2": "pass",
+    "academic_periods_at_least_3": "pass",
+    "teaching_records_at_least_3": "pass",
+    "research_records_at_least_3": "pass",
+    "publication_records_at_least_3": "pass",
+    "service_records_at_least_3": "pass",
+    "supervision_records_at_least_3": "pass",
+    "administration_records_at_least_2": "pass",
+    "evidence_references_at_least_3": "pass",
+    "has_many_faculty_work_item": "pass",
+    "has_contribution_percent_example": "pass",
+    "has_public_internal_restricted_visibility": "pass",
+    "has_external_evidence_url": "pass",
+    "has_workload_form_source_section_code": "pass"
+  },
+  "search_filter_matrix": [
+    {
+      "query": "Faculty = prapaporn-rattanatamrong, Academic Year = 2567",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-teach-2567-2-cs333",
+        "wi-teach-2567-2-cs333-lab",
+        "wi-pub-2019-multi-container",
+        "wi-pub-2024-privacy-edge",
+        "wi-research-2567-privacy-platform",
+        "wi-supervision-2567-phd-thesis",
+        "wi-service-2567-reviewer",
+        "wi-admin-2567-course-coordinator"
+      ]
+    },
+    {
+      "query": "Academic Year = 2567, Category = TEACHING",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-teach-2567-2-cs333",
+        "wi-teach-2567-2-cs333-lab"
+      ]
+    },
+    {
+      "query": "Faculty = prapaporn-rattanatamrong, Category = RESEARCH, Type = PUBLICATION",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-pub-2019-multi-container",
+        "wi-pub-2024-privacy-edge"
+      ]
+    },
+    {
+      "query": "Academic Year 2566-2568, Keyword = privacy",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-pub-2024-privacy-edge",
+        "wi-research-2567-privacy-platform",
+        "wi-supervision-2567-phd-thesis",
+        "wi-service-2568-speaker"
+      ]
+    },
+    {
+      "query": "Category = SUPERVISION, Degree Level = PhD",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-supervision-2567-phd-thesis"
+      ]
+    },
+    {
+      "query": "Faculty = prapaporn-rattanatamrong, Year = 2567, Semester = 2, Category = TEACHING",
+      "supported": true,
+      "expected_work_item_ids": [
+        "wi-teach-2567-2-cs333",
+        "wi-teach-2567-2-cs333-lab"
+      ]
+    }
+  ],
+  "known_limitations": [
+    "Fixture JSON includes metadata fields for migration planning; loaders may strip metadata before direct SQL insert.",
+    "Publication authors and citation text are represented through work item description because the #47 schema has no normalized authors or citation_text table.",
+    "S3 evidence keys are placeholders and must not be treated as real objects.",
+    "Dataset is demo/synthetic for V2 testing and is not an official workload score report."
+  ]
+}

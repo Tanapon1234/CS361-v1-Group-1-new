@@ -1,0 +1,26 @@
+[
+  {
+    "id": "eval-2566-full-year",
+    "code": "EVAL-2566",
+    "label": "Evaluation 2566",
+    "start_date": "2023-08-01",
+    "end_date": "2024-05-31",
+    "academic_period_id": "ap-2566-1"
+  },
+  {
+    "id": "eval-2567-full-year",
+    "code": "EVAL-2567",
+    "label": "Evaluation 2567",
+    "start_date": "2024-08-01",
+    "end_date": "2025-05-31",
+    "academic_period_id": "ap-2567-1"
+  },
+  {
+    "id": "eval-2568-midyear",
+    "code": "EVAL-2568-H1",
+    "label": "Evaluation 2568 H1",
+    "start_date": "2025-08-01",
+    "end_date": "2025-12-31",
+    "academic_period_id": "ap-2568-1"
+  }
+]

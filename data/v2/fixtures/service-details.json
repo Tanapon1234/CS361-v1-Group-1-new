@@ -1,0 +1,32 @@
+[
+  {
+    "work_item_id": "wi-service-2566-curriculum-committee",
+    "service_scope": "INTERNAL_FACULTY",
+    "organization_name": "Department of Computer Science",
+    "service_role": "Committee Member",
+    "committee_name": "Computer Science Curriculum Revision Committee",
+    "order_reference": "SYN-COMMITTEE-2566-001",
+    "service_date": "2023-09-01",
+    "service_end_date": "2024-02-28"
+  },
+  {
+    "work_item_id": "wi-service-2567-reviewer",
+    "service_scope": "EXTERNAL_ACADEMIC",
+    "organization_name": "Synthetic Journal Review Board",
+    "service_role": "Reviewer",
+    "committee_name": null,
+    "order_reference": "SYN-REVIEW-2567-011",
+    "service_date": "2025-02-01",
+    "service_end_date": "2025-02-28"
+  },
+  {
+    "work_item_id": "wi-service-2568-speaker",
+    "service_scope": "PUBLIC_ACADEMIC_SERVICE",
+    "organization_name": "Synthetic Education Technology Forum",
+    "service_role": "Invited Speaker",
+    "committee_name": null,
+    "order_reference": "SYN-SPEAKER-2568-004",
+    "service_date": "2025-09-20",
+    "service_end_date": "2025-09-20"
+  }
+]

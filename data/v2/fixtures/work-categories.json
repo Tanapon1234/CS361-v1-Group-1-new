@@ -1,0 +1,37 @@
+[
+  {
+    "code": "TEACHING",
+    "label_th": "งานสอน",
+    "label_en": "Teaching",
+    "display_order": 10,
+    "is_active": true
+  },
+  {
+    "code": "RESEARCH",
+    "label_th": "งานวิชาการ/วิจัย",
+    "label_en": "Research and Academic Output",
+    "display_order": 20,
+    "is_active": true
+  },
+  {
+    "code": "SUPERVISION",
+    "label_th": "การดูแลนักศึกษา",
+    "label_en": "Student Supervision",
+    "display_order": 30,
+    "is_active": true
+  },
+  {
+    "code": "ACADEMIC_SERVICE",
+    "label_th": "งานบริการวิชาการ",
+    "label_en": "Academic Service",
+    "display_order": 40,
+    "is_active": true
+  },
+  {
+    "code": "ADMINISTRATION",
+    "label_th": "งานบริหาร",
+    "label_en": "Administration",
+    "display_order": 50,
+    "is_active": true
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "work_item_id": "wi-supervision-2566-senior-project",
+    "supervision_type": "SENIOR_PROJECT",
+    "supervision_role": "ADVISOR",
+    "degree_level": "UNDERGRADUATE",
+    "program_name": "Computer Science",
+    "course_code": "CS403",
+    "student_count": 1,
+    "credits": 3,
+    "student_identifier_policy": "NOT_STORED"
+  },
+  {
+    "work_item_id": "wi-supervision-2567-phd-thesis",
+    "supervision_type": "THESIS",
+    "supervision_role": "MAIN_ADVISOR",
+    "degree_level": "PhD",
+    "program_name": "Computer Science",
+    "course_code": null,
+    "student_count": 1,
+    "credits": 12,
+    "student_identifier_policy": "REDACTED"
+  },
+  {
+    "work_item_id": "wi-supervision-2567-coop",
+    "supervision_type": "COOPERATIVE_EDUCATION",
+    "supervision_role": "ADVISOR",
+    "degree_level": "UNDERGRADUATE",
+    "program_name": "Computer Science",
+    "course_code": "CS304",
+    "student_count": 2,
+    "credits": 6,
+    "student_identifier_policy": "REDACTED"
+  }
+]
