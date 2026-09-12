@@ -366,63 +366,75 @@ database/README.md
 
 ## Acceptance Criteria
 
-- [ ] มี ERD ของ V2 repository
-- [ ] มี data dictionary ขั้นต้น
-- [ ] มี SQL migration baseline
-- [ ] มี seed master data baseline
-- [ ] table หลักครบตาม schema baseline
-- [ ] `faculty.public_slug` ถูกออกแบบให้ preserve V1 slug ได้
-- [ ] `work_item` เป็น central entity ของ work/output ทุกประเภท
-- [ ] subtype detail tables แยกจาก `work_item`
-- [ ] `faculty_work_item` รองรับ many-to-many relationship
-- [ ] `academic_period` และ `evaluation_period` แยกกันชัดเจน
-- [ ] มี visibility model `PUBLIC`, `INTERNAL`, `RESTRICTED`
-- [ ] มี status model ขั้นต่ำ `ACTIVE`, `DELETED`
-- [ ] soft delete ถูกออกแบบผ่าน `deleted_at` และ/หรือ `status`
-- [ ] มี constraints สำคัญครบ
-- [ ] มี indexes สำหรับ search/filter ขั้นต้น
-- [ ] มี duplicate/idempotency strategy สำหรับ import
-- [ ] มี duplicate strategy สำหรับ publication DOI/title
-- [ ] มี evidence metadata model
-- [ ] มี audit event model
-- [ ] ไม่มี table ที่ copy โครงสร้างแบบฟอร์มภาระงานแบบ 1:1 โดยไม่ผ่าน domain model
-- [ ] เอกสารอธิบายว่า source-reported score/weight ไม่ใช่ scoring engine ของ V2
-- [ ] migration SQL สามารถ review ได้โดยไม่ต้อง deploy จริง
+- [x] มี ERD ของ V2 repository
+- [x] มี data dictionary ขั้นต้น
+- [x] มี SQL migration baseline
+- [x] มี seed master data baseline
+- [x] table หลักครบตาม schema baseline
+- [x] `faculty.public_slug` ถูกออกแบบให้ preserve V1 slug ได้
+- [x] `work_item` เป็น central entity ของ work/output ทุกประเภท
+- [x] subtype detail tables แยกจาก `work_item`
+- [x] `faculty_work_item` รองรับ many-to-many relationship
+- [x] `academic_period` และ `evaluation_period` แยกกันชัดเจน
+- [x] มี visibility model `PUBLIC`, `INTERNAL`, `RESTRICTED`
+- [x] มี status model ขั้นต่ำ `ACTIVE`, `DELETED`
+- [x] soft delete ถูกออกแบบผ่าน `deleted_at` และ/หรือ `status`
+- [x] มี constraints สำคัญครบ
+- [x] มี indexes สำหรับ search/filter ขั้นต้น
+- [x] มี duplicate/idempotency strategy สำหรับ import
+- [x] มี duplicate strategy สำหรับ publication DOI/title
+- [x] มี evidence metadata model
+- [x] มี audit event model
+- [x] ไม่มี table ที่ copy โครงสร้างแบบฟอร์มภาระงานแบบ 1:1 โดยไม่ผ่าน domain model
+- [x] เอกสารอธิบายว่า source-reported score/weight ไม่ใช่ scoring engine ของ V2
+- [x] migration SQL สามารถ review ได้โดยไม่ต้อง deploy จริง
 
 ## Review Checklist
 
 Data / Database:
 
-- [ ] schema สอดคล้องกับ V2 domain
-- [ ] constraints ครอบคลุมข้อมูลสำคัญ
-- [ ] index strategy รองรับ query หลัก
-- [ ] ไม่มีการผูก schema กับแบบฟอร์มภาระงานมากเกินไป
+- [x] schema สอดคล้องกับ V2 domain
+- [x] constraints ครอบคลุมข้อมูลสำคัญ
+- [x] index strategy รองรับ query หลัก
+- [x] ไม่มีการผูก schema กับแบบฟอร์มภาระงานมากเกินไป
 
 Backend:
 
-- [ ] schema รองรับ Master Data API
-- [ ] schema รองรับ Work Item Search API
-- [ ] schema รองรับ Faculty Work Items API
-- [ ] schema รองรับ Work Item Detail API
-- [ ] schema รองรับ Admin Create/Edit/Soft Delete API
+- [x] schema รองรับ Master Data API
+- [x] schema รองรับ Work Item Search API
+- [x] schema รองรับ Faculty Work Items API
+- [x] schema รองรับ Work Item Detail API
+- [x] schema รองรับ Admin Create/Edit/Soft Delete API
 
 Cloud / AWS:
 
-- [ ] SQL เหมาะกับ Aurora PostgreSQL
-- [ ] ไม่มี dependency ที่ขัดกับ RDS Data API
-- [ ] migration/seed แยกไฟล์ชัดเจน
+- [x] SQL เหมาะกับ Aurora PostgreSQL
+- [x] ไม่มี dependency ที่ขัดกับ RDS Data API
+- [x] migration/seed แยกไฟล์ชัดเจน
 
 Frontend:
 
-- [ ] schema มี master data พอสำหรับ filter dropdown
-- [ ] category/type/period/faculty query ใช้ทำ UI ได้
-- [ ] detail model เพียงพอสำหรับหน้า `/outputs/{id}`
+- [x] schema มี master data พอสำหรับ filter dropdown
+- [x] category/type/period/faculty query ใช้ทำ UI ได้
+- [x] detail model เพียงพอสำหรับหน้า `/outputs/{id}`
 
 QA / Integration:
 
-- [ ] acceptance queries ของ V2 สามารถทดสอบจาก schema นี้ได้
-- [ ] public/internal/restricted leakage สามารถทดสอบได้
-- [ ] V1 slug compatibility สามารถทดสอบได้
+- [x] acceptance queries ของ V2 สามารถทดสอบจาก schema นี้ได้
+- [x] public/internal/restricted leakage สามารถทดสอบได้
+- [x] V1 slug compatibility สามารถทดสอบได้
+
+## Completion Evidence
+
+ตรวจเทียบกับ `database/migrations/001_base.sql` แล้ว:
+
+- SQL migration มี table ครบ `23` ตารางตาม V2 schema baseline รวม support tables สำหรับ Admin pilot auth/audit
+- DBML มี table ครบ `23` ตาราง และเปิด ER diagram ใน dbdiagram.io ได้ง่ายขึ้นด้วย clean DBML
+- มี foreign key references, check constraints, unique constraints และ indexes สำหรับ query หลัก
+- seed master data มี category/type ขั้นต่ำครบ รวมถึง `ADMIN` และ `SYSTEM`
+- `docs/v2/erd-table-attribute-guide.md` อธิบายครบทุก table และทุก attribute จาก SQL migration
+- `docs/v2/data-contract.md` มี query contract, visibility/status rule, source-reported score/weight boundary และ publication duplicate strategy
+- งานนี้ยังไม่ deploy Aurora จริงตาม non-goal ของการ์ด
 
 ## Dependencies
 
