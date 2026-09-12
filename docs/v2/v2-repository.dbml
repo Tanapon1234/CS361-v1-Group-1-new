@@ -1,19 +1,9 @@
-// V2 Faculty Output Repository
-// Paste this DBML into https://dbdiagram.io/d
-
-Project "V2 Faculty Output Repository" {
-  database_type: "PostgreSQL"
-  Note: '''
-  Managed multi-year faculty output repository.
-  Aurora PostgreSQL target.
-  work_item is the central entity.
-  faculty_work_item supports many-to-many faculty contribution.
-  '''
-}
+// V2 Faculty Output Repository - dbdiagram.io clean DBML
+// Source of truth for constraints remains database/migrations/001_base.sql
 
 Table faculty {
   id text [pk]
-  public_slug text [not null, unique, note: "Preserve V1 public slug"]
+  public_slug text [not null, unique]
   name_th text
   name_en text
   academic_position text
@@ -23,13 +13,11 @@ Table faculty {
   email_public text
   profile_image_url text
   profile_image_alt text
-  visibility text [not null, default: "PUBLIC", note: "PUBLIC, INTERNAL, RESTRICTED"]
-  status text [not null, default: "ACTIVE", note: "ACTIVE, DELETED"]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
+  visibility text [not null]
+  status text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
   deleted_at timestamptz
-
-  Note: "Faculty master data. public_slug must preserve V1 public URL compatibility."
 }
 
 Table faculty_education {
@@ -40,54 +28,41 @@ Table faculty_education {
   institution text
   country text
   graduation_year integer
-  display_order integer [not null, default: 0]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
+  display_order integer [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table faculty_interest {
   id text [pk]
   faculty_id text [not null]
-  interest_type text [not null, note: "RESEARCH_INTEREST, EXPERTISE, KEYWORD"]
+  interest_type text [not null]
   value text [not null]
-  visibility text [not null, default: "PUBLIC", note: "PUBLIC, INTERNAL, RESTRICTED"]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (faculty_id, interest_type, value) [unique]
-  }
+  visibility text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table app_user {
   id text [pk]
-  cognito_sub text [not null, unique, note: "Cognito subject identifier"]
-  email text [note: "SQL enforces case-insensitive uniqueness only when email is present"]
+  cognito_sub text [not null, unique]
+  email text
   display_name text
-  identity_provider text [not null, default: "COGNITO", note: "COGNITO, SYSTEM"]
-  status text [not null, default: "ACTIVE", note: "ACTIVE, SUSPENDED, DELETED"]
+  identity_provider text [not null]
+  status text [not null]
   last_login_at timestamptz
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
   deleted_at timestamptz
-
-  Indexes {
-    email [unique]
-    status
-  }
-
-  Note: "Application identity mapping for Cognito users. Passwords and sessions are not stored in this database."
 }
 
 Table app_role {
   code text [pk]
   label text [not null]
   description text
-  is_active boolean [not null, default: true]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Note: "Baseline roles: ADMIN, SYSTEM. This is not a full dynamic RBAC permission matrix."
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table app_user_role {
@@ -95,17 +70,9 @@ Table app_user_role {
   user_id text [not null]
   role_code text [not null]
   assigned_by_user_id text
-  assigned_at timestamptz [not null, default: `now()`]
+  assigned_at timestamptz [not null]
   revoked_at timestamptz
   revoke_reason text
-
-  Indexes {
-    user_id
-    role_code
-    (user_id, role_code) [unique]
-  }
-
-  Note: "SQL enforces one active role per user and role with a partial unique index where revoked_at is null."
 }
 
 Table auth_login_event {
@@ -113,35 +80,23 @@ Table auth_login_event {
   user_id text
   cognito_sub text
   email text
-  login_status text [not null, note: "SUCCESS, FAILED"]
+  login_status text [not null]
   failure_reason text
   ip_address inet
   user_agent text
   request_id text
-  occurred_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    user_id
-    occurred_at
-    login_status
-  }
-
-  Note: "Login audit event from Cognito-authenticated admin flow."
+  occurred_at timestamptz [not null]
 }
 
 Table academic_period {
   id text [pk]
   academic_year integer [not null]
-  semester text [not null, note: "1, 2, 3, SUMMER, OTHER"]
-  label text [not null, note: "Example: 2/2567"]
+  semester text [not null]
+  label text [not null]
   start_date date
   end_date date
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (academic_year, semester) [unique]
-  }
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table evaluation_period {
@@ -151,10 +106,8 @@ Table evaluation_period {
   start_date date [not null]
   end_date date [not null]
   academic_period_id text
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Note: "Evaluation period is separate from academic period because academic year may not match calendar year."
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table work_category {
@@ -162,10 +115,10 @@ Table work_category {
   label_th text [not null]
   label_en text [not null]
   description text
-  display_order integer [not null, default: 0]
-  is_active boolean [not null, default: true]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
+  display_order integer [not null]
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table work_type {
@@ -174,15 +127,11 @@ Table work_type {
   label_th text [not null]
   label_en text [not null]
   description text
-  default_visibility text [not null, default: "INTERNAL", note: "PUBLIC, INTERNAL, RESTRICTED"]
-  display_order integer [not null, default: 0]
-  is_active boolean [not null, default: true]
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (category_code, code) [unique]
-  }
+  default_visibility text [not null]
+  display_order integer [not null]
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table import_batch {
@@ -193,19 +142,15 @@ Table import_batch {
   source_type text [not null]
   source_s3_key text
   source_hash text [not null]
-  status text [not null, default: "PENDING", note: "PENDING, RUNNING, SUCCEEDED, FAILED, WARNING"]
-  record_count integer [not null, default: 0]
-  valid_count integer [not null, default: 0]
-  warning_count integer [not null, default: 0]
-  error_count integer [not null, default: 0]
+  status text [not null]
+  record_count integer [not null]
+  valid_count integer [not null]
+  warning_count integer [not null]
+  error_count integer [not null]
   started_at timestamptz
   completed_at timestamptz
   created_by text
-  created_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (source_system, source_name, source_hash) [unique]
-  }
+  created_at timestamptz [not null]
 }
 
 Table source_record {
@@ -216,19 +161,12 @@ Table source_record {
   source_section_code text
   source_hash text [not null]
   row_number integer
-  raw_record jsonb [not null, default: "{}"]
+  raw_record jsonb [not null]
   target_entity_type text
   target_entity_id text
-  status text [not null, default: "PENDING", note: "PENDING, IMPORTED, SKIPPED, WARNING, ERROR"]
+  status text [not null]
   error_message text
-  created_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (source_system, source_record_key, source_hash) [unique]
-    (target_entity_type, target_entity_id)
-  }
-
-  Note: "source_system + source_record_key + source_hash is the import idempotency key."
+  created_at timestamptz [not null]
 }
 
 Table work_item {
@@ -239,8 +177,8 @@ Table work_item {
   description text
   start_date date
   end_date date
-  visibility text [not null, default: "INTERNAL", note: "PUBLIC, INTERNAL, RESTRICTED"]
-  status text [not null, default: "ACTIVE", note: "ACTIVE, DELETED"]
+  visibility text [not null]
+  status text [not null]
   source_score numeric
   source_weight numeric
   source_section_code text
@@ -248,25 +186,9 @@ Table work_item {
   source_record_id text
   created_by text
   updated_by text
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
   deleted_at timestamptz
-
-  Indexes {
-    category_code
-    work_type_code
-    visibility
-    status
-    (status, visibility)
-    (start_date, end_date)
-    source_record_id
-    title
-  }
-
-  Note: '''
-  Central entity for all faculty output/workload records.
-  source_score/source_weight are source-reported values, not a V2 scoring engine.
-  '''
 }
 
 Table faculty_work_item {
@@ -283,19 +205,8 @@ Table faculty_work_item {
   credits numeric
   hours numeric
   source_section_code text
-  created_at timestamptz [not null, default: `now()`]
-  updated_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (faculty_id, work_item_id, role) [unique]
-    faculty_id
-    work_item_id
-    academic_period_id
-    evaluation_period_id
-    (faculty_id, academic_period_id)
-  }
-
-  Note: "Many-to-many contribution table between faculty and work_item."
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
 }
 
 Table teaching_detail {
@@ -327,14 +238,6 @@ Table publication_detail {
   indexing_database text
   publication_kind text
   external_url text
-
-  Indexes {
-    publication_year
-    publication_title
-    doi [unique]
-  }
-
-  Note: "DOI should be unique when present. In SQL migration this is implemented as a partial lower(doi) unique index."
 }
 
 Table research_project_detail {
@@ -343,7 +246,7 @@ Table research_project_detail {
   funding_source text
   funding_type text
   budget_amount numeric
-  currency text [default: "THB"]
+  currency text
   project_status text
   contract_number text
   principal_investigator text
@@ -360,7 +263,7 @@ Table supervision_detail {
   course_code text
   student_count integer
   credits numeric
-  student_identifier_policy text [not null, default: "REDACTED", note: "REDACTED, INTERNAL_ONLY, NOT_STORED"]
+  student_identifier_policy text [not null]
 }
 
 Table service_detail {
@@ -387,19 +290,14 @@ Table administration_detail {
 Table evidence_reference {
   id text [pk]
   work_item_id text [not null]
-  reference_type text [not null, note: "URL, S3_OBJECT, DOCUMENT_ID, TEXT_NOTE, OTHER"]
+  reference_type text [not null]
   label text [not null]
   external_url text
-  s3_key text [note: "Private internal reference. Do not expose directly through public API."]
+  s3_key text
   mime_type text
   checksum_sha256 text
-  visibility text [not null, default: "INTERNAL", note: "PUBLIC, INTERNAL, RESTRICTED"]
-  created_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    work_item_id
-    visibility
-  }
+  visibility text [not null]
+  created_at timestamptz [not null]
 }
 
 Table audit_event {
@@ -412,46 +310,37 @@ Table audit_event {
   before_json jsonb
   after_json jsonb
   request_id text
-  occurred_at timestamptz [not null, default: `now()`]
-
-  Indexes {
-    (entity_type, entity_id)
-    occurred_at
-  }
-
-  Note: "Audit data is internal only and must not be exposed through public API."
+  occurred_at timestamptz [not null]
 }
 
-Ref: faculty_education.faculty_id > faculty.id [delete: cascade]
-Ref: faculty_interest.faculty_id > faculty.id [delete: cascade]
+Ref: faculty_education.faculty_id > faculty.id
+Ref: faculty_interest.faculty_id > faculty.id
 
-Ref: app_user_role.user_id > app_user.id [delete: cascade]
+Ref: app_user_role.user_id > app_user.id
 Ref: app_user_role.role_code > app_role.code
-Ref: app_user_role.assigned_by_user_id > app_user.id [delete: set null]
-Ref: auth_login_event.user_id > app_user.id [delete: set null]
+Ref: app_user_role.assigned_by_user_id > app_user.id
+Ref: auth_login_event.user_id > app_user.id
 
-Ref: evaluation_period.academic_period_id > academic_period.id [delete: set null]
-
+Ref: evaluation_period.academic_period_id > academic_period.id
 Ref: work_type.category_code > work_category.code
-
-Ref: source_record.import_batch_id > import_batch.id [delete: cascade]
+Ref: source_record.import_batch_id > import_batch.id
 
 Ref: work_item.category_code > work_category.code
 Ref: work_item.work_type_code > work_type.code
-Ref: work_item.import_batch_id > import_batch.id [delete: set null]
-Ref: work_item.source_record_id > source_record.id [delete: set null]
+Ref: work_item.import_batch_id > import_batch.id
+Ref: work_item.source_record_id > source_record.id
 
-Ref: faculty_work_item.faculty_id > faculty.id [delete: cascade]
-Ref: faculty_work_item.work_item_id > work_item.id [delete: cascade]
-Ref: faculty_work_item.academic_period_id > academic_period.id [delete: set null]
-Ref: faculty_work_item.evaluation_period_id > evaluation_period.id [delete: set null]
+Ref: faculty_work_item.faculty_id > faculty.id
+Ref: faculty_work_item.work_item_id > work_item.id
+Ref: faculty_work_item.academic_period_id > academic_period.id
+Ref: faculty_work_item.evaluation_period_id > evaluation_period.id
 
-Ref: teaching_detail.work_item_id - work_item.id [delete: cascade]
-Ref: publication_detail.work_item_id - work_item.id [delete: cascade]
-Ref: research_project_detail.work_item_id - work_item.id [delete: cascade]
-Ref: supervision_detail.work_item_id - work_item.id [delete: cascade]
-Ref: service_detail.work_item_id - work_item.id [delete: cascade]
-Ref: administration_detail.work_item_id - work_item.id [delete: cascade]
+Ref: teaching_detail.work_item_id - work_item.id
+Ref: publication_detail.work_item_id - work_item.id
+Ref: research_project_detail.work_item_id - work_item.id
+Ref: supervision_detail.work_item_id - work_item.id
+Ref: service_detail.work_item_id - work_item.id
+Ref: administration_detail.work_item_id - work_item.id
 
-Ref: evidence_reference.work_item_id > work_item.id [delete: cascade]
-Ref: audit_event.actor_user_id > app_user.id [delete: set null]
+Ref: evidence_reference.work_item_id > work_item.id
+Ref: audit_event.actor_user_id > app_user.id
