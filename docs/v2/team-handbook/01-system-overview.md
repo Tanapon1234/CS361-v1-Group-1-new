@@ -238,23 +238,23 @@ PASS /api/v2/work-types?category=UNKNOWN returned 400 INVALID_QUERY
 
 ### พฤติกรรม AWS ที่ทีมต้องรู้
 
-Aurora Serverless/Express can auto-pause when idle. First request after a long idle period may fail temporarily with:
+Aurora Serverless/Express สามารถ auto-pause เมื่อไม่มีการใช้งานได้ request แรกหลังจากระบบนิ่งไปนานอาจล้มเหลวชั่วคราวด้วย:
 
 ```text
 DatabaseResumingException
 ```
 
-If this happens:
+ถ้าเกิดกรณีนี้:
 
-1. Wait 15-30 seconds
-2. Run the smoke test again
-3. If it still fails, check CloudWatch logs for `cs361-v2-dev-query`
+1. รอ 15-30 วินาที
+2. รัน smoke test ซ้ำ
+3. ถ้ายังล้มเหลว ให้ดู CloudWatch logs ของ `cs361-v2-dev-query`
 
-This is expected for dev/demo cost saving and should be documented in issue evidence if it appears.
+พฤติกรรมนี้คาดหวังได้ใน environment dev/demo ที่ตั้งใจประหยัดค่าใช้จ่าย และควรบันทึกไว้ใน issue evidence ถ้าเจอระหว่างทดสอบ
 
 ## สิ่งที่ V2 ยังไม่รวมในรอบนี้
 
-V2 does not yet include:
+V2 รอบนี้ยังไม่รวม:
 
 - faculty self-service workspace
 - reviewer/approver workflow
@@ -265,23 +265,141 @@ V2 does not yet include:
 - OpenSearch/full text search service
 - evidence file upload/download with signed URLs
 
-These are deferred to future versions such as V3/V4/V7 unless a new decision explicitly changes scope.
+สิ่งเหล่านี้ถูกเลื่อนไปเวอร์ชันถัดไป เช่น V3/V4/V7 เว้นแต่ทีมจะมี decision ใหม่ที่เปลี่ยน scope อย่างชัดเจน
+
+## ผลลัพธ์เมื่อทำ V2 ครบทุกการ์ด
+
+ถ้าทำครบทุกการ์ด V2 ตั้งแต่ #46 ถึง #81 ผลลัพธ์สุดท้ายจะไม่ใช่แค่ “มี database และ design” แต่จะกลายเป็น Faculty Output Repository ที่ใช้งานจริงบน AWS ในระดับ demo/production-connected
+
+### 1. มีฐานข้อมูลกลางของผลงานและภาระงานอาจารย์
+
+Aurora PostgreSQL จะเป็น repository กลางสำหรับข้อมูล V2 โดยมี schema ชัดเจนและ query ได้จริง
+
+สิ่งที่ระบบจะเก็บได้:
+
+- ข้อมูลอาจารย์และ profile พื้นฐาน
+- ประวัติการศึกษาและความเชี่ยวชาญ
+- งานสอน
+- publication / research project / grant
+- supervision / thesis / senior project
+- academic service
+- administration workload
+- evidence/reference metadata
+- import provenance
+- audit events สำหรับการแก้ไขข้อมูลฝั่ง admin
+
+ผลลัพธ์คือทีมไม่ต้องอิงไฟล์กระจัดกระจายอย่างเดียว แต่มีฐานข้อมูลกลางที่รองรับหลายปีการศึกษาและตรวจสอบย้อนกลับได้
+
+### 2. มี Public APIs ที่อ่านข้อมูลจริงจาก Aurora
+
+ฝั่ง public API จะทำงานผ่านเส้นทางจริง:
+
+```text
+API Gateway -> Lambda -> RDS Data API -> Aurora PostgreSQL
+```
+
+เมื่อครบ #64, #66, #67 และ #68 ระบบจะมี API สำหรับ:
+
+- โหลด master data สำหรับ filter เช่น ปีการศึกษา รอบประเมิน หมวดงาน ประเภทงาน และอาจารย์
+- ค้นหา/กรองรายการผลงานและภาระงาน
+- ดูผลงานของอาจารย์แต่ละคน
+- ดูรายละเอียดผลงานแต่ละรายการ
+- ซ่อนข้อมูลที่เป็น internal/restricted ไม่ให้ public path เห็น
+
+ผลลัพธ์คือ frontend หรือระบบอื่นสามารถเรียกข้อมูลจาก backend จริงได้ ไม่ใช่ mock/local fixture
+
+### 3. มีหน้า Public Repository ให้ผู้ใช้ทั่วไปใช้งานได้
+
+เมื่อครบ #72 ถึง #75 ผู้ใช้ทั่วไปจะมีหน้าเว็บสำหรับค้นหาและดูผลงานอาจารย์
+
+สิ่งที่ผู้ใช้จะทำได้:
+
+- เปิดหน้า repository
+- เลือก filter จาก master data จริง
+- ค้นหาด้วย keyword
+- กรองตามปีการศึกษา อาจารย์ หมวดงาน และประเภทงาน
+- ดูรายการผลลัพธ์พร้อม pagination
+- กดเข้าไปดูรายละเอียดผลงาน
+- เห็นเฉพาะข้อมูลที่เปิดเผยได้
+
+ผลลัพธ์คือ V2 จะตอบโจทย์ “ค้นหา กรอง หรือเรียกดูตามเงื่อนไข” ได้จากหน้าเว็บจริง
+
+### 4. มีระบบ Admin สำหรับจัดการข้อมูลจริง
+
+เมื่อครบ #69 ถึง #71 และ #76 ถึง #79 ระบบจะมี admin pilot ที่เชื่อมกับ AWS จริง
+
+สิ่งที่ admin จะทำได้:
+
+- login ผ่าน Cognito
+- เข้าหน้า admin เฉพาะผู้มีสิทธิ์
+- เพิ่ม work item ใหม่
+- แก้ไข work item เดิม
+- soft delete หรือ restore รายการ
+- ผูกผลงานกับอาจารย์ หมวดงาน ประเภทงาน ปีการศึกษา และ evidence metadata
+- บันทึก audit event ทุกครั้งที่มี action สำคัญ
+
+ผลลัพธ์คือ V2 ไม่ได้เป็นระบบอ่านอย่างเดียวอีกต่อไป แต่เริ่มมี workflow สำหรับจัดการข้อมูลในฐานข้อมูลกลางอย่างปลอดภัย
+
+### 5. มี migration/import process ที่ทำซ้ำและตรวจสอบได้
+
+เมื่อครบ #80 ทีมจะมีวิธีจัดการข้อมูลจาก V1/demo dataset เข้า V2 อย่างเป็นระบบ
+
+สิ่งที่ต้องได้:
+
+- mapping จากข้อมูลเดิมเข้าสู่ schema ใหม่
+- seed/import ที่รันซ้ำได้ หรือมี reset path ชัดเจน
+- table counts ที่ตรวจสอบได้
+- API smoke test ที่ยืนยันว่า V2 อ่านข้อมูล imported data ได้
+- evidence ว่า V1 compatibility ยังไม่พัง
+
+ผลลัพธ์คือคนในทีมสามารถเตรียมข้อมูลหรือย้ายข้อมูลต่อได้โดยไม่ต้องเดาเอง
+
+### 6. มีหลักฐานและเอกสารพร้อมส่งงาน
+
+เมื่อครบ #81 ระบบจะมี final integration evidence และ demo docs ครบ
+
+สิ่งที่ควรมีตอนจบ:
+
+- architecture docs
+- database docs
+- API contracts
+- AWS setup/check guide
+- issue card evidence
+- smoke test output
+- demo script
+- known limitations
+- commit/branch references
+
+ผลลัพธ์คืออาจารย์หรือคนในทีมสามารถตรวจซ้ำได้ว่าอะไร deploy แล้ว อะไร test แล้ว และระบบตอบโจทย์ V2 อย่างไร
+
+### สรุปปลายทางของ V2
+
+เมื่อทำครบทุกการ์ด V2 จะได้ระบบที่:
+
+- มีฐานข้อมูลกลางบน Aurora
+- มี API จริงบน AWS
+- มีหน้า public repository สำหรับค้นหา/ดูข้อมูล
+- มี admin pilot สำหรับจัดการข้อมูล
+- มี migration/import process
+- มีเอกสารและหลักฐานครบสำหรับ demo/ส่งงาน
+
+แต่ V2 ยังไม่ใช่ระบบรายงานเชิงบริหารเต็มรูปแบบแบบ V4/V7 เช่น workload sheet อัตโนมัติขั้นสุดท้าย dashboard วิเคราะห์ระดับสาขา หรือ annual report generator เต็มระบบ สิ่งเหล่านั้นเป็นขั้นต่อไปหลังจาก repository foundation ของ V2 เสถียรแล้ว
 
 ## แต่ละการ์ด V2 ตอบโจทย์จริงอย่างไร
 
-The real problem is not just “make pages”. The real problem is making a central repository that stores and retrieves faculty output/workload data systematically.
+โจทย์จริงไม่ใช่แค่ “ทำหน้าเว็บ” แต่คือการสร้าง repository กลางที่จัดเก็บและเรียกใช้ข้อมูลผลงาน/ภาระงานอาจารย์ได้อย่างเป็นระบบ
 
-Each card contributes like this:
+แต่ละการ์ดช่วยตอบโจทย์แบบนี้:
 
-- #46 locks scope so the team does not accidentally build V3/V4 early
-- #47 creates the relational schema that stores data systematically
-- #48 provisions managed AWS infrastructure for real backend usage
-- #49 defines how old V1 data maps into the new V2 model
-- #50 creates realistic multi-year data for search/filter/detail demo
-- #64 provides master/reference data for filters and validation
-- #66-#68 provide public repository read APIs
-- #72-#75 turn public APIs into usable repository screens
-- #69-#71 provide admin/auth/write foundation
-- #76-#79 turn admin backend into usable admin pilot screens
-- #80 makes migration/seed/import repeatable and protects V1 compatibility
-- #81 verifies everything works together and prepares final demo evidence
+- #46 ล็อก scope เพื่อไม่ให้ทีมเผลอสร้าง V3/V4 เร็วเกินไป
+- #47 สร้าง relational schema สำหรับจัดเก็บข้อมูลอย่างเป็นระบบ
+- #48 เตรียม AWS infrastructure ที่ใช้กับ backend จริง
+- #49 กำหนดว่า data เดิมจาก V1 map เข้าสู่ V2 model อย่างไร
+- #50 สร้างข้อมูลหลายปีที่สมจริงสำหรับ demo search/filter/detail
+- #64 เตรียม master/reference data สำหรับ filters และ validation
+- #66-#68 สร้าง public repository read APIs
+- #72-#75 แปลง public APIs ให้เป็นหน้าจอ repository ที่ผู้ใช้ใช้งานได้
+- #69-#71 สร้างฐาน admin/auth/write operation
+- #76-#79 แปลง admin backend ให้เป็น admin pilot screens
+- #80 ทำให้ migration/seed/import รันซ้ำได้ และรักษา V1 compatibility
+- #81 ตรวจว่าทุกส่วนทำงานร่วมกัน และเตรียม final demo evidence
