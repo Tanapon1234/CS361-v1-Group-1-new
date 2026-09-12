@@ -1,5 +1,18 @@
 # [V2] Design Relational Schema & SQL Migration
 
+## Implementation Artifacts
+
+ไฟล์ผลลัพธ์สำหรับการ์ดนี้ถูกเตรียมไว้แล้วใน repo:
+
+- `docs/v2/erd.md` — ERD และ relationship baseline ของ V2 repository
+- `docs/v2/erd-table-attribute-guide.md` — คำอธิบายทุก table และทุก attribute พร้อม type และตัวอย่างค่า
+- `docs/v2/data-contract.md` — data dictionary, data contract และ acceptance query ขั้นต้น
+- `docs/v2/schema-decisions.md` — บันทึก design decisions สำคัญของ schema
+- `database/migrations/001_base.sql` — SQL migration baseline สำหรับ Aurora PostgreSQL
+- `database/seeds/001_master_data.sql` — seed master data สำหรับ `work_category` และ `work_type`
+- `docs/v2/v2-repository.dbml` — DBML สำหรับ paste เข้า dbdiagram.io
+- `database/README.md` — วิธี review และลำดับการรัน SQL baseline
+
 ## สรุป
 
 ออกแบบ relational schema สำหรับ V2 Faculty Output Repository และเตรียม SQL migration/seed baseline ที่การ์ด backend, import, migration และ frontend ใช้อ้างอิงร่วมกันได้
@@ -98,6 +111,15 @@ V2 ต้องรองรับข้อมูลผลงานและภ�
 - `import_batch`
 - `source_record`
 - `audit_event`
+
+Support tables สำหรับ Admin pilot auth/audit:
+
+- `app_user`
+- `app_role`
+- `app_user_role`
+- `auth_login_event`
+
+ตารางกลุ่มนี้ใช้ map Cognito identity, role ขั้นต่ำ และ login audit เท่านั้น ไม่ใช่ full dynamic RBAC หรือ password/session store
 
 ## Core Modeling Rules
 

@@ -1,0 +1,346 @@
+// V2 Faculty Output Repository - dbdiagram.io clean DBML
+// Source of truth for constraints remains database/migrations/001_base.sql
+
+Table faculty {
+  id text [pk]
+  public_slug text [not null, unique]
+  name_th text
+  name_en text
+  academic_position text
+  department text
+  office_public text
+  phone_public text
+  email_public text
+  profile_image_url text
+  profile_image_alt text
+  visibility text [not null]
+  status text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+}
+
+Table faculty_education {
+  id text [pk]
+  faculty_id text [not null]
+  degree text
+  field_of_study text
+  institution text
+  country text
+  graduation_year integer
+  display_order integer [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table faculty_interest {
+  id text [pk]
+  faculty_id text [not null]
+  interest_type text [not null]
+  value text [not null]
+  visibility text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table app_user {
+  id text [pk]
+  cognito_sub text [not null, unique]
+  email text
+  display_name text
+  identity_provider text [not null]
+  status text [not null]
+  last_login_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+}
+
+Table app_role {
+  code text [pk]
+  label text [not null]
+  description text
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table app_user_role {
+  id text [pk]
+  user_id text [not null]
+  role_code text [not null]
+  assigned_by_user_id text
+  assigned_at timestamptz [not null]
+  revoked_at timestamptz
+  revoke_reason text
+}
+
+Table auth_login_event {
+  id text [pk]
+  user_id text
+  cognito_sub text
+  email text
+  login_status text [not null]
+  failure_reason text
+  ip_address inet
+  user_agent text
+  request_id text
+  occurred_at timestamptz [not null]
+}
+
+Table academic_period {
+  id text [pk]
+  academic_year integer [not null]
+  semester text [not null]
+  label text [not null]
+  start_date date
+  end_date date
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table evaluation_period {
+  id text [pk]
+  code text [not null, unique]
+  label text [not null]
+  start_date date [not null]
+  end_date date [not null]
+  academic_period_id text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table work_category {
+  code text [pk]
+  label_th text [not null]
+  label_en text [not null]
+  description text
+  display_order integer [not null]
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table work_type {
+  code text [pk]
+  category_code text [not null]
+  label_th text [not null]
+  label_en text [not null]
+  description text
+  default_visibility text [not null]
+  display_order integer [not null]
+  is_active boolean [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table import_batch {
+  id text [pk]
+  source_system text [not null]
+  source_name text [not null]
+  source_version text
+  source_type text [not null]
+  source_s3_key text
+  source_hash text [not null]
+  status text [not null]
+  record_count integer [not null]
+  valid_count integer [not null]
+  warning_count integer [not null]
+  error_count integer [not null]
+  started_at timestamptz
+  completed_at timestamptz
+  created_by text
+  created_at timestamptz [not null]
+}
+
+Table source_record {
+  id text [pk]
+  import_batch_id text [not null]
+  source_system text [not null]
+  source_record_key text [not null]
+  source_section_code text
+  source_hash text [not null]
+  row_number integer
+  raw_record jsonb [not null]
+  target_entity_type text
+  target_entity_id text
+  status text [not null]
+  error_message text
+  created_at timestamptz [not null]
+}
+
+Table work_item {
+  id text [pk]
+  category_code text [not null]
+  work_type_code text [not null]
+  title text [not null]
+  description text
+  start_date date
+  end_date date
+  visibility text [not null]
+  status text [not null]
+  source_score numeric
+  source_weight numeric
+  source_section_code text
+  import_batch_id text
+  source_record_id text
+  created_by text
+  updated_by text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+}
+
+Table faculty_work_item {
+  id text [pk]
+  faculty_id text [not null]
+  work_item_id text [not null]
+  academic_period_id text
+  evaluation_period_id text
+  role text
+  contribution_order integer
+  contribution_percent numeric
+  contribution_note text
+  quantity numeric
+  credits numeric
+  hours numeric
+  source_section_code text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table teaching_detail {
+  work_item_id text [pk]
+  course_code text
+  course_title text
+  degree_level text
+  teaching_mode text
+  section_count integer
+  student_count integer
+  credits numeric
+  lecture_hours numeric
+  lab_hours numeric
+  workload_hours numeric
+  reference_label text
+}
+
+Table publication_detail {
+  work_item_id text [pk]
+  publication_title text [not null]
+  venue text
+  publisher text
+  publication_year integer
+  publication_date date
+  doi text
+  isbn text
+  issn text
+  quartile text
+  indexing_database text
+  publication_kind text
+  external_url text
+}
+
+Table research_project_detail {
+  work_item_id text [pk]
+  project_title text
+  funding_source text
+  funding_type text
+  budget_amount numeric
+  currency text
+  project_status text
+  contract_number text
+  principal_investigator text
+  project_start_date date
+  project_end_date date
+}
+
+Table supervision_detail {
+  work_item_id text [pk]
+  supervision_type text
+  supervision_role text
+  degree_level text
+  program_name text
+  course_code text
+  student_count integer
+  credits numeric
+  student_identifier_policy text [not null]
+}
+
+Table service_detail {
+  work_item_id text [pk]
+  service_scope text
+  organization_name text
+  service_role text
+  committee_name text
+  order_reference text
+  service_date date
+  service_end_date date
+}
+
+Table administration_detail {
+  work_item_id text [pk]
+  position_title text
+  organization_unit text
+  appointment_type text
+  appointed_from date
+  appointed_to date
+  appointment_reference text
+}
+
+Table evidence_reference {
+  id text [pk]
+  work_item_id text [not null]
+  reference_type text [not null]
+  label text [not null]
+  external_url text
+  s3_key text
+  mime_type text
+  checksum_sha256 text
+  visibility text [not null]
+  created_at timestamptz [not null]
+}
+
+Table audit_event {
+  id text [pk]
+  actor_user_id text
+  actor_subject text
+  action text [not null]
+  entity_type text [not null]
+  entity_id text [not null]
+  before_json jsonb
+  after_json jsonb
+  request_id text
+  occurred_at timestamptz [not null]
+}
+
+Ref: faculty_education.faculty_id > faculty.id
+Ref: faculty_interest.faculty_id > faculty.id
+
+Ref: app_user_role.user_id > app_user.id
+Ref: app_user_role.role_code > app_role.code
+Ref: app_user_role.assigned_by_user_id > app_user.id
+Ref: auth_login_event.user_id > app_user.id
+
+Ref: evaluation_period.academic_period_id > academic_period.id
+Ref: work_type.category_code > work_category.code
+Ref: source_record.import_batch_id > import_batch.id
+
+Ref: work_item.category_code > work_category.code
+Ref: work_item.work_type_code > work_type.code
+Ref: work_item.import_batch_id > import_batch.id
+Ref: work_item.source_record_id > source_record.id
+
+Ref: faculty_work_item.faculty_id > faculty.id
+Ref: faculty_work_item.work_item_id > work_item.id
+Ref: faculty_work_item.academic_period_id > academic_period.id
+Ref: faculty_work_item.evaluation_period_id > evaluation_period.id
+
+Ref: teaching_detail.work_item_id - work_item.id
+Ref: publication_detail.work_item_id - work_item.id
+Ref: research_project_detail.work_item_id - work_item.id
+Ref: supervision_detail.work_item_id - work_item.id
+Ref: service_detail.work_item_id - work_item.id
+Ref: administration_detail.work_item_id - work_item.id
+
+Ref: evidence_reference.work_item_id > work_item.id
+Ref: audit_event.actor_user_id > app_user.id
