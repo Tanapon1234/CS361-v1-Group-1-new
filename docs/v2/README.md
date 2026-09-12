@@ -18,6 +18,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |
 | [v1-to-v2-mapping.md](./v1-to-v2-mapping.md) | mapping จาก V1 public faculty dataset เข้า V2 relational repository สำหรับ Issue #49 |
 | [demo-dataset.md](./demo-dataset.md) | summary และ validation matrix ของ V2 multi-year demo dataset สำหรับ Issue #50 |
+| [master-data-api.md](./master-data-api.md) | contract และ verification notes ของ V2 Master Data API สำหรับ Issue #64 |
 | [aws-foundation.md](./aws-foundation.md) | AWS foundation deployment record สำหรับ Issue #48 |
 | [aws-foundation-service-check-guide.md](./aws-foundation-service-check-guide.md) | วิธีเช็ค AWS services หลัง deploy สำหรับคนในทีมที่มาทำต่อ |
 | [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
@@ -47,6 +48,8 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 
 ## Issue Cards
 
+หมายเหตุ: เอกสาร freeze เดิมใน Issue #46 อ้างอิง implementation cards เป็น #51-#67 แต่เลข GitHub issue ปัจจุบันเริ่มงาน implementation ที่ #64 และการ์ดถัดจาก #64 เริ่มที่ #66 ดังนั้นตารางนี้ใช้เลขจริงชุดใหม่ #64 และ #66-#81 โดยยังรักษาลำดับงานเดิมไว้
+
 | Issue | File |
 |---|---|
 | #46 Freeze Scope, Architecture & Interface Contracts | [issues/46-freeze-v2-scope-architecture-interface-contracts.md](./issues/46-freeze-v2-scope-architecture-interface-contracts.md) |
@@ -54,6 +57,23 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | #48 Provision Aurora / Data API / Secret / IAM | [issues/48-provision-aurora-data-api-secret-iam.md](./issues/48-provision-aurora-data-api-secret-iam.md) |
 | #49 Define V1 to V2 Data Mapping | [issues/49-define-v1-to-v2-data-mapping.md](./issues/49-define-v1-to-v2-data-mapping.md) |
 | #50 Prepare Multi-Year Demo Dataset | [issues/50-prepare-multi-year-demo-dataset.md](./issues/50-prepare-multi-year-demo-dataset.md) |
+| #64 Build Master Data API | [issues/64-build-master-data-api.md](./issues/64-build-master-data-api.md) |
+| #66 Build Work Item List/Search/Filter API | [issues/66-build-work-item-list-search-filter-api.md](./issues/66-build-work-item-list-search-filter-api.md) |
+| #67 Build Faculty Work Items API | [issues/67-build-faculty-work-items-api.md](./issues/67-build-faculty-work-items-api.md) |
+| #68 Build Work Item Detail API | [issues/68-build-work-item-detail-api.md](./issues/68-build-work-item-detail-api.md) |
+| #69 Configure Admin Authentication | [issues/69-configure-admin-authentication.md](./issues/69-configure-admin-authentication.md) |
+| #70 Build Admin Create Work Item API | [issues/70-build-admin-create-work-item-api.md](./issues/70-build-admin-create-work-item-api.md) |
+| #71 Build Admin Update / Soft Delete API | [issues/71-build-admin-update-soft-delete-api.md](./issues/71-build-admin-update-soft-delete-api.md) |
+| #72 Build Repository Page Shell & Filter UI | [issues/72-build-repository-page-shell-filter-ui.md](./issues/72-build-repository-page-shell-filter-ui.md) |
+| #73 Build Repository Result List & Pagination UI | [issues/73-build-repository-result-list-pagination-ui.md](./issues/73-build-repository-result-list-pagination-ui.md) |
+| #74 Build Work Item Detail UI | [issues/74-build-work-item-detail-ui.md](./issues/74-build-work-item-detail-ui.md) |
+| #75 Integrate Repository UI with Real API | [issues/75-integrate-repository-ui-with-real-api.md](./issues/75-integrate-repository-ui-with-real-api.md) |
+| #76 Build Admin Login UI | [issues/76-build-admin-login-ui.md](./issues/76-build-admin-login-ui.md) |
+| #77 Build Admin Work Item List UI | [issues/77-build-admin-work-item-list-ui.md](./issues/77-build-admin-work-item-list-ui.md) |
+| #78 Build Admin Create/Edit Form UI | [issues/78-build-admin-create-edit-form-ui.md](./issues/78-build-admin-create-edit-form-ui.md) |
+| #79 Integrate Admin UI with Auth & CRUD API | [issues/79-integrate-admin-ui-with-auth-crud-api.md](./issues/79-integrate-admin-ui-with-auth-crud-api.md) |
+| #80 Execute Migration & Preserve V1 Compatibility | [issues/80-execute-migration-preserve-v1-compatibility.md](./issues/80-execute-migration-preserve-v1-compatibility.md) |
+| #81 Final Integration / Deploy / Demo Docs | [issues/81-final-integration-deploy-demo-docs.md](./issues/81-final-integration-deploy-demo-docs.md) |
 
 ---
 
