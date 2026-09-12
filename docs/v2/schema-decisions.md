@@ -177,3 +177,24 @@ V2 baseline ใช้ `text` primary key
 - `audit_event.actor_user_id` สามารถอ้างถึง `app_user`
 - `auth_login_event` ช่วยตรวจสอบ login success/failure
 - #55 Configure Admin Authentication สามารถต่อยอดได้โดยไม่ต้องเปลี่ยน schema หลัก
+
+---
+
+## Decision 10: Publication duplicate strategy ใช้ DOI ก่อน แล้ว fallback ไป title/year
+
+V2 baseline ใช้ duplicate strategy สองชั้นสำหรับ publication:
+
+1. ถ้ามี DOI ให้ใช้ `publication_detail.doi` เป็น hard database guard ผ่าน partial unique index แบบ case-insensitive
+2. ถ้าไม่มี DOI ให้ใช้ normalized publication title + publication year เป็น import/review fallback ที่ application หรือ import layer ตรวจจับและส่งเข้า warning/manual review
+
+เหตุผล:
+
+- DOI เป็น identifier ที่เหมาะกับ database-level uniqueness เมื่อมีค่า
+- publication หลายรายการอาจชื่อเหมือนหรือใกล้เคียงกันได้ จึงไม่ควรทำ unique constraint ตรง ๆ บน title อย่างเดียว
+- `idx_publication_title` และ `idx_publication_year` ช่วย lookup สำหรับ fallback duplicate review ได้
+
+ผลกระทบ:
+
+- database ป้องกัน duplicate DOI ได้ทันที
+- import pipeline ต้องรับผิดชอบ normalized title/year matching สำหรับ record ที่ไม่มี DOI
+- งาน #49/#50 สามารถระบุ mapping/demo case สำหรับ title/year fallback เพิ่มได้

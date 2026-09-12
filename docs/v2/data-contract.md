@@ -318,6 +318,11 @@ Rules:
 | `service_detail` | งานบริการ คณะกรรมการ วิทยากร reviewer editor |
 | `administration_detail` | งานบริหารและตำแหน่ง |
 
+Publication duplicate strategy:
+
+- ถ้ามี DOI ให้ใช้ `lower(doi)` เป็น duplicate key หลัก และ SQL migration enforce ด้วย partial unique index
+- ถ้าไม่มี DOI ให้ import/application layer ตรวจ normalized `publication_title + publication_year` เป็น fallback แล้วส่งเป็น warning/manual review แทนการบังคับ unique constraint ใน database
+
 ### `evidence_reference`
 
 metadata ของหลักฐาน
