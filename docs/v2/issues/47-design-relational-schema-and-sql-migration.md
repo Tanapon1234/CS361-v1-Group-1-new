@@ -5,6 +5,7 @@
 ไฟล์ผลลัพธ์สำหรับการ์ดนี้ถูกเตรียมไว้แล้วใน repo:
 
 - `docs/v2/erd.md` — ERD และ relationship baseline ของ V2 repository
+- `docs/v2/erd-table-attribute-guide.md` — คำอธิบายทุก table และทุก attribute พร้อม type และตัวอย่างค่า
 - `docs/v2/data-contract.md` — data dictionary, data contract และ acceptance query ขั้นต้น
 - `docs/v2/schema-decisions.md` — บันทึก design decisions สำคัญของ schema
 - `database/migrations/001_base.sql` — SQL migration baseline สำหรับ Aurora PostgreSQL

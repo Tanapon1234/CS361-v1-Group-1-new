@@ -12,6 +12,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 |---|---|
 | [V2_Central_Design.md](./V2_Central_Design.md) | เอกสาร freeze หลักของ Issue #46: scope, architecture, contracts, routes, entities, V1 compatibility |
 | [erd.md](./erd.md) | ERD และ relationship baseline ของ V2 repository สำหรับ Issue #47 |
+| [erd-table-attribute-guide.md](./erd-table-attribute-guide.md) | คำอธิบายทุก table และทุก attribute ใน ERD พร้อม type และตัวอย่างค่า |
 | [data-contract.md](./data-contract.md) | data dictionary และ query/data contract ขั้นต้นของ schema |
 | [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
 | [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |

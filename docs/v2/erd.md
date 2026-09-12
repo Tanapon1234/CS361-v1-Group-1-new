@@ -4,6 +4,8 @@
 
 เป้าหมายของ ERD นี้คือทำให้ทีมเห็นความสัมพันธ์หลักของ V2 repository ก่อนเริ่มทำ API, import, migration และ UI โดยไม่ copy โครงสร้างแบบฟอร์มภาระงาน 1:1 เข้ามาเป็น schema
 
+ถ้าต้องการคำอธิบายทุก table และทุก attribute พร้อม type และตัวอย่างค่า ให้อ่าน `docs/v2/erd-table-attribute-guide.md`
+
 ---
 
 ## ERD Overview
