@@ -50,6 +50,8 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 
 หมายเหตุ: เอกสาร freeze เดิมใน Issue #46 อ้างอิง implementation cards เป็น #51-#67 แต่เลข GitHub issue ปัจจุบันเริ่มงาน implementation ที่ #64 และการ์ดถัดจาก #64 เริ่มที่ #66 ดังนั้นตารางนี้ใช้เลขจริงชุดใหม่ #64 และ #66-#81 โดยยังรักษาลำดับงานเดิมไว้
 
+Production rule สำหรับ issue cards ชุดนี้: การ์ด #64 และ #66-#81 เป็นงานที่จะส่งต่อให้ทีม implement จริงบน AWS environment ที่เตรียมไว้แล้ว ไม่ใช่ prototype/local-only work การ์ด API ต้องใช้ `API Gateway -> Lambda -> RDS Data API -> Aurora` เป็น production path, การ์ด UI ต้องเรียก deployed AWS API จริง, และ fixture/mock ใช้ได้เฉพาะ automated tests หรือ local fallback เท่านั้น ไม่ถือว่าเพียงพอสำหรับปิดการ์ด
+
 | Issue | File |
 |---|---|
 | #46 Freeze Scope, Architecture & Interface Contracts | [issues/46-freeze-v2-scope-architecture-interface-contracts.md](./issues/46-freeze-v2-scope-architecture-interface-contracts.md) |
@@ -106,7 +108,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | Artifact | Purpose |
 |---|---|
 | [../../infra/v2/aws-foundation.yaml](../../infra/v2/aws-foundation.yaml) | CloudFormation baseline สำหรับ Aurora/Data API/Secrets/IAM/S3/CloudWatch |
-| [../../infra/v2/parameters.dev.example.json](../../infra/v2/parameters.dev.example.json) | ตัวอย่าง parameter file สำหรับ dev/demo deploy |
+| [../../infra/v2/parameters.dev.example.json](../../infra/v2/parameters.dev.example.json) | ตัวอย่าง parameter file สำหรับ target AWS environment ที่ทีมใช้ deploy/check |
 | [../../scripts/setup-v2-aws-foundation.sh](../../scripts/setup-v2-aws-foundation.sh) | interactive setup wizard สำหรับ operator ที่จะ login AWS เอง |
 | [../../scripts/check-v2-aws-foundation.sh](../../scripts/check-v2-aws-foundation.sh) | verification script สำหรับ `SELECT 1` ผ่าน RDS Data API |
 

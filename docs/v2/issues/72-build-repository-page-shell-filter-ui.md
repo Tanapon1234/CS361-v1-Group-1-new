@@ -6,6 +6,20 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #58 แต่ GitHub issue จริงใช้ #72
 
+## Production AWS Requirement
+
+หน้า `/outputs` ต้องใช้ Master Data API จาก #64 ที่ deploy บน AWS จริงสำหรับ filter options:
+
+```text
+Frontend
+→ deployed API Gateway URL
+→ Lambda
+→ RDS Data API
+→ Aurora
+```
+
+fixture/mock ใช้ได้เฉพาะ component test เท่านั้น ไม่ถือว่าเพียงพอสำหรับปิดการ์ดนี้
+
 ## Background
 
 V1 มีหน้า faculty directory เป็นหลัก แต่ V2 ต้องมี repository browsing experience สำหรับค้นหา/กรองผลงานและภาระงานหลายปี
@@ -45,7 +59,9 @@ V1 มีหน้า faculty directory เป็นหลัก แต่ V2 �
   - work category
   - work type
   - faculty
-- ใช้ Master Data API หรือ fixture/mock adapter สำหรับ options
+- ใช้ deployed Master Data API จาก #64 สำหรับ options
+- เพิ่ม frontend env/config สำหรับ API Gateway base URL ตามที่ deploy จริง
+- handle loading/error จาก AWS endpoint จริง
 - เมื่อเลือก filter ให้ update URL query อย่าง predictable
 - เพิ่ม loading/empty/error placeholder states
 - เพิ่ม navigation entry ถ้าเข้ากับ design ของ frontend
@@ -55,7 +71,6 @@ V1 มีหน้า faculty directory เป็นหลัก แต่ V2 �
 
 - result cards/table แบบ final
 - pagination behavior จริง
-- real API integration ครบทุก endpoint
 - admin route
 
 ## UX Requirements
@@ -71,10 +86,11 @@ V1 มีหน้า faculty directory เป็นหลัก แต่ V2 �
 - [ ] `/outputs` เปิดได้
 - [ ] มี filter controls ครบตาม scope
 - [ ] filter state sync กับ URL query
-- [ ] options ใช้ข้อมูลจาก master data contract หรือ fixture adapter
+- [ ] options ใช้ข้อมูลจาก deployed Master Data API จริง
 - [ ] responsive layout ใช้งานได้บน mobile/desktop
 - [ ] V1 `/faculties` และ `/faculties/{id}` ไม่พัง
 - [ ] มี placeholder สำหรับ result list/pagination ให้ #73 ต่อได้
+- [ ] มี QA evidence ว่า `/outputs` โหลด filter options จาก AWS endpoint ได้
 
 ## Review Checklist
 
@@ -94,6 +110,7 @@ QA:
 
 - [ ] reload URL ที่มี query แล้วยังเห็น filter state เดิม
 - [ ] reset filter ทำงานถูกต้อง
+- [ ] ปิด mock/fixture แล้วหน้ายังโหลด filter options จาก AWS ได้
 
 ## Dependencies
 
@@ -135,4 +152,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อมีหน้า `/outputs` ที่เป็น shell ของ V2 repository พร้อม filter UI และ URL state ที่พร้อมให้ result list/API integration ต่อได้
+การ์ดนี้ถือว่าเสร็จเมื่อมีหน้า `/outputs` ที่เป็น shell ของ V2 repository พร้อม filter UI, URL state และ filter options ที่โหลดจาก deployed AWS Master Data API จริง พร้อม evidence ว่า V1 routes ไม่พัง

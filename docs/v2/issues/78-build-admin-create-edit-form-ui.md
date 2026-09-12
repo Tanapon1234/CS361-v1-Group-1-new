@@ -6,6 +6,21 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #64 ในเอกสาร design แต่ GitHub issue จริงใช้ #78 เพราะ #64 ปัจจุบันถูกใช้กับ Master Data API แล้ว
 
+## Production AWS Requirement
+
+Admin form ต้องใช้ master data และ admin CRUD APIs ที่ deploy บน AWS จริง:
+
+```text
+Frontend admin form
+→ Cognito token
+→ API Gateway admin routes
+→ Admin Lambda
+→ RDS Data API transaction
+→ Aurora
+```
+
+form payload/mock submit ใช้ได้เฉพาะ tests ไม่ใช่เงื่อนไขปิดงาน
+
 ## Background
 
 Admin Create/Update APIs จาก #70 และ #71 ต้องมี form UI ที่ช่วยให้ทีมจัดการ repository ได้จริงในการ demo V2
@@ -28,7 +43,6 @@ Form ต้องรองรับข้อมูลหลายหมวดง
 
 การ์ดนี้ยังไม่ต้อง:
 
-- integrate submit API เต็มถ้า #79 แยกไว้
 - evidence file upload
 - official workload scoring
 - approval workflow
@@ -68,13 +82,16 @@ Form ต้องรองรับข้อมูลหลายหมวดง
   - visibility
 - client-side validation ที่สอดคล้องกับ backend
 - loading/error/dirty form states
+- โหลด master data options จาก deployed #64 endpoint
+- โหลด existing work item สำหรับ edit จาก deployed admin/read endpoint จริง
+- submit create/update ไปยัง deployed #70/#71 APIs จริง
+- map backend validation errors จาก AWS endpoint กลับเข้า form fields
 
 ### ไม่ต้องทำ
 
 - binary evidence upload
 - hard delete
 - role management
-- full API submission ถ้า #79 จะทำ
 
 ## UX Requirements
 
@@ -82,7 +99,7 @@ Form ต้องรองรับข้อมูลหลายหมวดง
 - faculty contributor rows เพิ่ม/ลบ/เรียงได้
 - form ไม่ควรทำให้ผู้ใช้คิดว่ากำลังสร้าง official report
 - validation error ต้องบอก field ที่ต้องแก้
-- edit mode ต้องโหลด existing values ได้หรือมี placeholder adapter จนกว่า #79 เชื่อมจริง
+- edit mode ต้องโหลด existing values จาก deployed API จริง
 
 ## Acceptance Criteria
 
@@ -95,6 +112,10 @@ Form ต้องรองรับข้อมูลหลายหมวดง
 - [ ] evidence metadata section ทำงานได้
 - [ ] validation error ชัดเจน
 - [ ] form payload shape ตรงกับ #70/#71
+- [ ] create form submit ไป deployed #70 API จริง
+- [ ] edit form submit ไป deployed #71 API จริง
+- [ ] backend validation error จาก AWS endpoint map เข้า form ได้
+- [ ] มี QA evidence สำหรับ create/edit happy path และ validation error
 
 ## Review Checklist
 
@@ -113,6 +134,7 @@ UX:
 
 - [ ] form ใช้งานได้จริงกับ demo dataset
 - [ ] mobile/desktop ไม่ล้นจนใช้งานไม่ได้
+- [ ] test กับ Cognito admin user และ AWS endpoint จริง
 
 ## Dependencies
 
@@ -156,4 +178,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin มี create/edit form ที่สร้าง payload สำหรับ V2 work item ได้ครบตาม contract พร้อม validation และพร้อมต่อ API จริงในการ์ด integration
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin มี create/edit form ที่ใช้ deployed Master Data/Admin APIs จริง สร้างและแก้ข้อมูลใน Aurora ผ่าน AWS endpoint ได้ พร้อม validation, error mapping และ QA evidence

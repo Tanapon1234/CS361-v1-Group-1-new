@@ -6,6 +6,20 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #56 แต่ GitHub issue จริงใช้ #70
 
+## Production AWS Requirement
+
+การ์ดนี้ต้องเป็น protected AWS admin API จริง:
+
+```text
+Amazon API Gateway
+→ Cognito/Admin auth
+→ Admin Lambda
+→ RDS Data API transaction
+→ Aurora PostgreSQL Serverless v2
+```
+
+ต้องสร้าง record ใน Aurora จริงและมี audit trail จริง ห้ามปิดด้วย mock repository เท่านั้น
+
 ## Background
 
 V2 ไม่ได้เป็นแค่ public read-only page แต่เป็น repository foundation ที่ Admin pilot สามารถจัดการข้อมูลเบื้องต้นได้
@@ -60,8 +74,13 @@ V2 ไม่ได้เป็นแค่ public read-only page แต่เป
   - `evidence_reference` rows when provided
   - `audit_event`
 - use transaction through Data API or repository transaction adapter
+- configure API Gateway protected route สำหรับ `POST /api/v2/admin/work-items`
+- ใช้ RDS Data API transaction (`BeginTransaction`, `ExecuteStatement`, `Commit/Rollback`) หรือ abstraction ที่ทำงานเทียบเท่า
+- ใช้ `CS361V2AdminLambdaRole` หรือ role ที่มีสิทธิ์จำกัดตาม #48
+- เพิ่ม CloudWatch logs สำหรับ request id, validation failure, transaction rollback และ success
 - add idempotency/conflict policy if the implementation supports it
 - add tests for valid create, invalid payload, unauthorized, transaction rollback
+- เพิ่ม AWS smoke test ที่สร้าง record จริงใน Aurora target environment
 
 ### ไม่ต้องทำ
 
@@ -146,6 +165,10 @@ Response:
 - [ ] transaction rollback เมื่อ insert ส่วนใดส่วนหนึ่ง fail
 - [ ] audit event ถูกสร้างสำหรับ create action
 - [ ] created record อ่านกลับผ่าน read/detail API ได้ตาม visibility
+- [ ] API Gateway protected route deploy แล้ว
+- [ ] Admin Lambda insert เข้า Aurora ผ่าน RDS Data API transaction จริง
+- [ ] CloudWatch logs มีหลักฐาน success และ rollback/error path
+- [ ] smoke test สร้าง record จริงและอ่านกลับได้
 
 ## Review Checklist
 
@@ -154,6 +177,7 @@ Backend:
 - [ ] mutation ใช้ transaction
 - [ ] validation logic ไม่กระจายซ้ำหลายที่
 - [ ] audit event มี actor, action, entity id และ request id
+- [ ] production path ไม่อ่าน/เขียน fixture file
 
 Security:
 
@@ -209,4 +233,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin สามารถสร้าง work item ใหม่พร้อม relation/subtype/evidence/audit ได้ผ่าน API เดียวแบบ transaction-safe และอ่านผลลัพธ์กลับได้จาก V2 repository
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin สามารถสร้าง work item ใหม่บน AWS endpoint จริงพร้อม relation/subtype/evidence/audit ผ่าน API เดียวแบบ transaction-safe, ข้อมูลถูกเขียนเข้า Aurora จริง, อ่านผลลัพธ์กลับได้ และมี CloudWatch/Aurora smoke evidence

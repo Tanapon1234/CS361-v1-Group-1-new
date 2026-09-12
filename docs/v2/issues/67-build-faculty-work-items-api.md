@@ -6,6 +6,19 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #53 แต่ GitHub issue จริงใช้ #67
 
+## Production AWS Requirement
+
+การ์ดนี้ต้องต่อกับ AWS production path เดียวกับ #66:
+
+```text
+Amazon API Gateway
+→ AWS Lambda query handler
+→ Amazon RDS Data API
+→ Aurora PostgreSQL Serverless v2
+```
+
+ห้ามปิดการ์ดด้วย fixture/mock result เท่านั้น ต้องมี smoke test จาก deployed AWS endpoint จริง
+
 ## Background
 
 V1 มี faculty profile เป็นศูนย์กลาง แต่ V2 ต้องแสดงผลงาน/ภาระงานของอาจารย์หลายปี หลายหมวดงาน และรองรับงานที่มีอาจารย์หลายคนร่วมกัน
@@ -53,7 +66,12 @@ V1 มี faculty profile เป็นศูนย์กลาง แต่ V2 �
   - `page_size`
 - include faculty contribution fields ของ faculty ที่อยู่ใน route
 - reuse validation/sorting/pagination pattern จาก #66
+- เพิ่ม Lambda route/handler สำหรับ `GET /api/v2/faculties/{faculty_id}/work-items`
+- เพิ่ม Data API query ที่ join `faculty`, `faculty_work_item`, `work_item` และ period tables จาก Aurora จริง
+- configure API Gateway path parameter ให้ route นี้
+- เพิ่ม CloudWatch logs สำหรับ faculty id, filters, not-found และ errors
 - เพิ่ม tests สำหรับ faculty not found, no work items, multi-faculty work item, visibility
+- เพิ่ม AWS smoke test ด้วย faculty demo slug/id จริง
 
 ### ไม่ต้องทำ
 
@@ -123,6 +141,9 @@ Response:
 - [ ] public route ไม่ leak internal/restricted records
 - [ ] faculty not found return `404`
 - [ ] มี tests สำหรับ demo cases ใน `docs/v2/demo-dataset.md`
+- [ ] API Gateway route deploy แล้ว
+- [ ] Lambda อ่าน Aurora ผ่าน RDS Data API จริง
+- [ ] smoke test ผ่าน AWS endpoint สำหรับ faculty demo case
 
 ## Review Checklist
 
@@ -131,6 +152,7 @@ Backend:
 - [ ] ใช้ `faculty_work_item` ไม่ shortcut จาก `work_item.created_by`
 - [ ] query ไม่ hardcode faculty demo ids
 - [ ] response shape ใช้ชื่อ field consistent กับ #66
+- [ ] production path ไม่อ่าน fixture file
 
 QA:
 
@@ -182,4 +204,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ V2 เรียกผลงาน/ภาระงานของอาจารย์รายคนได้จาก relation จริง พร้อม filter, pagination, contribution fields และ public visibility rule ที่ตรวจสอบได้
+การ์ดนี้ถือว่าเสร็จเมื่อ V2 เรียกผลงาน/ภาระงานของอาจารย์รายคนได้จาก Aurora relation จริงผ่าน API Gateway + Lambda + RDS Data API พร้อม filter, pagination, contribution fields, public visibility rule และ AWS smoke evidence ที่ตรวจสอบได้

@@ -6,6 +6,20 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #57 แต่ GitHub issue จริงใช้ #71
 
+## Production AWS Requirement
+
+การ์ดนี้ต้องเป็น protected AWS admin API จริง:
+
+```text
+Amazon API Gateway
+→ Cognito/Admin auth
+→ Admin Lambda
+→ RDS Data API transaction
+→ Aurora PostgreSQL Serverless v2
+```
+
+PATCH/DELETE/restore ต้องแก้ข้อมูลจริงใน Aurora และสร้าง audit event จริงทุกครั้ง
+
 ## Background
 
 Admin pilot ต้องจัดการข้อมูลที่ถูกเพิ่มหรือ import เข้ามาได้ แต่ V2 ต้องรักษาประวัติและ audit trail จึงห้าม hard delete เป็น default
@@ -58,7 +72,11 @@ POST   /api/v2/admin/work-items/{id}/restore
   - evidence references metadata
 - update `updated_at`, `updated_by`, `deleted_at`
 - record `audit_event`
+- configure API Gateway protected routes สำหรับ GET/PATCH/DELETE/restore
+- ใช้ RDS Data API transaction สำหรับ relation/subtype/evidence update
+- เพิ่ม CloudWatch logs สำหรับ entity id, action, actor, rollback และ visibility impact
 - add tests สำหรับ auth, validation, soft delete, restore, not found
+- เพิ่ม AWS smoke test ที่ update/soft delete/restore record จริงจาก #70
 
 ### ไม่ต้องทำ
 
@@ -126,6 +144,10 @@ Authorization: Bearer <admin-token>
 - [ ] mutation ทุกครั้งมี audit event
 - [ ] unauthorized/non-admin ถูกปฏิเสธ
 - [ ] tests ครอบคลุม validation และ transaction rollback
+- [ ] API Gateway protected routes deploy แล้ว
+- [ ] Lambda update/soft delete/restore Aurora ผ่าน RDS Data API transaction จริง
+- [ ] CloudWatch logs มีหลักฐาน action/audit/rollback path
+- [ ] smoke test บน AWS endpoint ผ่านครบ update, soft delete และ restore ถ้าเปิดใช้
 
 ## Review Checklist
 
@@ -134,6 +156,7 @@ Backend:
 - [ ] patch logic ไม่เขียนทับ field ที่ไม่ได้ส่งมาโดยไม่ตั้งใจ
 - [ ] relation update ใช้ transaction
 - [ ] updated/deleted metadata ถูกต้อง
+- [ ] production path ไม่อ่าน/เขียน fixture file
 
 Security:
 
@@ -187,4 +210,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin สามารถดู แก้ไข soft delete และ restore work item ได้อย่างปลอดภัย มี audit trail และ public API ไม่เห็น record ที่ถูกลบ
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin สามารถดู แก้ไข soft delete และ restore work item ผ่าน AWS endpoint จริงได้อย่างปลอดภัย, mutation เขียน Aurora ผ่าน Data API transaction, มี audit trail/CloudWatch evidence และ public API ไม่เห็น record ที่ถูกลบ
