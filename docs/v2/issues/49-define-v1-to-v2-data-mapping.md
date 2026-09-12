@@ -6,6 +6,22 @@
 
 การ์ดนี้เป็นสะพานระหว่าง V1 public faculty dataset กับ V2 repository schema โดยต้องตอบให้ได้ว่า field จาก V1 เช่น faculty profile, education, research interests, expertise, selected publications และ publication profiles จะถูก map ไป table/field ใดใน V2 และต้องรักษา `public_slug` เดิมอย่างไรเพื่อไม่ให้ V1 public URL พัง
 
+## Implementation Status
+
+Status: Ready for review / ready to close
+
+Implemented artifacts:
+
+- `docs/v2/v1-to-v2-mapping.md`
+- `data/v2/mappings/v1-to-v2-field-mapping.csv`
+- `docs/v2/README.md` links both the human-readable mapping document and the field-level CSV
+
+Important scope note:
+
+- This card maps V1 public faculty data only.
+- It intentionally does not execute database migration and does not insert records into Aurora.
+- It intentionally does not map the workload form PDF; workload-form import belongs to later demo dataset / migration cards.
+
 ## Background
 
 V1 ปัจจุบันมีข้อมูล public-safe อยู่ใน:
@@ -405,59 +421,60 @@ data/v2/mappings/v1-to-v2-field-mapping.csv
 
 ## Acceptance Criteria
 
-- [ ] inventory V1 source/serving fields ครบ
-- [ ] mapping จาก V1 faculty ไป `faculty` ชัดเจน
-- [ ] mapping จาก V1 education ไป `faculty_education` ชัดเจน
-- [ ] mapping จาก V1 research interests ไป `faculty_interest` ชัดเจน
-- [ ] mapping จาก V1 expertise ไป `faculty_interest` ชัดเจน
-- [ ] mapping จาก V1 selected publications ไป `work_item` ชัดเจน
-- [ ] mapping จาก V1 selected publications ไป `publication_detail` ชัดเจน
-- [ ] mapping จาก V1 selected publications ไป `faculty_work_item` ชัดเจน
-- [ ] mapping สำหรับ publication profiles ชัดเจน
-- [ ] mapping สำหรับ CV/profile image/badges ชัดเจน หรือระบุ deferred ชัดเจน
-- [ ] mapping สำหรับ source metadata/provenance ชัดเจน
-- [ ] ระบุ required/optional ของ field สำคัญแล้ว
-- [ ] ระบุ missing/null/empty rules แล้ว
-- [ ] ระบุ validation rules แล้ว
-- [ ] ระบุ visibility mapping แล้ว
-- [ ] ระบุ duplicate publication rule แล้ว
-- [ ] ระบุว่า V1 `id` ต้อง preserve เป็น `faculty.public_slug`
-- [ ] ระบุ compatibility test cases แล้ว
-- [ ] open questions ถูกบันทึกพร้อม owner/decision needed
-- [ ] เอกสารพร้อมให้ #66 ใช้ทำ migration
+- [x] inventory V1 source/serving fields ครบ
+- [x] mapping จาก V1 faculty ไป `faculty` ชัดเจน
+- [x] mapping จาก V1 education ไป `faculty_education` ชัดเจน
+- [x] mapping จาก V1 research interests ไป `faculty_interest` ชัดเจน
+- [x] mapping จาก V1 expertise ไป `faculty_interest` ชัดเจน
+- [x] mapping จาก V1 selected publications ไป `work_item` ชัดเจน
+- [x] mapping จาก V1 selected publications ไป `publication_detail` ชัดเจน
+- [x] mapping จาก V1 selected publications ไป `faculty_work_item` ชัดเจน
+- [x] mapping สำหรับ publication profiles ชัดเจน
+- [x] mapping สำหรับ CV/profile image/badges ชัดเจน หรือระบุ deferred ชัดเจน
+- [x] mapping สำหรับ source metadata/provenance ชัดเจน
+- [x] ระบุ required/optional ของ field สำคัญแล้ว
+- [x] ระบุ missing/null/empty rules แล้ว
+- [x] ระบุ validation rules แล้ว
+- [x] ระบุ visibility mapping แล้ว
+- [x] ระบุ duplicate publication rule แล้ว
+- [x] ระบุว่า V1 `id` ต้อง preserve เป็น `faculty.public_slug`
+- [x] ระบุ compatibility test cases แล้ว
+- [x] open questions ถูกบันทึกพร้อม owner/decision needed
+- [x] เอกสารพร้อมให้ #66 ใช้ทำ migration
 
 ## Review Checklist
 
 Data / Database:
 
-- [ ] mapping สอดคล้องกับ schema จาก #47
-- [ ] field required/optional เหมาะสม
-- [ ] transform rules ไม่ทำให้ข้อมูลเสียความหมาย
-- [ ] duplicate rules ใช้ได้จริง
+- [x] mapping สอดคล้องกับ schema จาก #47
+- [x] field required/optional เหมาะสม
+- [x] transform rules ไม่ทำให้ข้อมูลเสียความหมาย
+- [x] duplicate rules ใช้ได้จริง
 
 Backend:
 
-- [ ] mapping รองรับ API list/detail/search ในอนาคต
-- [ ] `public_slug` ใช้ lookup ได้
-- [ ] publication mapping รองรับ detail API ได้
+- [x] mapping รองรับ API list/detail/search ในอนาคต
+- [x] `public_slug` ใช้ lookup ได้
+- [x] publication mapping รองรับ detail API ได้
 
 Frontend:
 
-- [ ] V1 public fields ที่ frontend ใช้อยู่ยัง projection กลับมาได้
-- [ ] slug เดิมยังใช้ route เดิมได้
-- [ ] public display fields ไม่หาย
+- [x] V1 public fields ที่ frontend ใช้อยู่ยัง projection กลับมาได้
+- [x] slug เดิมยังใช้ route เดิมได้
+- [x] public display fields ไม่หาย
 
 QA / Integration:
 
-- [ ] compatibility tests ตรวจได้
-- [ ] missing/invalid cases มี expected outcome
-- [ ] public/internal/restricted rules test ได้
+- [x] compatibility tests ตรวจได้
+- [x] missing/invalid cases มี expected outcome
+- [x] public/internal/restricted rules test ได้
 
 Tech Lead:
 
-- [ ] mapping ไม่ขยาย scope ไป V3/V4/V7
-- [ ] mapping ไม่ผูก schema กับ V1 JSON มากเกินไป
-- [ ] open questions ถูกจัดการก่อน #66
+- [x] mapping ไม่ขยาย scope ไป V3/V4/V7
+- [x] mapping ไม่ผูก schema กับ V1 JSON มากเกินไป
+- [x] open questions ถูกบันทึกเป็น field gaps พร้อม owner/decision needed ก่อน #66
+
 ## Dependencies
 
 Blocked by:
