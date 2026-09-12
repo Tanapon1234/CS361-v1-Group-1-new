@@ -19,6 +19,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [v1-to-v2-mapping.md](./v1-to-v2-mapping.md) | mapping จาก V1 public faculty dataset เข้า V2 relational repository สำหรับ Issue #49 |
 | [demo-dataset.md](./demo-dataset.md) | summary และ validation matrix ของ V2 multi-year demo dataset สำหรับ Issue #50 |
 | [master-data-api.md](./master-data-api.md) | contract และ verification notes ของ V2 Master Data API สำหรับ Issue #64 |
+| [team-handbook/README.md](./team-handbook/README.md) | คู่มือกลางสำหรับทีม: overview, database, AWS access/setup, issue workflow, testing/evidence |
 | [aws-foundation.md](./aws-foundation.md) | AWS foundation deployment record สำหรับ Issue #48 |
 | [aws-foundation-service-check-guide.md](./aws-foundation-service-check-guide.md) | วิธีเช็ค AWS services หลัง deploy สำหรับคนในทีมที่มาทำต่อ |
 | [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
