@@ -17,6 +17,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
 | [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |
 | [aws-foundation.md](./aws-foundation.md) | AWS foundation deployment record สำหรับ Issue #48 |
+| [aws-foundation-service-check-guide.md](./aws-foundation-service-check-guide.md) | วิธีเช็ค AWS services หลัง deploy สำหรับคนในทีมที่มาทำต่อ |
 | [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
 | [security.md](./security.md) | V2 security boundary สำหรับ secrets, IAM, Data API และ evidence |
 | [aws-foundation-evidence.md](./aws-foundation-evidence.md) | evidence checklist สำหรับปิด Issue #48 |
