@@ -6,6 +6,18 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #59 แต่ GitHub issue จริงใช้ #73
 
+## Production AWS Requirement
+
+result list ต้องอ่านข้อมูลจาก deployed Work Item List API จาก #66 จริง ไม่ใช่ fixture/mock:
+
+```text
+Frontend /outputs
+→ deployed API Gateway `GET /api/v2/work-items`
+→ Lambda
+→ RDS Data API
+→ Aurora
+```
+
 ## Background
 
 หลังจากมี shell/filter UI จาก #72 และ Work Item List API จาก #66 หน้า repository ต้องแสดงรายการผลลัพธ์ที่ผู้ใช้ scan ได้ง่าย เช่น title, category/type, period, faculty contributors และ updated date
@@ -25,7 +37,6 @@
 การ์ดนี้ยังไม่ต้อง:
 
 - implement detail page
-- integrate API แบบ production เต็มรูปแบบถ้า #75 แยกไว้
 - ทำ admin list
 - ทำ export/download
 
@@ -46,11 +57,12 @@
 - เพิ่ม loading skeleton/state
 - เพิ่ม error state พร้อม retry หรือ clear filter ตาม UX ที่เหมาะสม
 - link item ไป `/outputs/{id}`
+- ต่อ data fetching กับ deployed `GET /api/v2/work-items` จาก #66
+- map filter URL query ไป API query จริง
 - เพิ่ม tests หรือ manual QA checklist
 
 ### ไม่ต้องทำ
 
-- real data fetching ถ้า #75 จะทำ integration แยก
 - admin-only fields
 - work item detail content
 
@@ -96,7 +108,9 @@ Component ต้องรองรับ list response:
 - [ ] loading/empty/error states ทำงานครบ
 - [ ] responsive บน mobile/desktop
 - [ ] ไม่มี internal/restricted/admin-only field ใน public UI
-- [ ] component พร้อมเชื่อม real API ใน #75
+- [ ] result list ใช้ deployed Work Item List API จริง
+- [ ] pagination/filter ส่ง query ไป AWS endpoint จริง
+- [ ] มี QA evidence สำหรับ success, empty และ API error state
 
 ## Review Checklist
 
@@ -116,6 +130,7 @@ QA:
 - [ ] ทดสอบ list มีหลายหน้า
 - [ ] ทดสอบ no result
 - [ ] ทดสอบ error state
+- [ ] smoke test บน deployed frontend/API Gateway ไม่ใช่ mock เท่านั้น
 
 ## Dependencies
 
@@ -157,4 +172,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อหน้า repository มี result list และ pagination ที่รองรับ contract ของ Work Item List API และพร้อมต่อเข้ากับ real API ในการ์ด integration
+การ์ดนี้ถือว่าเสร็จเมื่อหน้า repository มี result list และ pagination ที่ใช้ deployed Work Item List API จริงจาก AWS, รองรับ contract ของ #66 และมี QA evidence สำหรับ success/empty/error/pagination

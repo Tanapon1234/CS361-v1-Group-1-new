@@ -6,6 +6,19 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #55 แต่ GitHub issue จริงใช้ #69
 
+## Production AWS Requirement
+
+การ์ดนี้ต้องตั้งค่า Cognito และ admin auth boundary ใน AWS จริง ไม่ใช่ mock auth:
+
+```text
+Amazon Cognito User Pool / App Client
+→ API Gateway authorizer หรือ Lambda token verification
+→ Admin Lambda guards
+→ Aurora app_user/app_user_role/auth_login_event
+```
+
+ต้องมี admin user ที่ใช้ทดสอบได้จริง, token validation จริง และ CloudWatch/auth evidence สำหรับ `401`, `403`, และ admin success
+
 ## Background
 
 V2 มี Admin pilot สำหรับจัดการ repository ขั้นต้น แต่ยังไม่ใช่ V3 Secure Faculty Workspace เต็มรูปแบบ ดังนั้น auth boundary ต้องเรียบง่าย ชัดเจน และตรวจสอบย้อนหลังได้
@@ -51,6 +64,9 @@ V2 human login role มีเพียง `ADMIN`; ส่วน `SYSTEM` ใช�
 - เพิ่ม role check ว่า user มี active `ADMIN`
 - เพิ่ม bootstrap/admin user mapping process ที่ปลอดภัยพอสำหรับ demo/dev
 - เพิ่ม `auth_login_event` logging สำหรับ success/failure เท่าที่ route รองรับ
+- configure API Gateway authorizer หรือ Lambda auth guard ให้ admin routes ใช้จริง
+- sync/map Cognito user กับ `app_user` และ `app_user_role` ใน Aurora
+- บันทึก CloudWatch log และ `auth_login_event` สำหรับ success/failure paths
 - เพิ่ม environment variables ที่ frontend/backend ต้องใช้
 - เพิ่ม tests สำหรับ unauthenticated, invalid token, non-admin, admin success
 - อัปเดต docs สำหรับทีมที่ต้องสร้าง admin user
@@ -95,6 +111,9 @@ Protected route behavior:
 - [ ] login/auth event ถูกบันทึกตามที่ออกแบบ
 - [ ] มี tests สำหรับ `401`, `403`, success
 - [ ] docs บอกวิธีสร้าง/เช็ค admin user ได้
+- [ ] Cognito User Pool/App Client ใช้งานจริงใน AWS environment
+- [ ] admin token จาก Cognito ใช้เรียก protected AWS endpoint ได้จริง
+- [ ] `auth_login_event` หรือ CloudWatch evidence แสดง success/failure path
 
 ## Review Checklist
 
@@ -113,6 +132,7 @@ Cloud:
 
 - [ ] Cognito resource names/ids ถูกบันทึกใน docs/env
 - [ ] IAM permissions สำหรับ Lambda พอดีกับงาน
+- [ ] API Gateway/Lambda auth configuration ถูกผูกกับ admin routes จริง
 
 ## Dependencies
 
@@ -156,4 +176,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ admin API มี Cognito-backed authentication และ `ADMIN` role guard ที่ใช้งานซ้ำได้ พร้อม docs/env/tests ที่ทีมใช้ต่อกับ admin CRUD และ admin UI ได้ทันที
+การ์ดนี้ถือว่าเสร็จเมื่อ admin API มี Cognito-backed authentication ใน AWS จริง, `ADMIN` role guard ใช้งานซ้ำได้, protected endpoint แยก `401/403/success` ได้จริง พร้อม docs/env/tests/CloudWatch evidence ที่ทีมใช้ต่อกับ admin CRUD และ admin UI ได้ทันที

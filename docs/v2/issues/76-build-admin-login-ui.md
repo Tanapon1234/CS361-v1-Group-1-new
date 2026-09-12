@@ -6,6 +6,19 @@
 
 หมายเหตุเลขการ์ด: การ์ดนี้เทียบกับ design baseline เดิม #62 แต่ GitHub issue จริงใช้ #76
 
+## Production AWS Requirement
+
+หน้า admin login ต้องใช้ Cognito User Pool/App Client จริงจาก #69:
+
+```text
+Frontend /admin/login
+→ Amazon Cognito
+→ token/session
+→ protected admin routes/API Gateway
+```
+
+mock login หรือ hardcoded token ไม่ถือว่าเพียงพอสำหรับปิดการ์ดนี้
+
 ## Background
 
 V2 มี Admin pilot role เดียวคือ `ADMIN` ใช้สำหรับจัดการ repository ขั้นต้น ไม่ใช่ faculty self-service หรือ reviewer workflow
@@ -43,6 +56,8 @@ V2 มี Admin pilot role เดียวคือ `ADMIN` ใช้สำห�
 - handle login success/failure/loading
 - เพิ่ม logout หรือ session clear entry point ถ้าจำเป็น
 - เพิ่ม docs/env สำหรับ Cognito frontend config
+- ผูก frontend env กับ Cognito User Pool/App Client จริง
+- verify token/session กับ protected admin route หรือ health check จริง
 - เพิ่ม tests/manual QA checklist
 
 ### ไม่ต้องทำ
@@ -68,6 +83,9 @@ V2 มี Admin pilot role เดียวคือ `ADMIN` ใช้สำห�
 - [ ] logout/session clear ทำงานหรือมีทางออกชัดเจน
 - [ ] frontend ไม่มี DB secret/AWS secret
 - [ ] V1/V2 public pages ไม่ต้อง login
+- [ ] ใช้ Cognito User Pool/App Client จริงจาก AWS
+- [ ] admin token ใช้เรียก protected AWS endpoint ได้อย่างน้อย 1 route
+- [ ] มี QA evidence สำหรับ valid login, invalid login และ expired/cleared session
 
 ## Review Checklist
 
@@ -88,6 +106,7 @@ QA:
 - [ ] test valid admin
 - [ ] test invalid credential
 - [ ] test expired/cleared session
+- [ ] test กับ Cognito จริง ไม่ใช่ mock auth
 
 ## Dependencies
 
@@ -129,4 +148,4 @@ Reviewers:
 
 ## Definition Of Done
 
-การ์ดนี้ถือว่าเสร็จเมื่อ Admin pilot login ผ่าน Cognito ได้ มี protected route foundation และพร้อมให้ admin work item pages ต่อเข้ากับ CRUD API
+การ์ดนี้ถือว่าเสร็จเมื่อ Admin pilot login ผ่าน Cognito จริงได้ มี protected route foundation ที่ใช้ token จริงกับ AWS admin endpoint และพร้อมให้ admin work item pages ต่อเข้ากับ CRUD API
