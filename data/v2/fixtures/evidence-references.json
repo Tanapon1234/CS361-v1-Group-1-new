@@ -1,0 +1,90 @@
+[
+  {
+    "id": "ev-pub-2019-doi",
+    "work_item_id": "wi-pub-2019-multi-container",
+    "reference_type": "URL",
+    "label": "DOI landing page",
+    "external_url": "https://doi.org/10.1109/HPCS48598.2019.9188218",
+    "s3_key": null,
+    "mime_type": "text/html",
+    "checksum_sha256": null,
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "ev-pub-2024-demo-url",
+    "work_item_id": "wi-pub-2024-privacy-edge",
+    "reference_type": "URL",
+    "label": "Synthetic publication landing page",
+    "external_url": "https://example.edu/cs361-demo/privacy-edge-analytics",
+    "s3_key": null,
+    "mime_type": "text/html",
+    "checksum_sha256": null,
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "ev-teach-2567-cs333",
+    "work_item_id": "wi-teach-2567-2-cs333",
+    "reference_type": "S3_OBJECT",
+    "label": "Synthetic teaching workload evidence placeholder",
+    "external_url": null,
+    "s3_key": "s3://cs361-v2-demo-placeholder/evidence/teaching/2567/cs333-summary.pdf",
+    "mime_type": "application/pdf",
+    "checksum_sha256": "placeholder-not-a-real-checksum",
+    "visibility": "INTERNAL"
+  },
+  {
+    "id": "ev-research-2567-privacy",
+    "work_item_id": "wi-research-2567-privacy-platform",
+    "reference_type": "DOCUMENT_ID",
+    "label": "Synthetic grant approval document",
+    "external_url": null,
+    "s3_key": "s3://cs361-v2-demo-placeholder/evidence/research/2567/privacy-platform-approval.pdf",
+    "mime_type": "application/pdf",
+    "checksum_sha256": "placeholder-not-a-real-checksum",
+    "visibility": "INTERNAL"
+  },
+  {
+    "id": "ev-supervision-2567-phd",
+    "work_item_id": "wi-supervision-2567-phd-thesis",
+    "reference_type": "TEXT_NOTE",
+    "label": "Restricted synthetic thesis supervision evidence",
+    "external_url": null,
+    "s3_key": null,
+    "mime_type": "text/plain",
+    "checksum_sha256": null,
+    "visibility": "RESTRICTED"
+  },
+  {
+    "id": "ev-service-2568-speaker",
+    "work_item_id": "wi-service-2568-speaker",
+    "reference_type": "URL",
+    "label": "Synthetic public event page",
+    "external_url": "https://example.edu/cs361-demo/responsible-ai-privacy-talk",
+    "s3_key": null,
+    "mime_type": "text/html",
+    "checksum_sha256": null,
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "ev-admin-2568-qa",
+    "work_item_id": "wi-admin-2568-program-committee",
+    "reference_type": "S3_OBJECT",
+    "label": "Synthetic appointment order placeholder",
+    "external_url": null,
+    "s3_key": "s3://cs361-v2-demo-placeholder/evidence/admin/2568/program-qa-appointment.pdf",
+    "mime_type": "application/pdf",
+    "checksum_sha256": "placeholder-not-a-real-checksum",
+    "visibility": "INTERNAL"
+  },
+  {
+    "id": "ev-supervision-2567-coop",
+    "work_item_id": "wi-supervision-2567-coop",
+    "reference_type": "TEXT_NOTE",
+    "label": "Restricted synthetic cooperative education evidence",
+    "external_url": null,
+    "s3_key": null,
+    "mime_type": "text/plain",
+    "checksum_sha256": null,
+    "visibility": "RESTRICTED"
+  }
+]

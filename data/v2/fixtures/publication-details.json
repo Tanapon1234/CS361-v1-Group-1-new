@@ -1,0 +1,41 @@
+[
+  {
+    "work_item_id": "wi-pub-2019-multi-container",
+    "publication_title": "Multi-Container Application Migration with Load Balanced and Adaptive Parallel TCP",
+    "venue": "HPCS 2019",
+    "publisher": "IEEE",
+    "publication_year": 2019,
+    "publication_date": "2019-07-01",
+    "doi": "10.1109/HPCS48598.2019.9188218",
+    "quartile": "OTHER",
+    "indexing_database": "IEEE Xplore",
+    "publication_kind": "CONFERENCE_PAPER",
+    "external_url": "https://doi.org/10.1109/HPCS48598.2019.9188218"
+  },
+  {
+    "work_item_id": "wi-pub-2024-privacy-edge",
+    "publication_title": "Privacy-Preserving Edge Analytics for Smart Campus Workload Signals",
+    "venue": "Synthetic Journal of Cloud Education Systems",
+    "publisher": "Synthetic Demo Publisher",
+    "publication_year": 2024,
+    "publication_date": "2024-10-01",
+    "doi": "10.0000/cs361.demo.privacy-edge.2024",
+    "quartile": "Q2",
+    "indexing_database": "SYNTHETIC_INDEX",
+    "publication_kind": "JOURNAL_ARTICLE",
+    "external_url": "https://example.edu/cs361-demo/privacy-edge-analytics"
+  },
+  {
+    "work_item_id": "wi-pub-2025-hci-agent",
+    "publication_title": "Adaptive Interface Agents for Computing Education",
+    "venue": "Synthetic HCI Education Proceedings",
+    "publisher": "Synthetic Demo Publisher",
+    "publication_year": 2025,
+    "publication_date": "2025-03-15",
+    "doi": null,
+    "quartile": "NO_Q",
+    "indexing_database": "SYNTHETIC_INDEX",
+    "publication_kind": "PROCEEDINGS_PAPER",
+    "external_url": "https://example.edu/cs361-demo/adaptive-interface-agents"
+  }
+]
