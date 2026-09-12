@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:v2:master-data": "node --test lib/v2/master-data.test.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
