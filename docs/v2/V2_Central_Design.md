@@ -215,7 +215,7 @@ Public API ต้อง return เฉพาะ record/field ที่ public-saf
 
 ## 9. Core Domain Entities
 
-Entity names ต่อไปนี้เป็น baseline ที่ freeze สำหรับ  เป็นต้นไป:
+Entity names ต่อไปนี้เป็น baseline ที่ freeze สำหรับ #47 เป็นต้นไป:
 
 | Entity | Responsibility |
 |---|---|
@@ -736,4 +736,4 @@ Decision after review:
 
 - [ ] Approved as V2 baseline
 - [ ] Approved with minor comments
-- [ ] Needs revision before  starts
+- [ ] Needs revision before #47 starts

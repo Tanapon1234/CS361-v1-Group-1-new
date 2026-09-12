@@ -11,6 +11,9 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | Artifact | Purpose |
 |---|---|
 | [V2_Central_Design.md](./V2_Central_Design.md) | เอกสาร freeze หลักของ Issue #46: scope, architecture, contracts, routes, entities, V1 compatibility |
+| [erd.md](./erd.md) | ERD และ relationship baseline ของ V2 repository สำหรับ Issue #47 |
+| [data-contract.md](./data-contract.md) | data dictionary และ query/data contract ขั้นต้นของ schema |
+| [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
 | [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) | Architecture diagram แบบ AWS service-icon style |
 | [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) | Architecture diagram เวอร์ชัน clean/readable |
 
@@ -50,9 +53,20 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 สำหรับเริ่มงาน V2 ให้ใช้ลำดับนี้:
 
 1. อ่าน [V2_Central_Design.md](./V2_Central_Design.md) เพื่อเข้าใจ scope และ contracts ที่ freeze แล้ว
-2. ใช้ [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) ในรายงานหรือ slide เพื่ออธิบาย architecture
-3. เริ่ม implementation planning จาก issue #47 เป็นต้นไป
-4. ถ้างานถัดไปต้องเปลี่ยนชื่อ entity, route, visibility rule หรือ V1 compatibility rule ให้เปิด decision/update แยกก่อนแก้
+2. อ่าน [erd.md](./erd.md), [data-contract.md](./data-contract.md), และ [schema-decisions.md](./schema-decisions.md) ก่อนเริ่มงาน database/API
+3. ใช้ [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) ในรายงานหรือ slide เพื่ออธิบาย architecture
+4. เริ่ม implementation planning จาก issue #48 เป็นต้นไปหลัง schema baseline ผ่าน review
+5. ถ้างานถัดไปต้องเปลี่ยนชื่อ entity, route, visibility rule หรือ V1 compatibility rule ให้เปิด decision/update แยกก่อนแก้
+
+---
+
+## Database Baseline
+
+| Artifact | Purpose |
+|---|---|
+| [../../database/README.md](../../database/README.md) | วิธี review และลำดับการรัน SQL baseline |
+| [../../database/migrations/001_base.sql](../../database/migrations/001_base.sql) | SQL migration baseline สำหรับ Aurora PostgreSQL |
+| [../../database/seeds/001_master_data.sql](../../database/seeds/001_master_data.sql) | seed master data สำหรับ `work_category` และ `work_type` |
 
 ---
 

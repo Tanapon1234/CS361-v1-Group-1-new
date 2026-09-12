@@ -1,5 +1,16 @@
 # [V2] Design Relational Schema & SQL Migration
 
+## Implementation Artifacts
+
+ไฟล์ผลลัพธ์สำหรับการ์ดนี้ถูกเตรียมไว้แล้วใน repo:
+
+- `docs/v2/erd.md` — ERD และ relationship baseline ของ V2 repository
+- `docs/v2/data-contract.md` — data dictionary, data contract และ acceptance query ขั้นต้น
+- `docs/v2/schema-decisions.md` — บันทึก design decisions สำคัญของ schema
+- `database/migrations/001_base.sql` — SQL migration baseline สำหรับ Aurora PostgreSQL
+- `database/seeds/001_master_data.sql` — seed master data สำหรับ `work_category` และ `work_type`
+- `database/README.md` — วิธี review และลำดับการรัน SQL baseline
+
 ## สรุป
 
 ออกแบบ relational schema สำหรับ V2 Faculty Output Repository และเตรียม SQL migration/seed baseline ที่การ์ด backend, import, migration และ frontend ใช้อ้างอิงร่วมกันได้
