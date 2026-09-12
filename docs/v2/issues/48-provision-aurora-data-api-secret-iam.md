@@ -1,5 +1,32 @@
 # [V2] Provision Aurora, Data API, Secrets & IAM Foundation
 
+## Implementation Artifacts
+
+Repo-side preparation สำหรับการ์ดนี้ถูกเพิ่มแล้ว:
+
+- `infra/v2/aws-foundation.yaml` — CloudFormation baseline สำหรับ Aurora PostgreSQL Serverless v2, RDS Data API, Secrets Manager, IAM roles, S3 data bucket และ CloudWatch log groups
+- `infra/v2/parameters.dev.example.json` — parameter example สำหรับ dev/demo deployment
+- `infra/v2/README.md` — ขั้นตอน deploy และ verify
+- `scripts/setup-v2-aws-foundation.sh` — wizard สำหรับ operator ที่จะ login AWS เอง โดยไม่ต้องส่ง secret ใน chat
+- `scripts/check-v2-aws-foundation.sh` — script ตรวจ `SELECT 1` ผ่าน RDS Data API
+- `docs/v2/aws-foundation.md` — deployment/resource record
+- `docs/v2/deployment-env.md` — environment variables สำหรับ backend/import/projection
+- `docs/v2/security.md` — security boundary สำหรับ secret/IAM/Data API/evidence
+- `docs/v2/aws-foundation-evidence.md` — evidence checklist สำหรับปิดการ์ด
+
+สถานะ: ยังไม่ปิดการ์ดจนกว่าจะ deploy AWS จริงและได้หลักฐาน `SELECT 1` ผ่าน RDS Data API
+
+Repo preparation checklist:
+
+- [x] เตรียม CloudFormation template สำหรับ AWS foundation
+- [x] เตรียม parameter example สำหรับ dev/demo
+- [x] เตรียม operator wizard สำหรับ AWS setup โดยไม่รับ secret ผ่าน chat
+- [x] เตรียม Data API verification script
+- [x] เตรียม deployment env documentation
+- [x] เตรียม security boundary documentation
+- [x] เตรียม evidence checklist สำหรับปิดการ์ด
+- [x] link artifact จาก `docs/v2/README.md`
+
 ## สรุป
 
 จัดเตรียม AWS foundation สำหรับ V2 Repository ให้พร้อมใช้งาน โดยสร้าง Aurora PostgreSQL Serverless v2, เปิดใช้ RDS Data API, จัดเก็บ database secret ใน AWS Secrets Manager, แยก IAM runtime roles ตามหน้าที่ และบันทึก resource names / environment variables สำหรับทีม backend, import, projection และ admin ใช้ต่อ

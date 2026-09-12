@@ -1,0 +1,372 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CS361 V2 Aurora PostgreSQL Data API, Secrets Manager, IAM roles, S3 data bucket, and CloudWatch baseline.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cs361-v2
+    AllowedPattern: "^[a-z][a-z0-9-]{2,30}$"
+    Description: Lowercase project prefix used for resource names.
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - demo
+      - prod
+    Description: Deployment environment tag.
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where Aurora private networking will live.
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: At least two private subnet IDs in different Availability Zones.
+
+  DBName:
+    Type: String
+    Default: cs361v2
+    AllowedPattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
+    Description: Initial database name for the V2 repository.
+
+  DBMasterUsername:
+    Type: String
+    Default: cs361v2admin
+    AllowedPattern: "^[a-zA-Z][a-zA-Z0-9_]{0,62}$"
+    Description: Master username. Password is managed by RDS in Secrets Manager.
+
+  DBEngineVersion:
+    Type: String
+    Default: "16.6"
+    Description: Aurora PostgreSQL engine version. Confirm availability in ap-southeast-1 before deploying.
+
+  MinCapacity:
+    Type: Number
+    Default: 0.5
+    AllowedValues:
+      - 0
+      - 0.5
+      - 1
+    Description: Minimum Aurora Serverless v2 ACU. Use 0 only when the selected engine version supports auto-pause.
+
+  MaxCapacity:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 128
+    Description: Maximum Aurora Serverless v2 ACU for dev/demo.
+
+  SecondsUntilAutoPause:
+    Type: Number
+    Default: 600
+    MinValue: 300
+    MaxValue: 86400
+    Description: Auto-pause delay, used only when MinCapacity is 0.
+
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+    AllowedValues:
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+    Description: CloudWatch log retention for V2 Lambda log groups.
+
+Conditions:
+  UseAutoPause: !Equals [!Ref MinCapacity, 0]
+  IsProd: !Equals [!Ref Environment, prod]
+
+Resources:
+  V2DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub "${ProjectName}-${Environment} private subnet group for V2 Aurora"
+      SubnetIds: !Ref PrivateSubnetIds
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Environment} Aurora Data API only; no public ingress"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress: []
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-aurora-sg"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2DBCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: !Sub "${ProjectName}-${Environment}-aurora"
+      DBName: !Ref DBName
+      Engine: aurora-postgresql
+      EngineVersion: !Ref DBEngineVersion
+      EngineMode: provisioned
+      EnableHttpEndpoint: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      ManageMasterUserPassword: true
+      MasterUsername: !Ref DBMasterUsername
+      DBSubnetGroupName: !Ref V2DBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref V2DBSecurityGroup
+      BackupRetentionPeriod: !If [IsProd, 7, 1]
+      CopyTagsToSnapshot: true
+      DeletionProtection: !If [IsProd, true, false]
+      StorageEncrypted: true
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !Ref MinCapacity
+        MaxCapacity: !Ref MaxCapacity
+        SecondsUntilAutoPause: !If [UseAutoPause, !Ref SecondsUntilAutoPause, !Ref "AWS::NoValue"]
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2DBWriterInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref V2DBCluster
+      DBInstanceIdentifier: !Sub "${ProjectName}-${Environment}-aurora-writer"
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2QueryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}-query"
+      RetentionInDays: !Ref LogRetentionDays
+
+  V2AdminLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}-admin"
+      RetentionInDays: !Ref LogRetentionDays
+
+  V2ImportLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}-import"
+      RetentionInDays: !Ref LogRetentionDays
+
+  V2ProjectionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}-projection"
+      RetentionInDays: !Ref LogRetentionDays
+
+  V2QueryLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "CS361V2QueryLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: cs361-v2-query-data-api
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DataApiReadExecute
+                Effect: Allow
+                Action:
+                  - rds-data:ExecuteStatement
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+              - Sid: ReadDatabaseSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+
+  V2AdminLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "CS361V2AdminLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: cs361-v2-admin-data-api
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DataApiAdminTransactions
+                Effect: Allow
+                Action:
+                  - rds-data:BeginTransaction
+                  - rds-data:CommitTransaction
+                  - rds-data:ExecuteStatement
+                  - rds-data:RollbackTransaction
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+              - Sid: ReadDatabaseSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+
+  V2ImportLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "CS361V2ImportLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: cs361-v2-import-data-api-s3
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DataApiImportTransactions
+                Effect: Allow
+                Action:
+                  - rds-data:BeginTransaction
+                  - rds-data:CommitTransaction
+                  - rds-data:ExecuteStatement
+                  - rds-data:RollbackTransaction
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+              - Sid: ReadDatabaseSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+              - Sid: ReadLandingPrefix
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub "${V2DataBucket.Arn}/landing/*"
+              - Sid: WriteArchiveAndMetadataPrefixes
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${V2DataBucket.Arn}/archive/*"
+                  - !Sub "${V2DataBucket.Arn}/metadata/*"
+
+  V2ProjectionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "CS361V2ProjectionLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: cs361-v2-projection-data-api-s3
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DataApiProjectionReadExecute
+                Effect: Allow
+                Action:
+                  - rds-data:ExecuteStatement
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+              - Sid: ReadDatabaseSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+              - Sid: WritePublicServingPrefix
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "${V2DataBucket.Arn}/public-serving/*"
+
+Outputs:
+  Region:
+    Value: !Ref "AWS::Region"
+  DBClusterIdentifier:
+    Value: !Ref V2DBCluster
+  DBClusterArn:
+    Value: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+  DBName:
+    Value: !Ref DBName
+  DBSecretArn:
+    Value: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+  DataBucketName:
+    Value: !Ref V2DataBucket
+  QueryLambdaRoleArn:
+    Value: !GetAtt V2QueryLambdaRole.Arn
+  AdminLambdaRoleArn:
+    Value: !GetAtt V2AdminLambdaRole.Arn
+  ImportLambdaRoleArn:
+    Value: !GetAtt V2ImportLambdaRole.Arn
+  ProjectionLambdaRoleArn:
+    Value: !GetAtt V2ProjectionLambdaRole.Arn
+  QueryLogGroupName:
+    Value: !Ref V2QueryLogGroup
+  AdminLogGroupName:
+    Value: !Ref V2AdminLogGroup
+  ImportLogGroupName:
+    Value: !Ref V2ImportLogGroup
+  ProjectionLogGroupName:
+    Value: !Ref V2ProjectionLogGroup

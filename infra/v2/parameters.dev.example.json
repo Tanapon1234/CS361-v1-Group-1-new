@@ -1,0 +1,46 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "cs361-v2"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-xxxxxxxxxxxxxxxxx"
+  },
+  {
+    "ParameterKey": "PrivateSubnetIds",
+    "ParameterValue": "subnet-aaaaaaaaaaaaaaaaa,subnet-bbbbbbbbbbbbbbbbb"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "cs361v2"
+  },
+  {
+    "ParameterKey": "DBMasterUsername",
+    "ParameterValue": "cs361v2admin"
+  },
+  {
+    "ParameterKey": "DBEngineVersion",
+    "ParameterValue": "16.6"
+  },
+  {
+    "ParameterKey": "MinCapacity",
+    "ParameterValue": "0.5"
+  },
+  {
+    "ParameterKey": "MaxCapacity",
+    "ParameterValue": "2"
+  },
+  {
+    "ParameterKey": "SecondsUntilAutoPause",
+    "ParameterValue": "600"
+  },
+  {
+    "ParameterKey": "LogRetentionDays",
+    "ParameterValue": "14"
+  }
+]
