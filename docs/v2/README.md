@@ -16,6 +16,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [data-contract.md](./data-contract.md) | data dictionary และ query/data contract ขั้นต้นของ schema |
 | [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
 | [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |
+| [v1-to-v2-mapping.md](./v1-to-v2-mapping.md) | mapping จาก V1 public faculty dataset เข้า V2 relational repository สำหรับ Issue #49 |
 | [aws-foundation.md](./aws-foundation.md) | AWS foundation deployment record สำหรับ Issue #48 |
 | [aws-foundation-service-check-guide.md](./aws-foundation-service-check-guide.md) | วิธีเช็ค AWS services หลัง deploy สำหรับคนในทีมที่มาทำต่อ |
 | [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
@@ -74,6 +75,7 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [../../database/README.md](../../database/README.md) | วิธี review และลำดับการรัน SQL baseline |
 | [../../database/migrations/001_base.sql](../../database/migrations/001_base.sql) | SQL migration baseline สำหรับ Aurora PostgreSQL |
 | [../../database/seeds/001_master_data.sql](../../database/seeds/001_master_data.sql) | seed master data สำหรับ `work_category` และ `work_type` |
+| [../../data/v2/mappings/v1-to-v2-field-mapping.csv](../../data/v2/mappings/v1-to-v2-field-mapping.csv) | field-level mapping จาก V1 public faculty dataset เข้า V2 tables สำหรับ Issue #49 |
 
 ---
 
