@@ -1,5 +1,39 @@
 # [V2] Provision Aurora, Data API, Secrets & IAM Foundation
 
+## Implementation Artifacts
+
+Repo-side preparation สำหรับการ์ดนี้ถูกเพิ่มแล้ว:
+
+- `infra/v2/aws-foundation.yaml` — CloudFormation baseline สำหรับ Aurora PostgreSQL Serverless v2, RDS Data API, Secrets Manager, IAM roles, S3 data bucket และ CloudWatch log groups
+- `infra/v2/parameters.dev.example.json` — parameter example สำหรับ dev/demo deployment
+- `infra/v2/README.md` — ขั้นตอน deploy และ verify
+- `scripts/setup-v2-aws-foundation.sh` — wizard สำหรับ operator ที่จะ login AWS เอง โดยไม่ต้องส่ง secret ใน chat
+- `scripts/check-v2-aws-foundation.sh` — script ตรวจ `SELECT 1` ผ่าน RDS Data API
+- `docs/v2/aws-foundation.md` — deployment/resource record
+- `docs/v2/deployment-env.md` — environment variables สำหรับ backend/import/projection
+- `docs/v2/security.md` — security boundary สำหรับ secret/IAM/Data API/evidence
+- `docs/v2/aws-foundation-evidence.md` — evidence checklist สำหรับปิดการ์ด
+
+สถานะ: deploy AWS dev/demo สำเร็จแล้ว และได้หลักฐาน `SELECT 1` ผ่าน RDS Data API
+
+Implementation note:
+
+- AWS account นี้ถูก RDS บังคับให้สร้าง Aurora ด้วย Express Configuration
+- CloudFormation `AWS::RDS::DBCluster` schema ใน region นี้ยังไม่รองรับ `WithExpressConfiguration`
+- จึงใช้ AWS CLI สร้าง Aurora Express cluster แล้ว deploy CloudFormation ด้วย `AuroraProvisioningMode=external-express` เพื่อสร้าง IAM roles, S3 bucket และ CloudWatch log groups
+- Network posture ของ Express cluster เป็น dev/demo exception: `VPCNetworkingEnabled=false`, `InternetAccessGatewayEnabled=true`
+
+Repo preparation checklist:
+
+- [x] เตรียม CloudFormation template สำหรับ AWS foundation
+- [x] เตรียม parameter example สำหรับ dev/demo
+- [x] เตรียม operator wizard สำหรับ AWS setup โดยไม่รับ secret ผ่าน chat
+- [x] เตรียม Data API verification script
+- [x] เตรียม deployment env documentation
+- [x] เตรียม security boundary documentation
+- [x] เตรียม evidence checklist สำหรับปิดการ์ด
+- [x] link artifact จาก `docs/v2/README.md`
+
 ## สรุป
 
 จัดเตรียม AWS foundation สำหรับ V2 Repository ให้พร้อมใช้งาน โดยสร้าง Aurora PostgreSQL Serverless v2, เปิดใช้ RDS Data API, จัดเก็บ database secret ใน AWS Secrets Manager, แยก IAM runtime roles ตามหน้าที่ และบันทึก resource names / environment variables สำหรับทีม backend, import, projection และ admin ใช้ต่อ
@@ -298,61 +332,61 @@ docs/v2/security.md
 
 ## Acceptance Criteria
 
-- [ ] Aurora PostgreSQL Serverless v2 cluster ถูกสร้างหรือระบุ resource ที่ใช้สำหรับ V2 แล้ว
-- [ ] cluster อยู่ใน region ที่ทีมตกลง
-- [ ] database name สำหรับ V2 ถูกกำหนดแล้ว
-- [ ] Serverless capacity ถูกตั้งค่าแบบ low-cost dev/demo แล้ว
-- [ ] Data API enabled แล้ว
-- [ ] database secret ถูกเก็บใน Secrets Manager แล้ว
-- [ ] ไม่มี secret value ถูก commit หรือเผยแพร่ในเอกสาร
-- [ ] Query Lambda role ถูกสร้างหรือกำหนดแล้ว
-- [ ] Admin Lambda role ถูกสร้างหรือกำหนดแล้ว
-- [ ] Import Lambda role ถูกสร้างหรือกำหนดแล้ว
-- [ ] Projection Lambda role ถูกสร้างหรือกำหนดแล้ว
-- [ ] runtime roles ไม่มี `AdministratorAccess`
-- [ ] runtime roles ไม่มี wildcard กว้างเกินจำเป็น เช่น `rds:*`, `s3:*`, `secretsmanager:*`
-- [ ] Query role จำกัดสิทธิ์เฉพาะ read/query ที่จำเป็น
-- [ ] Admin role มี transaction permissions เท่าที่จำเป็น
-- [ ] Import role จำกัด S3 prefixes ตามหน้าที่
-- [ ] Projection role จำกัด write เฉพาะ public projection prefix
-- [ ] CloudWatch log baseline หรือ naming convention ถูกบันทึกแล้ว
-- [ ] `SELECT 1` ผ่าน RDS Data API สำเร็จ
-- [ ] resource names, ARNs และ env vars ถูกบันทึกในเอกสารแล้ว
-- [ ] cost/risk notes เช่น auto-pause, min/max ACU, cold resume latency ถูกบันทึกแล้ว
-- [ ] เอกสารพร้อมให้ - และ  ใช้อ้างอิง
+- [x] Aurora PostgreSQL Serverless v2 cluster ถูกสร้างหรือระบุ resource ที่ใช้สำหรับ V2 แล้ว
+- [x] cluster อยู่ใน region ที่ทีมตกลง
+- [x] database name สำหรับ V2 ถูกกำหนดแล้ว
+- [x] Serverless capacity ถูกตั้งค่าแบบ low-cost dev/demo แล้ว
+- [x] Data API enabled แล้ว
+- [x] database secret ถูกเก็บใน Secrets Manager แล้ว
+- [x] ไม่มี secret value ถูก commit หรือเผยแพร่ในเอกสาร
+- [x] Query Lambda role ถูกสร้างหรือกำหนดแล้ว
+- [x] Admin Lambda role ถูกสร้างหรือกำหนดแล้ว
+- [x] Import Lambda role ถูกสร้างหรือกำหนดแล้ว
+- [x] Projection Lambda role ถูกสร้างหรือกำหนดแล้ว
+- [x] runtime roles ไม่มี `AdministratorAccess`
+- [x] runtime roles ไม่มี wildcard กว้างเกินจำเป็น เช่น `rds:*`, `s3:*`, `secretsmanager:*`
+- [x] Query role จำกัดสิทธิ์เฉพาะ read/query ที่จำเป็น
+- [x] Admin role มี transaction permissions เท่าที่จำเป็น
+- [x] Import role จำกัด S3 prefixes ตามหน้าที่
+- [x] Projection role จำกัด write เฉพาะ public projection prefix
+- [x] CloudWatch log baseline หรือ naming convention ถูกบันทึกแล้ว
+- [x] `SELECT 1` ผ่าน RDS Data API สำเร็จ
+- [x] resource names, ARNs และ env vars ถูกบันทึกในเอกสารแล้ว
+- [x] cost/risk notes เช่น auto-pause, min/max ACU, cold resume latency ถูกบันทึกแล้ว
+- [x] เอกสารพร้อมให้ backend, data, import, projection และ integration ใช้อ้างอิง
 
 ## Review Checklist
 
 Cloud / AWS:
 
-- [ ] Aurora configuration เหมาะกับ dev/demo V2
-- [ ] Data API เปิดใช้งานได้จริง
-- [ ] Secrets Manager ใช้ถูกต้อง
-- [ ] IAM roles แยกตาม responsibility
-- [ ] ไม่มี broad runtime permissions
+- [x] Aurora configuration เหมาะกับ dev/demo V2
+- [x] Data API เปิดใช้งานได้จริง
+- [x] Secrets Manager ใช้ถูกต้อง
+- [x] IAM roles แยกตาม responsibility
+- [x] ไม่มี broad runtime permissions
 
 Backend:
 
-- [ ] env vars เพียงพอสำหรับ Data API client
-- [ ] Query/admin/import/projection roles ตรงกับ backend responsibilities
-- [ ] verification result เพียงพอให้เริ่ม API work
+- [x] env vars เพียงพอสำหรับ Data API client
+- [x] Query/admin/import/projection roles ตรงกับ backend responsibilities
+- [x] verification result เพียงพอให้เริ่ม API work
 
 Data / Database:
 
-- [ ] database พร้อมรองรับ migration จาก #47
-- [ ] database name และ connection metadata ชัดเจน
+- [x] database พร้อมรองรับ migration จาก #47
+- [x] database name และ connection metadata ชัดเจน
 
 Security / QA:
 
-- [ ] ไม่มี secret leak
-- [ ] least privilege ตรวจสอบได้
-- [ ] evidence ไม่มี credential
+- [x] ไม่มี secret leak
+- [x] least privilege ตรวจสอบได้
+- [x] evidence ไม่มี credential
 
 Tech Lead:
 
-- [ ] resource naming สอดคล้องกับ V2 naming convention
-- [ ] cost notes และ deferred services ชัดเจน
-- [ ] งานไม่ล้ำ scope ไป Cognito/API/import implementation
+- [x] resource naming สอดคล้องกับ V2 naming convention
+- [x] cost notes และ deferred services ชัดเจน
+- [x] งานไม่ล้ำ scope ไป Cognito/API/import implementation
 
 ## Dependencies
 

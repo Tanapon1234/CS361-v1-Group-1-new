@@ -16,6 +16,11 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [data-contract.md](./data-contract.md) | data dictionary และ query/data contract ขั้นต้นของ schema |
 | [schema-decisions.md](./schema-decisions.md) | design decisions สำคัญของ relational schema |
 | [v2-repository.dbml](./v2-repository.dbml) | DBML script สำหรับ paste เข้า dbdiagram.io |
+| [aws-foundation.md](./aws-foundation.md) | AWS foundation deployment record สำหรับ Issue #48 |
+| [aws-foundation-service-check-guide.md](./aws-foundation-service-check-guide.md) | วิธีเช็ค AWS services หลัง deploy สำหรับคนในทีมที่มาทำต่อ |
+| [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
+| [security.md](./security.md) | V2 security boundary สำหรับ secrets, IAM, Data API และ evidence |
+| [aws-foundation-evidence.md](./aws-foundation-evidence.md) | evidence checklist สำหรับปิด Issue #48 |
 | [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) | Architecture diagram แบบ AWS service-icon style |
 | [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) | Architecture diagram เวอร์ชัน clean/readable |
 
@@ -69,6 +74,17 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [../../database/README.md](../../database/README.md) | วิธี review และลำดับการรัน SQL baseline |
 | [../../database/migrations/001_base.sql](../../database/migrations/001_base.sql) | SQL migration baseline สำหรับ Aurora PostgreSQL |
 | [../../database/seeds/001_master_data.sql](../../database/seeds/001_master_data.sql) | seed master data สำหรับ `work_category` และ `work_type` |
+
+---
+
+## AWS Foundation Baseline
+
+| Artifact | Purpose |
+|---|---|
+| [../../infra/v2/aws-foundation.yaml](../../infra/v2/aws-foundation.yaml) | CloudFormation baseline สำหรับ Aurora/Data API/Secrets/IAM/S3/CloudWatch |
+| [../../infra/v2/parameters.dev.example.json](../../infra/v2/parameters.dev.example.json) | ตัวอย่าง parameter file สำหรับ dev/demo deploy |
+| [../../scripts/setup-v2-aws-foundation.sh](../../scripts/setup-v2-aws-foundation.sh) | interactive setup wizard สำหรับ operator ที่จะ login AWS เอง |
+| [../../scripts/check-v2-aws-foundation.sh](../../scripts/check-v2-aws-foundation.sh) | verification script สำหรับ `SELECT 1` ผ่าน RDS Data API |
 
 ---
 
