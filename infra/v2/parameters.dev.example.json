@@ -16,6 +16,22 @@
     "ParameterValue": "subnet-aaaaaaaaaaaaaaaaa,subnet-bbbbbbbbbbbbbbbbb"
   },
   {
+    "ParameterKey": "AuroraProvisioningMode",
+    "ParameterValue": "cloudformation"
+  },
+  {
+    "ParameterKey": "ExternalDBClusterIdentifier",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExternalDBClusterArn",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExternalDBSecretArn",
+    "ParameterValue": ""
+  },
+  {
     "ParameterKey": "DBName",
     "ParameterValue": "cs361v2"
   },

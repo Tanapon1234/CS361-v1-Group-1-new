@@ -10,18 +10,24 @@
 
 | Requirement | Evidence | Status |
 |---|---|---|
-| Aurora PostgreSQL Serverless v2 cluster exists | screenshot / CLI output | Pending |
-| Region is `ap-southeast-1` | screenshot / CLI output | Pending |
-| Data API enabled | screenshot / CLI output | Pending |
-| Secrets Manager secret exists | screenshot / CLI output without value | Pending |
-| Query role exists | IAM role screenshot / policy summary | Pending |
-| Admin role exists | IAM role screenshot / policy summary | Pending |
-| Import role exists | IAM role screenshot / policy summary | Pending |
-| Projection role exists | IAM role screenshot / policy summary | Pending |
-| No broad runtime permissions | IAM policy review | Pending |
-| CloudWatch log baseline exists | log group screenshot / CLI output | Pending |
-| `SELECT 1` through Data API succeeds | command output | Pending |
-| Resource names / ARNs documented | `docs/v2/aws-foundation.md` | Pending |
+| Aurora PostgreSQL Serverless v2 cluster exists | `cs361-v2-dev-aurora`, created with Aurora Express Configuration | Done |
+| Region is `ap-southeast-1` | CloudFormation outputs / RDS metadata | Done |
+| Data API enabled | `HttpEndpointEnabled=true` | Done |
+| Secrets Manager secret exists | `cs361-v2/dev/aurora/master`, value not shown | Done |
+| Query role exists | `CS361V2QueryLambdaRole-dev` | Done |
+| Admin role exists | `CS361V2AdminLambdaRole-dev` | Done |
+| Import role exists | `CS361V2ImportLambdaRole-dev` | Done |
+| Projection role exists | `CS361V2ProjectionLambdaRole-dev` | Done |
+| No broad runtime permissions | IAM inline policies use scoped cluster, secret, and S3 prefix ARNs | Done |
+| CloudWatch log baseline exists | `/aws/lambda/cs361-v2-dev-*` log groups from stack | Done |
+| `SELECT 1` through Data API succeeds | verification script returned `1` | Done |
+| Resource names / ARNs documented | `docs/v2/aws-foundation.md` | Done |
+
+Dev/free-plan caveat:
+
+- This account required Aurora Express Configuration.
+- CloudFormation cannot currently set `WithExpressConfiguration` for `AWS::RDS::DBCluster` in this account/region schema.
+- The deployed cluster reports `VPCNetworkingEnabled=false` and `InternetAccessGatewayEnabled=true`; use this deployment as dev/demo evidence, not as production private-network posture.
 
 ---
 
@@ -44,6 +50,17 @@ DB_CLUSTER_ARN=<DBClusterArn> \
 DB_SECRET_ARN=<DBSecretArn> \
 DB_NAME=<DBName> \
 scripts/check-v2-aws-foundation.sh
+```
+
+Observed verification result:
+
+```text
+Running SELECT 1 through RDS Data API...
+1
+
+Running identity checks through RDS Data API...
+current_database = cs361v2
+current_user = postgres
 ```
 
 List IAM role names:

@@ -6,7 +6,8 @@
 
 ## Secret Handling
 
-- Database password is managed by RDS and stored in AWS Secrets Manager.
+- Standard CloudFormation mode: database password is managed by RDS and stored in AWS Secrets Manager.
+- Dev/free-plan `external-express` mode: Aurora Express Configuration does not allow `ManageMasterUserPassword` during create, so a random master password was generated locally without printing it, applied to the cluster, and stored in AWS Secrets Manager.
 - Secret value must not be copied into docs, `.env`, screenshots, GitHub comments, or frontend config.
 - It is acceptable to record the secret ARN as an internal backend/runtime reference.
 - `DB_SECRET_ARN` must not be exposed to browser-side code.
@@ -36,10 +37,16 @@ Runtime roles must not use:
 
 ## Network Boundary
 
-- Aurora is placed in private subnets.
-- The DB security group has no inbound public access.
-- Lambda accesses Aurora through RDS Data API, not direct public DB networking.
+- Standard CloudFormation mode places Aurora in the selected VPC/subnets and creates a DB security group with no inbound public access.
+- The deployed dev/free-plan `external-express` cluster reports `VPCNetworkingEnabled=false` and `InternetAccessGatewayEnabled=true`; this is a documented AWS account-plan limitation, not the intended production network model.
+- Backend access should still use RDS Data API and Secrets Manager, not direct browser/database access.
 - Browser/frontend must not call Aurora, Secrets Manager, or S3 private resources directly.
+
+Production/security follow-up:
+
+- Use a standard AWS account plan that allows CloudFormation-managed Aurora creation.
+- Redeploy in `cloudformation` mode with private subnet placement and DB security group control.
+- Treat the current Express deployment as dev/demo evidence only.
 
 ---
 

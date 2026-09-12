@@ -6,11 +6,13 @@ It prepares:
 
 - Aurora PostgreSQL Serverless v2 cluster
 - RDS Data API via `EnableHttpEndpoint`
-- RDS-managed master secret in AWS Secrets Manager
-- private DB subnet group and security group with no inbound public access
+- RDS-managed master secret in AWS Secrets Manager for standard mode
+- private DB subnet group and security group with no inbound public access for standard mode
 - S3 data bucket with public access blocked
 - Lambda runtime IAM roles for query, admin, import, and projection responsibilities
 - Aurora PostgreSQL log export and CloudWatch log group naming baseline
+
+The template also supports `AuroraProvisioningMode=external-express` for AWS accounts that require Aurora Express Configuration. In that mode, create the Aurora cluster and secret first, then let CloudFormation create IAM/S3/CloudWatch resources against the supplied cluster and secret ARNs.
 
 ## Files
 
@@ -76,6 +78,43 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
+For AWS free-plan accounts that fail with `WithExpressConfiguration`, use external Express mode:
+
+```bash
+aws rds create-db-cluster \
+  --region ap-southeast-1 \
+  --db-cluster-identifier cs361-v2-dev-aurora \
+  --engine aurora-postgresql \
+  --with-express-configuration \
+  --tags Key=Project,Value=cs361-v2 Key=Environment,Value=dev
+
+aws rds enable-http-endpoint \
+  --region ap-southeast-1 \
+  --resource-arn <DBClusterArn>
+```
+
+Then create a Secrets Manager secret for the database username/password without printing or committing the password value, create database `cs361v2`, and deploy:
+
+```bash
+aws cloudformation deploy \
+  --region ap-southeast-1 \
+  --stack-name cs361-v2-aws-foundation-dev \
+  --template-file infra/v2/aws-foundation.yaml \
+  --parameter-overrides \
+    ProjectName=cs361-v2 \
+    Environment=dev \
+    VpcId=<vpc-id> \
+    PrivateSubnetIds=<subnet-a>,<subnet-b> \
+    AuroraProvisioningMode=external-express \
+    ExternalDBClusterIdentifier=cs361-v2-dev-aurora \
+    ExternalDBClusterArn=<DBClusterArn> \
+    ExternalDBSecretArn=<DBSecretArn> \
+    DBName=cs361v2 \
+    DBEngineVersion=<observed-engine-version> \
+    LogRetentionDays=14 \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
 Show stack outputs:
 
 ```bash
@@ -103,15 +142,17 @@ The minimum pass condition for Issue #48 is `SELECT 1` through RDS Data API.
 
 - Dev/demo defaults use `MinCapacity=0.5`, `MaxCapacity=2` for broad Aurora PostgreSQL compatibility.
 - If the selected engine supports auto-pause, set `MinCapacity=0` and keep `SecondsUntilAutoPause=600`.
+- Aurora Express Configuration may choose its own engine version and capacity range; record the observed values in `docs/v2/aws-foundation.md`.
 - Storage, snapshots, Secrets Manager, S3, CloudWatch, and minimum ACU usage may still incur costs.
 - The template uses snapshot retention on DB replacement/deletion.
 
 ## Security Notes
 
 - Frontend must not receive AWS credentials, DB credentials, cluster ARN, or secret ARN.
-- Database password is managed by RDS and stored in Secrets Manager; do not retrieve or copy the value into docs.
+- Database credential is stored in Secrets Manager; do not retrieve or copy the secret value into docs.
 - Runtime roles avoid `AdministratorAccess`, `rds:*`, `s3:*`, and `secretsmanager:*`.
 - Public S3 access is blocked at bucket level.
+- `external-express` mode is for dev/demo only when the AWS account requires Aurora Express Configuration. Use standard `cloudformation` mode for production private VPC placement.
 
 ## AWS References
 

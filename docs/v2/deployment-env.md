@@ -30,6 +30,18 @@ LOG_LEVEL=INFO
 ENVIRONMENT=dev
 ```
 
+Current dev/demo values, with AWS account ID redacted for public docs:
+
+```text
+AWS_REGION=ap-southeast-1
+DB_CLUSTER_ARN=arn:aws:rds:ap-southeast-1:<account-id>:cluster:cs361-v2-dev-aurora
+DB_SECRET_ARN=arn:aws:secretsmanager:ap-southeast-1:<account-id>:secret:cs361-v2/dev/aurora/master-...
+DB_NAME=cs361v2
+DATA_BUCKET_NAME=cs361-v2-aws-foundation-dev-v2databucket-itl5uq2sozge
+LOG_LEVEL=INFO
+ENVIRONMENT=dev
+```
+
 ---
 
 ## Lambda Role Outputs

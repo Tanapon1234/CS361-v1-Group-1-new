@@ -25,6 +25,29 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
     Description: At least two private subnet IDs in different Availability Zones.
 
+  AuroraProvisioningMode:
+    Type: String
+    Default: cloudformation
+    AllowedValues:
+      - cloudformation
+      - external-express
+    Description: Use cloudformation for normal Aurora provisioning, or external-express when the AWS account requires Aurora Express Configuration.
+
+  ExternalDBClusterIdentifier:
+    Type: String
+    Default: ""
+    Description: Existing Aurora cluster identifier when AuroraProvisioningMode is external-express.
+
+  ExternalDBClusterArn:
+    Type: String
+    Default: ""
+    Description: Existing Aurora cluster ARN when AuroraProvisioningMode is external-express.
+
+  ExternalDBSecretArn:
+    Type: String
+    Default: ""
+    Description: Existing Secrets Manager secret ARN when AuroraProvisioningMode is external-express.
+
   DBName:
     Type: String
     Default: cs361v2
@@ -77,6 +100,7 @@ Parameters:
     Description: CloudWatch log retention for V2 Lambda log groups.
 
 Conditions:
+  CreateAuroraInCloudFormation: !Equals [!Ref AuroraProvisioningMode, cloudformation]
   UseAutoPause: !Equals [!Ref MinCapacity, 0]
   IsProd: !Equals [!Ref Environment, prod]
 
@@ -105,6 +129,7 @@ Resources:
 
   V2DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
+    Condition: CreateAuroraInCloudFormation
     Properties:
       DBSubnetGroupDescription: !Sub "${ProjectName}-${Environment} private subnet group for V2 Aurora"
       SubnetIds: !Ref PrivateSubnetIds
@@ -116,6 +141,7 @@ Resources:
 
   V2DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: CreateAuroraInCloudFormation
     Properties:
       GroupDescription: !Sub "${ProjectName}-${Environment} Aurora Data API only; no public ingress"
       VpcId: !Ref VpcId
@@ -133,11 +159,12 @@ Resources:
 
   V2DBCluster:
     Type: AWS::RDS::DBCluster
+    Condition: CreateAuroraInCloudFormation
     DeletionPolicy: Snapshot
     UpdateReplacePolicy: Snapshot
     Properties:
       DBClusterIdentifier: !Sub "${ProjectName}-${Environment}-aurora"
-      DBName: !Ref DBName
+      DatabaseName: !Ref DBName
       Engine: aurora-postgresql
       EngineVersion: !Ref DBEngineVersion
       EngineMode: provisioned
@@ -165,6 +192,7 @@ Resources:
 
   V2DBWriterInstance:
     Type: AWS::RDS::DBInstance
+    Condition: CreateAuroraInCloudFormation
     Properties:
       DBClusterIdentifier: !Ref V2DBCluster
       DBInstanceIdentifier: !Sub "${ProjectName}-${Environment}-aurora-writer"
@@ -224,12 +252,18 @@ Resources:
                 Effect: Allow
                 Action:
                   - rds-data:ExecuteStatement
-                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                  - !Ref ExternalDBClusterArn
               - Sid: ReadDatabaseSecret
                 Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                  - !Ref ExternalDBSecretArn
 
   V2AdminLambdaRole:
     Type: AWS::IAM::Role
@@ -256,12 +290,18 @@ Resources:
                   - rds-data:CommitTransaction
                   - rds-data:ExecuteStatement
                   - rds-data:RollbackTransaction
-                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                  - !Ref ExternalDBClusterArn
               - Sid: ReadDatabaseSecret
                 Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                  - !Ref ExternalDBSecretArn
 
   V2ImportLambdaRole:
     Type: AWS::IAM::Role
@@ -288,12 +328,18 @@ Resources:
                   - rds-data:CommitTransaction
                   - rds-data:ExecuteStatement
                   - rds-data:RollbackTransaction
-                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                  - !Ref ExternalDBClusterArn
               - Sid: ReadDatabaseSecret
                 Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                  - !Ref ExternalDBSecretArn
               - Sid: ReadLandingPrefix
                 Effect: Allow
                 Action:
@@ -329,12 +375,18 @@ Resources:
                 Effect: Allow
                 Action:
                   - rds-data:ExecuteStatement
-                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+                  - !Ref ExternalDBClusterArn
               - Sid: ReadDatabaseSecret
                 Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                Resource: !If
+                  - CreateAuroraInCloudFormation
+                  - !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+                  - !Ref ExternalDBSecretArn
               - Sid: WritePublicServingPrefix
                 Effect: Allow
                 Action:
@@ -345,13 +397,22 @@ Outputs:
   Region:
     Value: !Ref "AWS::Region"
   DBClusterIdentifier:
-    Value: !Ref V2DBCluster
+    Value: !If
+      - CreateAuroraInCloudFormation
+      - !Ref V2DBCluster
+      - !Ref ExternalDBClusterIdentifier
   DBClusterArn:
-    Value: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+    Value: !If
+      - CreateAuroraInCloudFormation
+      - !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${V2DBCluster}"
+      - !Ref ExternalDBClusterArn
   DBName:
     Value: !Ref DBName
   DBSecretArn:
-    Value: !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+    Value: !If
+      - CreateAuroraInCloudFormation
+      - !GetAtt V2DBCluster.MasterUserSecret.SecretArn
+      - !Ref ExternalDBSecretArn
   DataBucketName:
     Value: !Ref V2DataBucket
   QueryLambdaRoleArn:
