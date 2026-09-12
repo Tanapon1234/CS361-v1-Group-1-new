@@ -1,10 +1,12 @@
-# Database Guide
+# คู่มือฐานข้อมูล V2
 
 ไฟล์นี้อธิบาย V2 database สำหรับทีมที่ต้อง implement API, migration, admin CRUD หรือ QA
 
 Database จริงตอนนี้อยู่บน Aurora PostgreSQL และเข้าถึงผ่าน RDS Data API ไม่ใช่ต่อ public database endpoint ตรง
 
-## Database Identity
+เอกสารนี้ใช้ภาษาไทยอธิบายความหมายของตารางและ attribute เป็นหลัก ส่วนชื่อตาราง/คอลัมน์ยังเป็นภาษาอังกฤษตาม schema จริง
+
+## ข้อมูลประจำฐานข้อมูล
 
 | Item | Value |
 |---|---|
@@ -15,9 +17,9 @@ Database จริงตอนนี้อยู่บน Aurora PostgreSQL แ�
 | Access method | RDS Data API |
 | Secret location | Secrets Manager, secret name `cs361-v2/dev/aurora/master` |
 
-Do not print, paste, screenshot, or commit the secret value.
+ห้าม print, paste, screenshot หรือ commit secret value จริง
 
-## Current Data Counts
+## จำนวนข้อมูลจริงปัจจุบัน
 
 ล่าสุดเช็คจาก Aurora ผ่าน RDS Data API:
 
@@ -38,7 +40,7 @@ Do not print, paste, screenshot, or commit the secret value.
 - `work_item`, `faculty_work_item`, subtype details และ evidence มี demo data อยู่แล้วสำหรับทำ #66-#68 ต่อ
 - ถ้า Aurora auto-pause อยู่ คำสั่งแรกอาจเจอ `DatabaseResumingException`; รอ 15-30 วินาทีแล้วลองใหม่
 
-## How To View Data Through AWS CLI
+## วิธีดูข้อมูลผ่าน AWS CLI
 
 ตั้งค่า shell variables จาก CloudFormation outputs:
 
@@ -110,7 +112,7 @@ aws rds-data execute-statement \
   --sql "select id, public_slug, name_th, name_en, visibility, status from faculty order by public_slug"
 ```
 
-## Data Model Groups
+## กลุ่มข้อมูลใน schema
 
 V2 schema แบ่งเป็นกลุ่มใหญ่:
 
@@ -122,7 +124,7 @@ V2 schema แบ่งเป็นกลุ่มใหญ่:
 6. Subtype detail: `teaching_detail`, `publication_detail`, `research_project_detail`, `supervision_detail`, `service_detail`, `administration_detail`
 7. Evidence/audit: `evidence_reference`, `audit_event`
 
-## Common Column Meanings
+## ความหมายของคอลัมน์ที่เจอบ่อย
 
 Common columns appear in many tables:
 
@@ -137,7 +139,7 @@ Common columns appear in many tables:
 
 Public APIs must never expose raw source/provenance, secret, audit, or admin-only fields unless a card explicitly says so.
 
-## Table Dictionary
+## คำอธิบายตารางทั้งหมด
 
 ### `faculty`
 
@@ -563,7 +565,7 @@ Attributes:
 
 Used by: #70/#71 admin CRUD and #81 final audit evidence.
 
-## Relationship Map
+## แผนที่ความสัมพันธ์ของตาราง
 
 Important relationships:
 
@@ -579,7 +581,7 @@ Important relationships:
 - `app_user` many-to-many `app_role` through `app_user_role`
 - `app_user` 1-to-many `auth_login_event` and `audit_event`
 
-## What Public APIs May Return
+## Public API คืนข้อมูลอะไรได้บ้าง
 
 Public-safe fields:
 
@@ -597,7 +599,7 @@ Public APIs must not return:
 - private admin notes
 - `INTERNAL` or `RESTRICTED` rows unless an admin route explicitly allows it
 
-## Which Cards Use Which Tables
+## การ์ดไหนใช้ตารางอะไร
 
 | Card | Main Tables |
 |---|---|
@@ -610,21 +612,21 @@ Public APIs must not return:
 | #71 Admin Update/Delete | same as #70 plus soft-delete fields |
 | #80 Migration/Compatibility | all core data tables plus `import_batch`, `source_record` |
 
-## Database Safety Checklist
+## Checklist ความปลอดภัยก่อนแก้ฐานข้อมูล
 
-Before changing schema:
+ก่อนแก้ schema:
 
-- Read `database/migrations/001_base.sql`
-- Check which issue card owns the change
-- Add migration deliberately; do not edit historical SQL silently after teammates depend on it
-- Update `docs/v2/erd-table-attribute-guide.md` and this guide if table meaning changes
-- Verify RDS Data API query works
-- Record evidence without secret values
+- อ่าน `database/migrations/001_base.sql`
+- เช็คว่า issue card ไหนเป็นเจ้าของ scope การเปลี่ยนแปลงนี้
+- เพิ่ม migration อย่างตั้งใจ อย่าแก้ historical SQL เงียบๆ หลังจากทีมเริ่มอ้างอิงแล้ว
+- อัปเดต `docs/v2/erd-table-attribute-guide.md` และคู่มือนี้ ถ้าความหมายของตารางเปลี่ยน
+- ตรวจว่า query ผ่าน RDS Data API ทำงานได้
+- เก็บ evidence โดยไม่มี secret values
 
-Before writing admin mutation code:
+ก่อนเขียน admin mutation code:
 
-- Use transactions through RDS Data API
-- Validate category/type/faculty/period IDs
-- Insert `audit_event`
-- Respect `visibility` and `status`
-- Add rollback/error tests
+- ใช้ transactions ผ่าน RDS Data API
+- validate category/type/faculty/period IDs
+- insert `audit_event`
+- เคารพกฎ `visibility` และ `status`
+- เพิ่ม rollback/error tests

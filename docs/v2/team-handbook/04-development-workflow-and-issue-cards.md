@@ -1,8 +1,10 @@
-# Development Workflow And Issue Cards
+# คู่มือ Workflow และ Issue Cards ของ V2
 
 ไฟล์นี้คือคู่มือทำงานราย issue card สำหรับทีม V2
 
-## Branch Naming Standard
+เนื้อหาหลักเขียนเป็นภาษาไทยเพื่อให้คนในทีมอ่านแล้วเริ่มงานได้ทันที ส่วนชื่อ branch, route, command, file path และ AWS service ยังคงเป็นภาษาอังกฤษตามของจริง
+
+## มาตรฐานการตั้งชื่อ Branch
 
 ใช้ branch ต่อหนึ่ง issue card:
 
@@ -22,9 +24,9 @@ git checkout -b CS361-66
 
 ห้ามทำหลายการ์ดใหญ่ใน branch เดียว ถ้าไม่ใช่ integration card
 
-## Basic Work Loop
+## ขั้นตอนทำงานพื้นฐานต่อหนึ่งการ์ด
 
-ทุกคนควรทำตาม flow นี้:
+ทุกคนควรทำตามลำดับนี้:
 
 1. อ่าน issue card ของตัวเองใน `docs/v2/issues/`
 2. อ่าน `Blocked by` ว่าการ์ดก่อนหน้าทำเสร็จหรือยัง
@@ -39,9 +41,9 @@ git checkout -b CS361-66
 11. comment หลักฐานใน GitHub issue
 12. เปิด PR หรือให้ทีม review
 
-## What Every Card Must Produce
+## แต่ละการ์ดต้องส่งมอบอะไรบ้าง
 
-Backend/API card ควรมี:
+การ์ด Backend/API ควรมี:
 
 - Lambda handler / route logic
 - repository/data access boundary
@@ -52,7 +54,7 @@ Backend/API card ควรมี:
 - AWS smoke test
 - docs/evidence
 
-Frontend card ควรมี:
+การ์ด Frontend ควรมี:
 
 - usable page/component
 - loading/empty/error states
@@ -61,7 +63,7 @@ Frontend card ควรมี:
 - screenshot/evidence where useful
 - docs/env update
 
-Database/migration card ควรมี:
+การ์ด Database/Migration ควรมี:
 
 - repeatable command/script
 - idempotency or reset path
@@ -69,7 +71,7 @@ Database/migration card ควรมี:
 - table counts
 - compatibility evidence
 
-Admin/auth card ควรมี:
+การ์ด Admin/Auth ควรมี:
 
 - Cognito/admin auth integration
 - role check with `app_user` / `app_user_role`
@@ -77,87 +79,85 @@ Admin/auth card ควรมี:
 - 401/403/success tests
 - CloudWatch/auth evidence
 
-## Production Rule
+## กฎสำคัญเรื่อง Production
 
-Do not close a card with only local mock/fixture unless the card explicitly says it is a prototype.
+ห้ามปิดการ์ดด้วย local mock/fixture อย่างเดียว ยกเว้นการ์ดนั้นเขียนชัดว่าเป็น prototype
 
-For V2 cards:
+สำหรับการ์ด V2 ฝั่ง public/backend เส้นทาง production ที่คาดหวังคือ:
 
 ```text
 API Gateway -> Lambda -> RDS Data API -> Aurora
 ```
 
-is the expected public/backend production path.
-
-For admin:
+สำหรับฝั่ง admin เส้นทาง production ที่คาดหวังคือ:
 
 ```text
 Cognito -> protected API Gateway -> Admin Lambda -> RDS Data API transaction -> Aurora
 ```
 
-is expected.
+ดังนั้นถ้าการ์ดเป็น API จริง ต้องมีหลักฐานว่าเชื่อมกับ AWS และ Aurora จริง ไม่ใช่แค่ frontend mock หรือ local API
 
-## Current Card Status
+## สถานะการ์ดปัจจุบัน
 
-Status here means repo/project status, not necessarily GitHub issue UI status.
+สถานะในตารางนี้หมายถึงสถานะตาม repo/project ไม่ได้แปลว่าสถานะใน GitHub issue UI ถูกปิดแล้วเสมอ
 
-| Issue | Title | Status | Notes |
+| Issue | ชื่อการ์ด | สถานะ | หมายเหตุ |
 |---:|---|---|---|
-| #46 | Freeze Scope, Architecture & Interface Contracts | Done | Scope and architecture baseline exist |
-| #47 | Design Relational Schema & SQL Migration | Done | SQL, ERD, DBML, table attribute guide exist |
-| #48 | Provision Aurora / Data API / Secret / IAM | Done | AWS foundation deployed and documented |
-| #49 | Define V1 to V2 Data Mapping | Done | Mapping docs/CSV exist |
-| #50 | Prepare Multi-Year Demo Dataset | Done | Fixture dataset exists and Aurora currently has demo data |
-| #64 | Build Master Data API | Done | Deployed API Gateway + Lambda + RDS Data API + Aurora; smoke test passed |
-| #66 | Build Work Item List/Search/Filter API | Not done | Ready to start after #64 |
-| #67 | Build Faculty Work Items API | Not done | Start after #66 |
-| #68 | Build Work Item Detail API | Not done | Start after #66/#67 |
-| #69 | Configure Admin Authentication | Not done | Ready to start in parallel with #66 |
-| #70 | Build Admin Create Work Item API | Not done | Start after #69 |
-| #71 | Build Admin Update / Soft Delete API | Not done | Start after #70 |
-| #72 | Build Repository Page Shell & Filter UI | Not done | Ready to start after #64 |
-| #73 | Build Repository Result List & Pagination UI | Not done | Start after #66 and #72 |
-| #74 | Build Work Item Detail UI | Not done | Start after #68 and #73 |
-| #75 | Integrate Repository UI with Real API | Not done | Start after #66/#68/#72/#73/#74 |
-| #76 | Build Admin Login UI | Not done | Start after #69 |
-| #77 | Build Admin Work Item List UI | Not done | Start after #76 and #71 |
-| #78 | Build Admin Create/Edit Form UI | Not done | Start after #70/#71/#76/#77 |
-| #79 | Integrate Admin UI with Auth & CRUD API | Not done | Start after #69-#78 |
-| #80 | Execute Migration & Preserve V1 Compatibility | Not done | Start after #66 and #68; even though DB has data, repeatable process still needed |
-| #81 | Final Integration / Deploy / Demo Docs | Not done | Last card after #75/#79/#80 |
+| #46 | Freeze Scope, Architecture & Interface Contracts | เสร็จแล้ว | มี baseline ของ scope และ architecture |
+| #47 | Design Relational Schema & SQL Migration | เสร็จแล้ว | มี SQL, ERD, DBML และ table attribute guide |
+| #48 | Provision Aurora / Data API / Secret / IAM | เสร็จแล้ว | AWS foundation deploy แล้วและมีเอกสารอธิบาย |
+| #49 | Define V1 to V2 Data Mapping | เสร็จแล้ว | มี mapping docs/CSV |
+| #50 | Prepare Multi-Year Demo Dataset | เสร็จแล้ว | มี fixture dataset และ Aurora มี demo data แล้ว |
+| #64 | Build Master Data API | เสร็จแล้ว | Deploy API Gateway + Lambda + RDS Data API + Aurora แล้ว และ smoke test ผ่าน |
+| #66 | Build Work Item List/Search/Filter API | ยังไม่ทำ | เริ่มได้หลัง #64 |
+| #67 | Build Faculty Work Items API | ยังไม่ทำ | เริ่มหลัง #66 |
+| #68 | Build Work Item Detail API | ยังไม่ทำ | เริ่มหลัง #66/#67 |
+| #69 | Configure Admin Authentication | ยังไม่ทำ | เริ่มขนานกับ #66 ได้ |
+| #70 | Build Admin Create Work Item API | ยังไม่ทำ | เริ่มหลัง #69 |
+| #71 | Build Admin Update / Soft Delete API | ยังไม่ทำ | เริ่มหลัง #70 |
+| #72 | Build Repository Page Shell & Filter UI | ยังไม่ทำ | เริ่มได้หลัง #64 |
+| #73 | Build Repository Result List & Pagination UI | ยังไม่ทำ | เริ่มหลัง #66 และ #72 |
+| #74 | Build Work Item Detail UI | ยังไม่ทำ | เริ่มหลัง #68 และ #73 |
+| #75 | Integrate Repository UI with Real API | ยังไม่ทำ | เริ่มหลัง #66/#68/#72/#73/#74 |
+| #76 | Build Admin Login UI | ยังไม่ทำ | เริ่มหลัง #69 |
+| #77 | Build Admin Work Item List UI | ยังไม่ทำ | เริ่มหลัง #76 และ #71 |
+| #78 | Build Admin Create/Edit Form UI | ยังไม่ทำ | เริ่มหลัง #70/#71/#76/#77 |
+| #79 | Integrate Admin UI with Auth & CRUD API | ยังไม่ทำ | เริ่มหลัง #69-#78 |
+| #80 | Execute Migration & Preserve V1 Compatibility | ยังไม่ทำ | เริ่มหลัง #66 และ #68 แม้ DB มีข้อมูลแล้ว แต่ยังต้องทำกระบวนการ migration ให้รันซ้ำได้ |
+| #81 | Final Integration / Deploy / Demo Docs | ยังไม่ทำ | เป็นการ์ดท้าย หลัง #75/#79/#80 |
 
-## Recommended Parallel Work Plan
+## แผนแบ่งงานแบบทำขนาน
 
 ### Track A: Public API
 
-Do first:
+ควรทำก่อน:
 
 ```text
 #66 Work Item List/Search/Filter API
 ```
 
-Then:
+จากนั้นทำ:
 
 ```text
 #67 Faculty Work Items API
 #68 Work Item Detail API
 ```
 
-Why:
+เหตุผล:
 
-- #66 defines list/search validation, pagination, response shape
-- #67 reuses #66 filter/pagination style but scopes by faculty
-- #68 depends on list/faculty behavior and adds subtype/evidence details
+- #66 วางรูปแบบ validation, pagination และ response shape ของ list/search
+- #67 ใช้ pattern filter/pagination ต่อจาก #66 แต่จำกัดตามอาจารย์
+- #68 ใช้พฤติกรรม list/faculty ต่อ และเพิ่มรายละเอียด subtype/evidence
 
 ### Track B: Public UI
 
-Can start now:
+เริ่มได้ตอนนี้:
 
 ```text
 #72 Repository Page Shell & Filter UI
 ```
 
-Then:
+จากนั้นทำ:
 
 ```text
 #73 Result List & Pagination UI
@@ -165,42 +165,42 @@ Then:
 #75 Integrate Repository UI with Real API
 ```
 
-Why:
+เหตุผล:
 
-- #72 can use #64 Master Data API now
-- #73 waits for #66 list API
-- #74 waits for #68 detail API
-- #75 proves public repository works end-to-end
+- #72 ใช้ Master Data API จาก #64 ได้ทันที
+- #73 รอ list API จาก #66
+- #74 รอ detail API จาก #68
+- #75 ใช้พิสูจน์ว่า public repository ทำงานครบ end-to-end
 
 ### Track C: Admin Backend/Auth
 
-Can start now:
+เริ่มได้ตอนนี้:
 
 ```text
 #69 Configure Admin Authentication
 ```
 
-Then:
+จากนั้นทำ:
 
 ```text
 #70 Admin Create Work Item API
 #71 Admin Update / Soft Delete API
 ```
 
-Why:
+เหตุผล:
 
-- #70/#71 need a real admin identity/role boundary
-- Admin mutation must write Aurora and audit events
+- #70/#71 ต้องมีขอบเขตตัวตนและ role ของ admin ที่ชัดเจนก่อน
+- งานแก้ไขข้อมูลฝั่ง admin ต้องเขียนลง Aurora และบันทึก `audit_event`
 
 ### Track D: Admin UI
 
-After #69:
+หลัง #69:
 
 ```text
 #76 Admin Login UI
 ```
 
-Then after backend CRUD:
+หลัง backend CRUD พร้อมแล้ว:
 
 ```text
 #77 Admin Work Item List UI
@@ -210,251 +210,251 @@ Then after backend CRUD:
 
 ### Track E: Finalization
 
-Near the end:
+ทำช่วงท้าย:
 
 ```text
 #80 Migration & V1 Compatibility
 #81 Final Integration / Demo Docs
 ```
 
-## What To Read For Each Card
+## แต่ละการ์ดควรอ่านอะไรและทำอะไร
 
 ### #66 Work Item List/Search/Filter API
 
-Read:
+ควรอ่าน:
 
 - `docs/v2/issues/66-build-work-item-list-search-filter-api.md`
-- `backend/v2/query/master_data.py` for Lambda/Data API pattern
+- `backend/v2/query/master_data.py` เพื่อดู pattern ของ Lambda/Data API
 - `database/migrations/001_base.sql`
 - `docs/v2/demo-dataset.md`
 - `data/v2/fixtures/dataset-summary.json`
 
-Do:
+สิ่งที่ต้องทำ:
 
-- add `GET /api/v2/work-items`
-- query Aurora real `work_item` data
-- filter by faculty/period/category/type/q/page
-- enforce `status = ACTIVE` and `visibility = PUBLIC`
-- deploy route and smoke test
+- เพิ่ม `GET /api/v2/work-items`
+- query ข้อมูลจริงจากตาราง `work_item` ใน Aurora
+- รองรับ filter ตาม faculty/period/category/type/q/page
+- บังคับให้ public path เห็นเฉพาะ `status = ACTIVE` และ `visibility = PUBLIC`
+- deploy route และทำ smoke test
 
 ### #67 Faculty Work Items API
 
-Read:
+ควรอ่าน:
 
-- #67 issue file
-- #66 implementation
-- `faculty`, `faculty_work_item`, `work_item` schema
+- issue file ของ #67
+- implementation ของ #66
+- schema ของ `faculty`, `faculty_work_item`, `work_item`
 
-Do:
+สิ่งที่ต้องทำ:
 
-- add `GET /api/v2/faculties/{faculty_id}/work-items`
-- support faculty id or public slug if contract decides
-- reuse filters/pagination
-- include faculty contribution fields
+- เพิ่ม `GET /api/v2/faculties/{faculty_id}/work-items`
+- รองรับ faculty id หรือ public slug ตาม contract ที่สรุปใน issue
+- ใช้ pattern filter/pagination ต่อจาก #66
+- แสดงข้อมูล contribution ของอาจารย์ในรายการผลงาน
 
 ### #68 Work Item Detail API
 
-Read:
+ควรอ่าน:
 
-- #68 issue file
-- subtype detail tables in database guide
-- evidence visibility rules
+- issue file ของ #68
+- ตาราง subtype detail ใน database guide
+- กฎการเปิดเผย evidence
 
-Do:
+สิ่งที่ต้องทำ:
 
-- add `GET /api/v2/work-items/{id}`
-- join core work item, faculty contributors, subtype detail, evidence metadata
-- enforce public visibility and safe redaction
+- เพิ่ม `GET /api/v2/work-items/{id}`
+- join ข้อมูลหลักของ work item, faculty contributors, subtype detail และ evidence metadata
+- บังคับกฎ public visibility และ redact ข้อมูลที่ไม่ควรเปิดเผย
 
 ### #69 Admin Authentication
 
-Read:
+ควรอ่าน:
 
-- #69 issue file
-- AWS Cognito docs in AWS console
+- issue file ของ #69
+- AWS Cognito docs หรือหน้าจอใน AWS Console
 - `app_user`, `app_role`, `app_user_role`, `auth_login_event`
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create/document Cognito User Pool/App Client
-- implement token verification or API Gateway authorizer
-- map Cognito user to Aurora `app_user`
-- enforce active `ADMIN` role
-- test 401/403/success
+- สร้างและ document Cognito User Pool/App Client
+- ทำ token verification หรือ API Gateway authorizer
+- map Cognito user เข้ากับ `app_user` ใน Aurora
+- บังคับว่า user ต้องมี role `ADMIN` ที่ active
+- ทดสอบกรณี 401/403/success
 
 ### #70 Admin Create Work Item API
 
-Read:
+ควรอ่าน:
 
-- #70 issue file
-- #69 implementation
+- issue file ของ #70
+- implementation ของ #69
 - #64 master data validation patterns
-- subtype detail tables
+- ตาราง subtype detail
 
-Do:
+สิ่งที่ต้องทำ:
 
-- add protected `POST /api/v2/admin/work-items`
+- เพิ่ม protected route `POST /api/v2/admin/work-items`
 - validate payload
-- insert `work_item`, `faculty_work_item`, subtype detail, `evidence_reference`
-- write `audit_event`
-- use Data API transaction
+- insert `work_item`, `faculty_work_item`, subtype detail และ `evidence_reference`
+- เขียน `audit_event`
+- ใช้ Data API transaction
 
 ### #71 Admin Update / Soft Delete API
 
-Read:
+ควรอ่าน:
 
-- #71 issue file
-- #70 transaction pattern
+- issue file ของ #71
+- transaction pattern ของ #70
 
-Do:
+สิ่งที่ต้องทำ:
 
-- implement admin detail/load/update/delete/restore routes
-- update relevant subtype/evidence rows
-- soft delete using `status`/`deleted_at`
-- write audit events
+- ทำ admin detail/load/update/delete/restore routes
+- update แถว subtype/evidence ที่เกี่ยวข้อง
+- soft delete ด้วย `status`/`deleted_at`
+- เขียน audit events
 
 ### #72 Repository Page Shell & Filter UI
 
-Read:
+ควรอ่าน:
 
-- #72 issue file
+- issue file ของ #72
 - `docs/v2/master-data-api.md`
-- current frontend layout/components
+- layout/components ปัจจุบันของ frontend
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create `/outputs`
-- load filter options from deployed #64 endpoint
-- preserve URL query state
-- show loading/error/empty states
+- สร้างหน้า `/outputs`
+- โหลด filter options จาก endpoint #64 ที่ deploy แล้ว
+- เก็บสถานะ filter ไว้ใน URL query
+- แสดง loading/error/empty states
 
 ### #73 Result List & Pagination UI
 
-Read:
+ควรอ่าน:
 
-- #73 issue file
+- issue file ของ #73
 - #66 API contract
 
-Do:
+สิ่งที่ต้องทำ:
 
-- render results from `GET /api/v2/work-items`
-- support pagination/filter changes
-- link to detail page
+- render ผลลัพธ์จาก `GET /api/v2/work-items`
+- รองรับการเปลี่ยน pagination/filter
+- link ไปหน้ารายละเอียด
 
 ### #74 Work Item Detail UI
 
-Read:
+ควรอ่าน:
 
-- #74 issue file
+- issue file ของ #74
 - #68 detail API contract
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create `/outputs/{id}`
-- render detail, contributors, subtype, evidence metadata
-- handle 404/restricted/public-safe state
+- สร้างหน้า `/outputs/{id}`
+- render รายละเอียด, contributors, subtype และ evidence metadata
+- รองรับ 404/restricted/public-safe state
 
 ### #75 Public Integration
 
-Read:
+ควรอ่าน:
 
-- #75 issue file
-- #64/#66/#68 deployed endpoints
+- issue file ของ #75
+- deployed endpoints ของ #64/#66/#68
 - #72/#73/#74 UI
 
-Do:
+สิ่งที่ต้องทำ:
 
-- wire public UI to real AWS APIs
-- verify deployed frontend/API flow
-- document evidence
+- เชื่อม public UI กับ AWS APIs จริง
+- ตรวจ deployed frontend/API flow
+- บันทึก evidence
 
 ### #76 Admin Login UI
 
-Read:
+ควรอ่าน:
 
-- #76 issue file
+- issue file ของ #76
 - #69 Cognito config
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create `/admin/login`
-- login through Cognito
-- store/forward token safely to admin API client
-- handle expired/login fail states
+- สร้างหน้า `/admin/login`
+- login ผ่าน Cognito
+- เก็บ/ส่งต่อ token ไป admin API client อย่างปลอดภัย
+- รองรับ expired/login fail states
 
 ### #77 Admin Work Item List UI
 
-Read:
+ควรอ่าน:
 
-- #77 issue file
+- issue file ของ #77
 - #71 admin list/detail route
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create `/admin/work-items`
-- require admin login
-- call protected admin endpoint with Cognito token
-- show status/visibility/action links
+- สร้างหน้า `/admin/work-items`
+- บังคับ admin login
+- call protected admin endpoint ด้วย Cognito token
+- แสดง status/visibility/action links
 
 ### #78 Admin Create/Edit Form UI
 
-Read:
+ควรอ่าน:
 
-- #78 issue file
+- issue file ของ #78
 - #64 master data endpoint
 - #70/#71 admin APIs
 
-Do:
+สิ่งที่ต้องทำ:
 
-- create `/admin/work-items/new`
-- create edit route
-- build form for category/type/faculty/period/subtype/evidence
-- submit to real admin API
+- สร้างหน้า `/admin/work-items/new`
+- สร้าง edit route
+- สร้าง form สำหรับ category/type/faculty/period/subtype/evidence
+- submit ไป real admin API
 
 ### #79 Admin Integration
 
-Read:
+ควรอ่าน:
 
-- #79 issue file
-- all admin cards #69-#78
+- issue file ของ #79
+- admin cards ทั้งหมด #69-#78
 
-Do:
+สิ่งที่ต้องทำ:
 
-- verify login/list/create/edit/delete/restore end-to-end
-- record CloudWatch and Aurora evidence
+- ตรวจ login/list/create/edit/delete/restore แบบ end-to-end
+- เก็บหลักฐานจาก CloudWatch และ Aurora
 
 ### #80 Migration & V1 Compatibility
 
-Read:
+ควรอ่าน:
 
-- #80 issue file
+- issue file ของ #80
 - DB/mapping/demo docs
 - V1 routes/docs
 
-Do:
+สิ่งที่ต้องทำ:
 
-- make migration/seed/import repeatable
-- verify table counts
-- verify V2 APIs read data
-- verify V1 routes still work
+- ทำให้ migration/seed/import รันซ้ำได้อย่างมีขั้นตอน
+- ตรวจ table counts
+- ตรวจว่า V2 APIs อ่านข้อมูลได้จริง
+- ตรวจว่า V1 routes ยังทำงานได้
 
 ### #81 Final Integration
 
-Read:
+ควรอ่าน:
 
-- #81 issue file
+- issue file ของ #81
 - evidence folders
-- all route/API/docs
+- route/API/docs ทั้งหมด
 
-Do:
+สิ่งที่ต้องทำ:
 
-- run final public/admin/data/AWS checks
-- prepare demo script
-- prepare closing comments for main issues
+- รัน final checks ของ public/admin/data/AWS
+- เตรียม demo script
+- เตรียม closing comments สำหรับ issue หลัก
 
-## Commit Message Standard
+## มาตรฐานข้อความ Commit
 
-Use clear messages:
+ใช้ข้อความที่อ่านแล้วรู้ว่าทำอะไร:
 
 ```text
 feat: add V2 work item list API
@@ -463,7 +463,7 @@ docs: add V2 migration evidence
 test: add work item search smoke checks
 ```
 
-Avoid vague messages:
+หลีกเลี่ยงข้อความกำกวม:
 
 ```text
 fix stuff
@@ -471,16 +471,16 @@ update
 final
 ```
 
-## GitHub Issue Closing Comment Pattern
+## รูปแบบ Comment สำหรับปิด GitHub Issue
 
-Every closing comment should include:
+ทุก comment สำหรับปิดการ์ดควรมี:
 
-- what was implemented
-- deployed resource names/URLs if applicable
-- test commands and results
-- smoke test results
-- evidence docs/files
+- สิ่งที่ implement
+- ชื่อ resource/URL ที่ deploy ถ้ามี
+- commands และผล test
+- ผล smoke test
+- docs/evidence files
 - commit hash
-- known limitations if any
+- known limitations ถ้ามี
 
-Use `05-testing-verification-and-evidence.md` for templates.
+ดู template เพิ่มเติมใน `05-testing-verification-and-evidence.md`

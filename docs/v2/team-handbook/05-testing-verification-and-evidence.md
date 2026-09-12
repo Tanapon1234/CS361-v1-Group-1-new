@@ -1,21 +1,23 @@
-# Testing, Verification, And Evidence Guide
+# คู่มือการทดสอบ การตรวจสอบ และหลักฐาน
 
 ไฟล์นี้อธิบายวิธีทดสอบและเก็บหลักฐานสำหรับปิดการ์ด V2
 
+เนื้อหาหลักเขียนเป็นภาษาไทยเพื่อให้ทีมใช้เป็น checklist กลางได้ ส่วน command, route, JSON field และ AWS service ยังคงเป็นภาษาอังกฤษตามของจริง
+
 หลักสำคัญ: V2 issue card ต้องปิดด้วยหลักฐานจากระบบจริง ไม่ใช่แค่ “โค้ด compile ได้”
 
-## Verification Levels
+## ระดับการตรวจสอบ
 
-ใช้ verification 4 ชั้น:
+ใช้การตรวจสอบ 4 ชั้น:
 
-1. Local unit/contract tests
-2. Build/static checks
-3. AWS deploy/smoke tests
-4. Evidence docs/GitHub comment
+1. unit/contract tests ในเครื่อง
+2. build/static checks
+3. deploy/smoke tests บน AWS
+4. evidence docs/GitHub comment
 
 แต่ละการ์ดไม่จำเป็นต้องมีทุกอย่างเท่ากัน แต่ production API/Admin/UI cards ต้องมี smoke/evidence จาก AWS จริง
 
-## Current Known Good Checks
+## ชุดคำสั่งที่ตรวจแล้วว่าใช้ได้ตอนนี้
 
 Backend #64 tests:
 
@@ -23,7 +25,7 @@ Backend #64 tests:
 python3 -m unittest backend.v2.query.test_master_data
 ```
 
-Expected:
+ผลที่ควรได้:
 
 ```text
 Ran 8 tests - OK
@@ -36,7 +38,7 @@ cd frontend
 npm run test:v2:master-data
 ```
 
-Expected:
+ผลที่ควรได้:
 
 ```text
 9 tests passed
@@ -50,7 +52,7 @@ API_STACK=cs361-v2-master-data-api-dev \
 scripts/smoke-v2-master-data-api.sh
 ```
 
-Expected after Aurora is awake:
+ผลที่ควรได้หลังจาก Aurora พร้อมตอบสนอง:
 
 ```text
 PASS /api/v2/academic-periods count=5
@@ -61,129 +63,129 @@ PASS /api/v2/faculties count=3
 PASS /api/v2/work-types?category=UNKNOWN returned 400 INVALID_QUERY
 ```
 
-## What To Test By Card Type
+## ต้องทดสอบอะไรตามประเภทการ์ด
 
-### Public Read API Cards
+### การ์ด Public Read API
 
-Examples: #64, #66, #67, #68
+ตัวอย่าง: #64, #66, #67, #68
 
-Test:
+สิ่งที่ต้องทดสอบ:
 
-- Lambda/service unit tests
+- unit tests ของ Lambda/service
 - query validation
-- empty result
-- invalid query returns standard error shape
-- public visibility enforcement
-- success response envelope
-- deployed API Gateway route
-- CloudWatch log exists
-- Aurora data is read through RDS Data API
+- กรณีผลลัพธ์ว่าง
+- invalid query ต้องคืน error shape มาตรฐาน
+- บังคับกฎ public visibility
+- success response envelope ถูกต้อง
+- API Gateway route ถูก deploy แล้ว
+- CloudWatch log มีจริง
+- อ่านข้อมูล Aurora ผ่าน RDS Data API จริง
 
-Evidence:
+หลักฐานที่ควรเก็บ:
 
 - API endpoint
 - Lambda name
 - route list
 - smoke output
 - CloudWatch log group
-- sample response with secrets redacted
+- sample response ที่ redact secret แล้ว
 - commit hash
 
-### Admin API Cards
+### การ์ด Admin API
 
-Examples: #69, #70, #71
+ตัวอย่าง: #69, #70, #71
 
-Test:
+สิ่งที่ต้องทดสอบ:
 
-- unauthenticated request returns `401`
-- authenticated non-admin returns `403`
-- admin success path works
-- invalid payload returns `400`
-- missing entity returns `404`
-- transaction rollback works
-- mutation writes Aurora
-- `audit_event` inserted
+- request ที่ไม่ login ต้องคืน `401`
+- user ที่ login แล้วแต่ไม่ใช่ admin ต้องคืน `403`
+- admin success path ต้องทำงานได้
+- invalid payload ต้องคืน `400`
+- entity ที่ไม่มีอยู่ต้องคืน `404`
+- transaction rollback ต้องทำงานได้
+- mutation ต้องเขียน Aurora จริง
+- ต้อง insert `audit_event`
 
-Evidence:
+หลักฐานที่ควรเก็บ:
 
 - Cognito resource id/name
 - protected API route
 - Lambda name
-- Aurora verification query result
+- ผล query ตรวจสอบใน Aurora
 - CloudWatch logs
-- auth/audit table checks
+- ผลตรวจ auth/audit tables
 
-### Frontend Public UI Cards
+### การ์ด Frontend Public UI
 
-Examples: #72, #73, #74, #75
+ตัวอย่าง: #72, #73, #74, #75
 
-Test:
+สิ่งที่ต้องทดสอบ:
 
-- page opens
-- loading state appears appropriately
-- filter controls load from real #64 endpoint
-- list results load from real #66 endpoint
-- detail page loads from real #68 endpoint
-- empty/error/404 states work
-- URL query state behaves predictably
-- restricted/internal records do not appear in public UI
+- หน้าเปิดได้
+- loading state แสดงเหมาะสม
+- filter controls โหลดจาก endpoint จริงของ #64
+- list results โหลดจาก endpoint จริงของ #66
+- detail page โหลดจาก endpoint จริงของ #68
+- empty/error/404 states ทำงานได้
+- URL query state ทำงานคาดเดาได้
+- restricted/internal records ไม่โผล่ใน public UI
 
-Evidence:
+หลักฐานที่ควรเก็บ:
 
 - deployed frontend URL
-- API Gateway base URL used
-- screenshots if useful
+- API Gateway base URL ที่ใช้งาน
+- screenshots ถ้ามีประโยชน์
 - manual QA matrix
-- console/network errors checked
+- ผลตรวจ console/network errors
 
-### Admin UI Cards
+### การ์ด Admin UI
 
-Examples: #76, #77, #78, #79
+ตัวอย่าง: #76, #77, #78, #79
 
-Test:
+สิ่งที่ต้องทดสอบ:
 
-- login page opens
-- Cognito login works with admin user
-- protected pages redirect unauthenticated users
-- admin list loads from protected API
-- create/edit form submits to real API
-- validation errors map to fields
-- soft-delete hides record from public path
-- restore works if implemented
+- login page เปิดได้
+- Cognito login ใช้งานได้ด้วย admin user
+- protected pages redirect user ที่ยังไม่ login
+- admin list โหลดจาก protected API
+- create/edit form submit ไป real API
+- validation errors map เข้ากับ field ที่ถูกต้อง
+- soft-delete แล้ว record ต้องหายจาก public path
+- restore ทำงานได้ถ้ามี implementation
 
-Evidence:
+หลักฐานที่ควรเก็บ:
 
 - frontend URL
-- Cognito user pool/app client names or redacted ids
+- Cognito user pool/app client names หรือ redacted ids
 - admin API route
 - smoke/manual QA screenshots
 - CloudWatch logs
-- Aurora row checks
+- ผลตรวจ row ใน Aurora
 
-### Database/Migration Cards
+### การ์ด Database/Migration
 
-Examples: #80
+ตัวอย่าง: #80
 
-Test:
+สิ่งที่ต้องทดสอบ:
 
-- migration can run from clean/reset state
-- seed can run repeatably or has documented reset path
-- fixture import works
-- table counts match expected
-- deployed V2 APIs read imported data
-- V1 routes still work
+- migration รันจาก clean/reset state ได้
+- seed รันซ้ำได้ หรือมี reset path ที่ document ไว้
+- fixture import ทำงานได้
+- table counts ตรงกับ expected
+- deployed V2 APIs อ่าน imported data ได้
+- V1 routes ยังทำงานได้
 
-Evidence:
+หลักฐานที่ควรเก็บ:
 
 - command log
 - table counts
-- V1 compatibility endpoint results
+- ผลลัพธ์ endpoint สำหรับ V1 compatibility
 - smoke matrix
 - rollback/reset instructions
 
-## Standard Error Shape
+## รูปแบบ Error มาตรฐาน
 
-V2 APIs should use:
+V2 APIs ควรคืน error รูปแบบนี้:
 
 ```json
 {
@@ -197,7 +199,7 @@ V2 APIs should use:
 }
 ```
 
-Unexpected errors should be generic:
+error ที่ไม่คาดคิดควรคืนข้อความกว้างๆ:
 
 ```json
 {
@@ -208,19 +210,19 @@ Unexpected errors should be generic:
 }
 ```
 
-Do not leak:
+ห้ามหลุดข้อมูลเหล่านี้:
 
 - stack trace
 - DB secret
-- secret ARN if not needed
+- secret ARN ถ้าไม่จำเป็น
 - password
-- raw SQL with sensitive values
+- raw SQL ที่มี sensitive values
 - private S3 key
 - internal raw source JSON
 
-## How To Check API Gateway Routes
+## วิธีเช็ค API Gateway Routes
 
-Get API id from stack:
+ดึง API id จาก stack:
 
 ```bash
 API_ID=$(aws cloudformation describe-stacks \
@@ -230,7 +232,7 @@ API_ID=$(aws cloudformation describe-stacks \
   --output text)
 ```
 
-List routes:
+ดูรายการ route:
 
 ```bash
 aws apigatewayv2 get-routes \
@@ -240,7 +242,7 @@ aws apigatewayv2 get-routes \
   --output table
 ```
 
-For #64 expected:
+สำหรับ #64 route ที่ควรมีคือ:
 
 ```text
 GET /api/v2/academic-periods
@@ -250,9 +252,9 @@ GET /api/v2/work-types
 GET /api/v2/faculties
 ```
 
-## How To Check CloudWatch Logs
+## วิธีเช็ค CloudWatch Logs
 
-List latest streams:
+ดู log stream ล่าสุด:
 
 ```bash
 aws logs describe-log-streams \
@@ -265,7 +267,7 @@ aws logs describe-log-streams \
   --output table
 ```
 
-Get recent events:
+ดู event ล่าสุด:
 
 ```bash
 LOG_STREAM=$(aws logs describe-log-streams \
@@ -284,9 +286,9 @@ aws logs get-log-events \
   --limit 20
 ```
 
-## How To Check DB Counts
+## วิธีเช็คจำนวนข้อมูลในฐานข้อมูล
 
-Use Data API:
+ใช้ Data API:
 
 ```bash
 DB_CLUSTER_ARN=$(aws cloudformation describe-stacks \
@@ -319,56 +321,56 @@ aws rds-data execute-statement \
     (select count(*) from evidence_reference) as evidence_references"
 ```
 
-## Known Auto-Pause Behavior
+## พฤติกรรม Auto-Pause ที่ต้องรู้
 
-Aurora can auto-pause. If the system has been idle, first request can fail with:
+Aurora สามารถ auto-pause ได้ ถ้าระบบไม่ได้ถูกใช้งานมาสักพัก request แรกอาจล้มเหลวด้วย:
 
 ```text
 DatabaseResumingException
 ```
 
-This may appear as API `500`.
+ฝั่ง API อาจเห็นเป็น `500`
 
-How to handle during testing:
+วิธีจัดการตอนทดสอบ:
 
-1. Record that DB was resuming if it happened
-2. Wait 15-30 seconds
-3. Retry smoke test
-4. Use retry result as pass/fail evidence
+1. บันทึกไว้ว่า DB กำลัง resume ถ้าเกิดเหตุการณ์นี้จริง
+2. รอ 15-30 วินาที
+3. retry smoke test
+4. ใช้ผล retry เป็นหลักฐาน pass/fail
 
-For future improvement, a card can add Lambda-level retry/backoff for `DatabaseResumingException`.
+ในอนาคตสามารถเพิ่ม retry/backoff ใน Lambda สำหรับ `DatabaseResumingException` ได้
 
-## Evidence Folder Pattern
+## รูปแบบโฟลเดอร์ Evidence
 
-Put evidence under:
+เก็บหลักฐานไว้ที่:
 
 ```text
 evidence/v2/<issue-or-feature>/README.md
 ```
 
-Examples:
+ตัวอย่าง:
 
 ```text
 evidence/v2/aws-foundation/README.md
 evidence/v2/master-data-api/README.md
 ```
 
-Evidence should include:
+หลักฐานควรมี:
 
-- date
+- วันที่
 - issue number
 - branch/commit
 - AWS region
 - stack names
 - resource names
-- commands run
+- commands ที่รัน
 - test output
 - known limitations
-- no secret values
+- ยืนยันว่าไม่มี secret values
 
-## GitHub Closing Comment Template
+## Template Comment สำหรับปิด GitHub Issue
 
-Use this pattern:
+ใช้รูปแบบนี้:
 
 ````md
 อัปเดต Issue #<number> - <title> เสร็จแล้วครับ
@@ -400,10 +402,10 @@ Known notes:
 - ไม่มี secret value ถูกเปิดใน docs/repo
 - ถ้า Aurora auto-pause อาจต้อง retry หลัง resume
 
-สรุป: การ์ดนี้พร้อมปิดได้ เพราะ <explain why this meets acceptance criteria>.
+สรุป: การ์ดนี้พร้อมปิดได้ เพราะ <อธิบายว่าตรง acceptance criteria อย่างไร>
 ````
 
-## #64 Evidence Example
+## ตัวอย่างหลักฐานของ #64
 
 ````md
 อัปเดต Issue #64 - Build Master Data API เสร็จแล้วครับ
@@ -443,17 +445,17 @@ Commit:
 สรุป: พร้อมปิดได้ เพราะ endpoint ทั้ง 5 ตัว deploy แล้วบน AWS, อ่าน Aurora จริงผ่าน RDS Data API, มี CloudWatch/API smoke evidence และไม่มี secret value เปิดใน docs/repo
 ````
 
-## Before Closing Any Card
+## Checklist ก่อนปิดการ์ด
 
-Checklist:
+เช็คก่อนปิด:
 
-- [ ] Acceptance criteria in issue card are actually satisfied
-- [ ] Deployed AWS path tested if required
-- [ ] Unit/contract tests pass
-- [ ] Smoke test output saved
-- [ ] Docs updated
-- [ ] Evidence file added/updated
-- [ ] Checklist in issue card updated honestly
-- [ ] No secrets committed
-- [ ] Commit pushed
-- [ ] GitHub issue comment includes evidence
+- [ ] Acceptance criteria ใน issue card ทำครบจริง
+- [ ] ถ้าการ์ดต้อง deploy บน AWS ได้ทดสอบ path จริงแล้ว
+- [ ] Unit/contract tests ผ่าน
+- [ ] เก็บ smoke test output แล้ว
+- [ ] อัปเดต docs แล้ว
+- [ ] เพิ่ม/อัปเดต evidence file แล้ว
+- [ ] tick checklist ใน issue card ตามความจริง
+- [ ] ไม่มี secret ถูก commit
+- [ ] commit ถูก push แล้ว
+- [ ] GitHub issue comment มีหลักฐานครบ

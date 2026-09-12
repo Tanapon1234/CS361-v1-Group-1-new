@@ -1,8 +1,10 @@
-# System Overview: V1 to V2
+# ภาพรวมระบบ: จาก V1 ไป V2
 
 ไฟล์นี้อธิบายภาพรวมโจทย์ที่ทีมกำลังทำ ตั้งแต่ V1 ที่มีอยู่แล้ว ไปจนถึง V2 ที่กำลังพัฒนาเป็น Faculty Output Repository จริงบน AWS
 
-## Project Vision
+เอกสารนี้เขียนเป็นภาษาไทยเป็นหลัก ส่วนคำอังกฤษที่ยังคงไว้คือชื่อ version, service, route, table หรือคำใน code ที่ต้องใช้ตรงกับของจริง
+
+## วิสัยทัศน์ของโปรเจกต์
 
 ระบบ Faculty Output & Workload Management System คือระบบกลางสำหรับจัดเก็บและเรียกใช้ข้อมูลอาจารย์ การสอน งานวิจัย งานบริการวิชาการ การดูแลนักศึกษา และผลงาน/ภาระงานที่เกี่ยวข้อง
 
@@ -75,7 +77,7 @@ V2 ต้องรองรับหลายปีการศึกษาแ�
 - keyword
 - visibility
 
-## V2 Scope ที่ต้องส่ง
+## ขอบเขต V2 ที่ต้องส่ง
 
 V2 ต้องส่งระบบ foundation ที่ใช้งานจริงได้ในระดับ demo/production-connected:
 
@@ -90,11 +92,11 @@ V2 ต้องส่งระบบ foundation ที่ใช้งานจ�
 9. Repeatable migration/seed/import/verification process
 10. Final integration evidence และ demo docs
 
-## V2 Architecture
+## สถาปัตยกรรม V2
 
 Production path ของ V2 แยกเป็น 3 ส่วนหลัก
 
-### Public Read Path
+### เส้นทางการอ่านข้อมูลสาธารณะ
 
 ```text
 User
@@ -113,7 +115,7 @@ User
 - Work Item Detail API #68
 - Public repository UI #72-#75
 
-### Admin Path
+### เส้นทางของผู้ดูแลระบบ
 
 ```text
 Admin User
@@ -131,7 +133,7 @@ Admin User
 - Admin create/update/delete APIs #70-#71
 - Admin UI #76-#79
 
-### Data / Evidence / Import Path
+### เส้นทางข้อมูล หลักฐาน และการนำเข้า
 
 ```text
 Project/team data
@@ -148,7 +150,7 @@ Project/team data
 - Final integration #81
 - future import/projection cards
 
-## Current AWS Resources
+## AWS resources ปัจจุบัน
 
 Region:
 
@@ -186,7 +188,7 @@ CloudWatch log group:
 /aws/lambda/cs361-v2-dev-query
 ```
 
-Current foundation resources include:
+foundation resources ปัจจุบันมี:
 
 - Aurora PostgreSQL cluster: `cs361-v2-dev-aurora`
 - Database name: `cs361v2`
@@ -197,23 +199,23 @@ Current foundation resources include:
 - Import Lambda role: `CS361V2ImportLambdaRole-dev`
 - Projection Lambda role: `CS361V2ProjectionLambdaRole-dev`
 
-Do not copy real secret values into docs, chat, commits, screenshots, or GitHub comments.
+ห้ามคัดลอก secret value จริงลง docs, chat, commit, screenshot หรือ GitHub comment
 
-## Current Working Features
+## สิ่งที่ทำงานได้แล้วตอนนี้
 
-### Done in repo/design
+### สิ่งที่เสร็จใน repo และเอกสารออกแบบ
 
-- V2 scope and architecture frozen
-- relational schema designed
-- ERD/DBML docs created
-- V1 to V2 mapping created
-- demo dataset created
-- AWS foundation deployed
-- Master Data API #64 implemented, deployed, smoke tested
+- freeze scope และ architecture ของ V2 แล้ว
+- ออกแบบ relational schema แล้ว
+- สร้าง ERD/DBML docs แล้ว
+- สร้าง V1 to V2 mapping แล้ว
+- สร้าง demo dataset แล้ว
+- deploy AWS foundation แล้ว
+- implement, deploy และ smoke test Master Data API #64 แล้ว
 
-### Done on AWS
+### สิ่งที่ deploy แล้วบน AWS
 
-Master Data API currently works after Aurora is awake:
+Master Data API ใช้งานได้หลังจาก Aurora พร้อมตอบสนอง:
 
 ```text
 GET /api/v2/academic-periods
@@ -223,7 +225,7 @@ GET /api/v2/work-types
 GET /api/v2/faculties
 ```
 
-Latest smoke test after Aurora resumed:
+ผล smoke test ล่าสุดหลัง Aurora resume:
 
 ```text
 PASS /api/v2/academic-periods count=5
@@ -234,7 +236,7 @@ PASS /api/v2/faculties count=3
 PASS /api/v2/work-types?category=UNKNOWN returned 400 INVALID_QUERY
 ```
 
-### Known AWS Behavior
+### พฤติกรรม AWS ที่ทีมต้องรู้
 
 Aurora Serverless/Express can auto-pause when idle. First request after a long idle period may fail temporarily with:
 
@@ -250,7 +252,7 @@ If this happens:
 
 This is expected for dev/demo cost saving and should be documented in issue evidence if it appears.
 
-## What V2 Does Not Include Yet
+## สิ่งที่ V2 ยังไม่รวมในรอบนี้
 
 V2 does not yet include:
 
@@ -265,7 +267,7 @@ V2 does not yet include:
 
 These are deferred to future versions such as V3/V4/V7 unless a new decision explicitly changes scope.
 
-## How Each V2 Card Answers The Real Problem
+## แต่ละการ์ด V2 ตอบโจทย์จริงอย่างไร
 
 The real problem is not just “make pages”. The real problem is making a central repository that stores and retrieves faculty output/workload data systematically.
 

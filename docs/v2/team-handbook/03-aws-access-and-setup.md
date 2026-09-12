@@ -1,8 +1,10 @@
-# AWS Access And Project Setup
+# คู่มือ AWS Access และการ Setup โปรเจกต์
 
 ไฟล์นี้อธิบายวิธีเตรียมเครื่องและ AWS access สำหรับทีมที่ต้องพัฒนา V2 ต่อ
 
-## Important Security Rule
+เนื้อหาหลักเขียนเป็นภาษาไทยเพื่อให้ทำตามได้ง่าย ส่วนชื่อ AWS service, command, ARN, stack name และ environment variable ยังคงเป็นภาษาอังกฤษตามของจริง
+
+## กฎความปลอดภัยที่สำคัญมาก
 
 ห้ามใส่ค่าเหล่านี้ใน GitHub, docs, screenshot, chat หรือ commit:
 
@@ -25,7 +27,7 @@
 
 ถ้าต้องใส่ ARN จริงใน GitHub issue ให้ระวังว่า ARN ไม่ใช่ password แต่เปิดเผย account id ได้ ควรใช้แบบ redacted เมื่อไม่จำเป็น
 
-## Tools Required
+## เครื่องมือที่ต้องมี
 
 ต้องมี:
 
@@ -47,7 +49,7 @@ aws --version
 aws-cli/2.x.x ...
 ```
 
-## Configure AWS Credentials
+## วิธีตั้งค่า AWS Credentials
 
 ถ้าใช้ IAM user access key:
 
@@ -88,7 +90,7 @@ arn:aws:iam::<account-id>:user/<your-user>
 2. รัน `aws configure` ใหม่ หรือ login SSO ใหม่
 3. เช็ค `aws configure list`
 
-## IAM Permissions Needed
+## สิทธิ์ IAM ที่ต้องใช้
 
 สำหรับคนที่ทำแค่ดู/รีวิว:
 
@@ -118,7 +120,7 @@ arn:aws:iam::<account-id>:user/<your-user>
 
 อย่าใช้ root account ถ้าไม่จำเป็น
 
-## Current AWS Resources
+## AWS resources ที่ใช้งานจริงตอนนี้
 
 Region:
 
@@ -144,9 +146,9 @@ Master Data API endpoint:
 https://n89gqgnqw2.execute-api.ap-southeast-1.amazonaws.com
 ```
 
-Core resource names:
+ชื่อ resource หลัก:
 
-| Resource | Name |
+| ประเภท | ชื่อ |
 |---|---|
 | Aurora cluster | `cs361-v2-dev-aurora` |
 | Database | `cs361v2` |
@@ -159,7 +161,7 @@ Core resource names:
 | Query Lambda | `cs361-v2-dev-query` |
 | Query log group | `/aws/lambda/cs361-v2-dev-query` |
 
-## How To Get Stack Outputs
+## วิธีดูค่า Stack Outputs
 
 Foundation outputs:
 
@@ -179,7 +181,7 @@ aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs'
 ```
 
-Useful outputs:
+ค่า output ที่ใช้บ่อย:
 
 - `DBClusterArn`
 - `DBSecretArn`
@@ -191,9 +193,9 @@ Useful outputs:
 - `QueryLambdaName`
 - `QueryLogGroupName`
 
-## How To See Database Data
+## วิธีดูข้อมูลในฐานข้อมูลผ่าน RDS Data API
 
-V2 does not require opening a public DB port. Use RDS Data API:
+V2 ไม่เปิด database port ให้ต่อจากภายนอกโดยตรง วิธีมาตรฐานของทีมคือใช้ RDS Data API:
 
 ```bash
 DB_CLUSTER_ARN=$(aws cloudformation describe-stacks \
@@ -215,7 +217,7 @@ DB_NAME=$(aws cloudformation describe-stacks \
   --output text)
 ```
 
-Then:
+จากนั้นค่อยรันคำสั่ง query:
 
 ```bash
 aws rds-data execute-statement \
@@ -233,7 +235,7 @@ aws rds-data execute-statement \
 - ถ้าจะใช้ client แบบ DBeaver/TablePlus ต้องมี endpoint/network/credential path ที่ปลอดภัย ซึ่ง project นี้ยังไม่ได้ออกแบบเป็น default
 - สำหรับทีมนี้ แนะนำใช้ RDS Data API ผ่าน AWS CLI หรือเขียน script เฉพาะงาน
 
-## How To Deploy Master Data API Again
+## วิธี deploy Master Data API อีกครั้ง
 
 ถ้าแก้ Lambda #64 แล้วต้อง deploy ใหม่:
 
@@ -244,7 +246,7 @@ API_STACK=cs361-v2-master-data-api-dev \
 scripts/deploy-v2-master-data-api.sh
 ```
 
-script จะ:
+script นี้จะทำงานตามลำดับ:
 
 1. compile Python handler
 2. zip Lambda artifact
@@ -252,7 +254,7 @@ script จะ:
 4. deploy `infra/v2/master-data-api.yaml`
 5. print stack outputs
 
-## How To Smoke Test Master Data API
+## วิธี Smoke Test Master Data API
 
 ```bash
 AWS_REGION=ap-southeast-1 \
@@ -260,7 +262,7 @@ API_STACK=cs361-v2-master-data-api-dev \
 scripts/smoke-v2-master-data-api.sh
 ```
 
-Expected:
+ผลที่ควรได้:
 
 ```text
 PASS /api/v2/academic-periods count=5
@@ -271,27 +273,27 @@ PASS /api/v2/faculties count=3
 PASS /api/v2/work-types?category=UNKNOWN returned 400 INVALID_QUERY
 ```
 
-If the first run returns 500 after the DB has been idle:
+ถ้ารอบแรกได้ `500` หลังจากฐานข้อมูลนิ่งไปนาน:
 
-- likely Aurora is resuming from auto-pause
-- wait 15-30 seconds
-- run the smoke test again
-- if still failing, open CloudWatch log group `/aws/lambda/cs361-v2-dev-query`
+- มีโอกาสสูงว่า Aurora กำลังตื่นจาก auto-pause
+- รอประมาณ 15-30 วินาที
+- รัน smoke test ซ้ำ
+- ถ้ายังล้มเหลว ให้เปิด CloudWatch log group `/aws/lambda/cs361-v2-dev-query`
 
-## Where To Check Each Service In AWS Console
+## ต้องไปดูแต่ละ service ตรงไหนใน AWS Console
 
 ### CloudFormation
 
-Use CloudFormation to see stack status and outputs:
+ใช้ CloudFormation เพื่อดูสถานะ stack และ output:
 
 - `cs361-v2-aws-foundation-dev`
 - `cs361-v2-master-data-api-dev`
 
-Check:
+สิ่งที่ต้องเช็ค:
 
-- stack status is `CREATE_COMPLETE` or `UPDATE_COMPLETE`
-- Outputs tab has API endpoint, DB ARN, role ARN, bucket name
-- Events tab shows deploy failures if any
+- stack status เป็น `CREATE_COMPLETE` หรือ `UPDATE_COMPLETE`
+- แท็บ Outputs มี API endpoint, DB ARN, role ARN, bucket name
+- แท็บ Events ใช้ดู error ตอน deploy ถ้ามี
 
 ### API Gateway
 
@@ -301,11 +303,11 @@ Find API:
 cs361-v2-dev-master-data-api
 ```
 
-Check:
+สิ่งที่ต้องเช็ค:
 
-- routes include all `GET /api/v2/...`
-- integration points to Lambda `cs361-v2-dev-query`
-- endpoint matches stack output
+- routes มี `GET /api/v2/...` ตามที่ deploy
+- integration ชี้ไปที่ Lambda `cs361-v2-dev-query`
+- endpoint ตรงกับ stack output
 
 ### Lambda
 
@@ -315,7 +317,7 @@ Find function:
 cs361-v2-dev-query
 ```
 
-Check:
+สิ่งที่ต้องเช็ค:
 
 - runtime `python3.12`
 - handler `master_data.handler`
@@ -323,7 +325,7 @@ Check:
 - role: `CS361V2QueryLambdaRole-dev`
 - monitor/logs tab links to CloudWatch
 
-Do not copy secret values. Env var `DB_SECRET_ARN` is an ARN, not the secret value.
+ห้ามคัดลอก secret value ออกมาใส่ docs หรือ issue comment ค่า `DB_SECRET_ARN` เป็น ARN ไม่ใช่รหัสผ่านจริง
 
 ### RDS / Aurora
 
@@ -333,7 +335,7 @@ Find cluster:
 cs361-v2-dev-aurora
 ```
 
-Check:
+สิ่งที่ต้องเช็ค:
 
 - Data API / HTTP endpoint enabled
 - cluster can auto-pause/resume
@@ -347,7 +349,7 @@ Find secret:
 cs361-v2/dev/aurora/master
 ```
 
-Use only ARN/name in docs. Do not reveal secret value.
+ใช้เฉพาะ ARN/name ใน docs และห้ามเปิดเผย secret value
 
 ### S3
 
@@ -357,7 +359,7 @@ Find data/artifact bucket:
 cs361-v2-aws-foundation-dev-v2databucket-itl5uq2sozge
 ```
 
-Used for:
+ใช้สำหรับ:
 
 - data landing/archive/metadata
 - Lambda artifact upload path
@@ -376,7 +378,7 @@ Important log groups:
 
 For #64, check `/aws/lambda/cs361-v2-dev-query`.
 
-## Local Project Setup
+## วิธี setup โปรเจกต์ในเครื่อง
 
 Clone/pull repo:
 
@@ -411,7 +413,7 @@ PYTHONPYCACHEPREFIX=/tmp/codex-pycache \
 python3 -m compileall -q backend/v2/query
 ```
 
-## Common Problems
+## ปัญหาที่พบบ่อย
 
 ### `ExpiredToken`
 
