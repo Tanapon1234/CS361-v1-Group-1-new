@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 *.zip
 .DS_Store
+.env
+.env.*
+!.env.example
+infra/v2/*.local.json
