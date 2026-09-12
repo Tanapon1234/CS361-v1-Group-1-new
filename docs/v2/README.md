@@ -108,9 +108,13 @@ Production rule สำหรับ issue cards ชุดนี้: การ์�
 | Artifact | Purpose |
 |---|---|
 | [../../infra/v2/aws-foundation.yaml](../../infra/v2/aws-foundation.yaml) | CloudFormation baseline สำหรับ Aurora/Data API/Secrets/IAM/S3/CloudWatch |
+| [../../infra/v2/master-data-api.yaml](../../infra/v2/master-data-api.yaml) | CloudFormation สำหรับ Issue #64 Master Data API: API Gateway + Query Lambda |
 | [../../infra/v2/parameters.dev.example.json](../../infra/v2/parameters.dev.example.json) | ตัวอย่าง parameter file สำหรับ target AWS environment ที่ทีมใช้ deploy/check |
 | [../../scripts/setup-v2-aws-foundation.sh](../../scripts/setup-v2-aws-foundation.sh) | interactive setup wizard สำหรับ operator ที่จะ login AWS เอง |
 | [../../scripts/check-v2-aws-foundation.sh](../../scripts/check-v2-aws-foundation.sh) | verification script สำหรับ `SELECT 1` ผ่าน RDS Data API |
+| [../../scripts/deploy-v2-master-data-api.sh](../../scripts/deploy-v2-master-data-api.sh) | package/upload/deploy Master Data API stack สำหรับ #64 |
+| [../../scripts/smoke-v2-master-data-api.sh](../../scripts/smoke-v2-master-data-api.sh) | smoke test deployed Master Data API ทั้ง 5 endpoints |
+| [../../evidence/v2/master-data-api/README.md](../../evidence/v2/master-data-api/README.md) | หลักฐาน deploy/smoke test สำหรับ Issue #64 |
 
 ---
 

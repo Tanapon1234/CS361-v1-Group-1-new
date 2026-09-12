@@ -376,28 +376,79 @@ docs/v2/master-data-api.md
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/v2/academic-periods` ใช้งานได้
-- [ ] `GET /api/v2/evaluation-periods` ใช้งานได้
-- [ ] `GET /api/v2/work-categories` ใช้งานได้
-- [ ] `GET /api/v2/work-types` ใช้งานได้
-- [ ] `GET /api/v2/faculties` ใช้งานได้สำหรับ dropdown/filter
-- [ ] response envelope เป็นรูปแบบเดียวกันทุก endpoint
-- [ ] invalid query parameter return error shape ที่ชัดเจน
-- [ ] work type filter by category ใช้งานได้
-- [ ] faculties endpoint preserve `public_slug`
-- [ ] public-safe fields เท่านั้นที่ถูก expose
-- [ ] ไม่ expose source/audit/auth/secret fields
-- [ ] มี repository/data-access boundary ไม่ผูก handler กับ SQL ตรงทุกจุด
-- [ ] มี mapper จาก DB/fixture row เป็น DTO
-- [ ] มี tests สำหรับ success, empty, invalid query และ visibility-safe response
-- [ ] มี docs contract สำหรับ master data API
-- [ ] endpoint พร้อมให้ Work Item Search API และ Repository Filter UI ใช้ต่อ
-- [ ] มี Lambda query handler ที่ deploy แล้ว
-- [ ] API Gateway route ทั้ง 5 ตัวชี้ไป Lambda จริง
-- [ ] Lambda อ่าน Aurora ผ่าน RDS Data API จริง
-- [ ] ใช้ Secrets Manager และ IAM role จาก #48 โดยไม่ hardcode secret
-- [ ] CloudWatch log group มี request/error logs สำหรับ endpoint ชุดนี้
-- [ ] smoke test ผ่าน deployed AWS endpoint ทั้ง success และ invalid query
+- [x] `GET /api/v2/academic-periods` ใช้งานได้
+- [x] `GET /api/v2/evaluation-periods` ใช้งานได้
+- [x] `GET /api/v2/work-categories` ใช้งานได้
+- [x] `GET /api/v2/work-types` ใช้งานได้
+- [x] `GET /api/v2/faculties` ใช้งานได้สำหรับ dropdown/filter
+- [x] response envelope เป็นรูปแบบเดียวกันทุก endpoint
+- [x] invalid query parameter return error shape ที่ชัดเจน
+- [x] work type filter by category ใช้งานได้
+- [x] faculties endpoint preserve `public_slug`
+- [x] public-safe fields เท่านั้นที่ถูก expose
+- [x] ไม่ expose source/audit/auth/secret fields
+- [x] มี repository/data-access boundary ไม่ผูก handler กับ SQL ตรงทุกจุด
+- [x] มี mapper จาก DB/fixture row เป็น DTO
+- [x] มี tests สำหรับ success, empty, invalid query และ visibility-safe response
+- [x] มี docs contract สำหรับ master data API
+- [x] endpoint พร้อมให้ Work Item Search API และ Repository Filter UI ใช้ต่อ
+- [x] มี Lambda query handler ที่ deploy แล้ว
+- [x] API Gateway route ทั้ง 5 ตัวชี้ไป Lambda จริง
+- [x] Lambda อ่าน Aurora ผ่าน RDS Data API จริง
+- [x] ใช้ Secrets Manager และ IAM role จาก #48 โดยไม่ hardcode secret
+- [x] CloudWatch log group มี request/error logs สำหรับ endpoint ชุดนี้
+- [x] smoke test ผ่าน deployed AWS endpoint ทั้ง success และ invalid query
+
+## Production Implementation Evidence
+
+Implemented and deployed on 2026-09-13.
+
+Code/docs added:
+
+- `backend/v2/query/master_data.py`
+- `backend/v2/query/test_master_data.py`
+- `infra/v2/master-data-api.yaml`
+- `scripts/deploy-v2-master-data-api.sh`
+- `scripts/smoke-v2-master-data-api.sh`
+- `docs/v2/master-data-api.md`
+
+AWS resources:
+
+- Region: `ap-southeast-1`
+- Foundation stack: `cs361-v2-aws-foundation-dev`
+- API stack: `cs361-v2-master-data-api-dev`
+- API endpoint: `https://n89gqgnqw2.execute-api.ap-southeast-1.amazonaws.com`
+- Lambda function: `cs361-v2-dev-query`
+- CloudWatch log group: `/aws/lambda/cs361-v2-dev-query`
+
+API Gateway routes verified:
+
+- `GET /api/v2/academic-periods`
+- `GET /api/v2/evaluation-periods`
+- `GET /api/v2/work-categories`
+- `GET /api/v2/work-types`
+- `GET /api/v2/faculties`
+
+Smoke test result:
+
+```text
+PASS /api/v2/academic-periods count=5
+PASS /api/v2/evaluation-periods count=3
+PASS /api/v2/work-categories count=6
+PASS /api/v2/work-types count=26
+PASS /api/v2/faculties count=3
+PASS /api/v2/work-types?category=UNKNOWN returned 400 INVALID_QUERY
+```
+
+Local verification:
+
+```text
+python3 -m unittest backend.v2.query.test_master_data
+Ran 8 tests - OK
+
+cd frontend && npm run test:v2:master-data
+9 tests passed
+```
 
 ## Existing Local Prototype Evidence
 
@@ -414,47 +465,47 @@ docs/v2/master-data-api.md
 
 Data / Database:
 
-- [ ] query สอดคล้องกับ schema จาก #47
-- [ ] sort order predictable
-- [ ] active/inactive handling ชัดเจน
-- [ ] academic period ไม่ derive จาก calendar date ผิดๆ
+- [x] query สอดคล้องกับ schema จาก #47
+- [x] sort order predictable
+- [x] active/inactive handling ชัดเจน
+- [x] academic period ไม่ derive จาก calendar date ผิดๆ
 
 Backend:
 
-- [ ] handler แยก validation, repository, mapper ชัดเจน
-- [ ] error handling ไม่ leak implementation detail
-- [ ] response shape stable
-- [ ] Lambda handler ใช้ repository/data-access boundary ไม่เขียน SQL กระจาย
-- [ ] fixture/dev adapter ไม่ปนกับ production path
-- [ ] API Gateway route/stage ถูก document และ test ได้
+- [x] handler แยก validation, repository, mapper ชัดเจน
+- [x] error handling ไม่ leak implementation detail
+- [x] response shape stable
+- [x] Lambda handler ใช้ repository/data-access boundary ไม่เขียน SQL กระจาย
+- [x] fixture/dev adapter ไม่ปนกับ production path
+- [x] API Gateway route/stage ถูก document และ test ได้
 
 Frontend:
 
-- [ ] field เพียงพอสำหรับ dropdown/filter UI
-- [ ] label ไทย/อังกฤษพร้อมใช้
-- [ ] faculty option ใช้ `public_slug` ต่อกับ V1 compatibility ได้
-- [ ] endpoint count/empty state ใช้งานง่าย
+- [x] field เพียงพอสำหรับ dropdown/filter UI
+- [x] label ไทย/อังกฤษพร้อมใช้
+- [x] faculty option ใช้ `public_slug` ต่อกับ V1 compatibility ได้
+- [x] endpoint count/empty state ใช้งานง่าย
 
 QA / Integration:
 
-- [ ] smoke test master data endpoint ได้
-- [ ] invalid category/semester test ได้
-- [ ] visibility-safe response test ได้
-- [ ] dataset จาก #50 ใช้เป็น expected baseline ได้
-- [ ] smoke test ใช้ AWS endpoint จริง ไม่ใช่ local route อย่างเดียว
+- [x] smoke test master data endpoint ได้
+- [x] invalid category/semester test ได้
+- [x] visibility-safe response test ได้
+- [x] dataset จาก #50 ใช้เป็น expected baseline ได้
+- [x] smoke test ใช้ AWS endpoint จริง ไม่ใช่ local route อย่างเดียว
 
 Security:
 
-- [ ] ไม่ return secret/config/ARN
-- [ ] ไม่ return restricted/internal faculty-only fields ผ่าน public endpoint
-- [ ] ไม่ expose source/audit/auth tables
-- [ ] Lambda role มีสิทธิ์เท่าที่จำเป็นต่อ Data API/Secrets เท่านั้น
+- [x] ไม่ return secret/config/ARN
+- [x] ไม่ return restricted/internal faculty-only fields ผ่าน public endpoint
+- [x] ไม่ expose source/audit/auth tables
+- [x] Lambda role มีสิทธิ์เท่าที่จำเป็นต่อ Data API/Secrets เท่านั้น
 
 Tech Lead:
 
-- [ ] scope ไม่ล้ำไป Work Item Search/Detail API
-- [ ] API contract พร้อมให้ frontend/API cards ถัดไปใช้
-- [ ] implementation ไม่ผูกกับ fixture format มากเกินไป
+- [x] scope ไม่ล้ำไป Work Item Search/Detail API
+- [x] API contract พร้อมให้ frontend/API cards ถัดไปใช้
+- [x] implementation ไม่ผูกกับ fixture format มากเกินไป
 
 ## Dependencies
 

@@ -19,6 +19,7 @@ The template also supports `AuroraProvisioningMode=external-express` for AWS acc
 | File | Purpose |
 |---|---|
 | `aws-foundation.yaml` | CloudFormation template for V2 AWS foundation |
+| `master-data-api.yaml` | CloudFormation template for Issue #64 API Gateway + Query Lambda master data API |
 | `parameters.dev.example.json` | Example parameter file; copy before filling real VPC/subnet values |
 
 ## Before Deploying

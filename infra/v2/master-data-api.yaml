@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CS361 V2 public master data API backed by Lambda, RDS Data API, and Aurora PostgreSQL.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cs361-v2
+    AllowedPattern: "^[a-z][a-z0-9-]{2,30}$"
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - demo
+      - prod
+
+  CodeS3Bucket:
+    Type: String
+    Description: S3 bucket containing the packaged query Lambda artifact.
+
+  CodeS3Key:
+    Type: String
+    Description: S3 key for the packaged query Lambda artifact.
+
+  DBClusterArn:
+    Type: String
+    Description: Aurora cluster ARN with Data API enabled.
+
+  DBSecretArn:
+    Type: String
+    Description: Secrets Manager ARN for the Aurora database credential.
+
+  DBName:
+    Type: String
+    Default: cs361v2
+
+  QueryLambdaRoleArn:
+    Type: String
+    Description: IAM role ARN allowed to execute RDS Data API read queries and read the DB secret.
+
+Resources:
+  V2MasterDataHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-master-data-api"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - OPTIONS
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - content-type
+
+  V2MasterDataStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  V2QueryLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-query"
+      Description: CS361 V2 public master data query API.
+      Runtime: python3.12
+      Handler: master_data.handler
+      Role: !Ref QueryLambdaRoleArn
+      Timeout: 15
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      Environment:
+        Variables:
+          DB_CLUSTER_ARN: !Ref DBClusterArn
+          DB_SECRET_ARN: !Ref DBSecretArn
+          DB_NAME: !Ref DBName
+          LOG_LEVEL: INFO
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  V2MasterDataIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt V2QueryLambda.Arn
+      PayloadFormatVersion: "2.0"
+
+  V2MasterDataAcademicPeriodsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      RouteKey: "GET /api/v2/academic-periods"
+      Target: !Sub "integrations/${V2MasterDataIntegration}"
+
+  V2MasterDataEvaluationPeriodsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      RouteKey: "GET /api/v2/evaluation-periods"
+      Target: !Sub "integrations/${V2MasterDataIntegration}"
+
+  V2MasterDataWorkCategoriesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      RouteKey: "GET /api/v2/work-categories"
+      Target: !Sub "integrations/${V2MasterDataIntegration}"
+
+  V2MasterDataWorkTypesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      RouteKey: "GET /api/v2/work-types"
+      Target: !Sub "integrations/${V2MasterDataIntegration}"
+
+  V2MasterDataFacultiesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref V2MasterDataHttpApi
+      RouteKey: "GET /api/v2/faculties"
+      Target: !Sub "integrations/${V2MasterDataIntegration}"
+
+  V2QueryLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref V2QueryLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${V2MasterDataHttpApi}/*/*/api/v2/*"
+
+Outputs:
+  MasterDataApiEndpoint:
+    Value: !GetAtt V2MasterDataHttpApi.ApiEndpoint
+  MasterDataApiId:
+    Value: !Ref V2MasterDataHttpApi
+  QueryLambdaName:
+    Value: !Ref V2QueryLambda
+  QueryLambdaArn:
+    Value: !GetAtt V2QueryLambda.Arn
+  QueryLogGroupName:
+    Value: !Sub "/aws/lambda/${ProjectName}-${Environment}-query"
