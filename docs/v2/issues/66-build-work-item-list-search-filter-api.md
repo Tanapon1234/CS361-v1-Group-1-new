@@ -130,6 +130,236 @@ Response:
 }
 ```
 
+## Expected UI Usage
+
+API นี้ถูกออกแบบมาให้ frontend ใช้ทำหน้า repository list/search/filter เช่นหน้า `/outputs`
+
+ภาพที่คาดหวังใน UI:
+
+- ช่องค้นหา keyword ด้านบน
+- filter ปีการศึกษา / รอบประเมิน / หมวดงาน / ประเภทงาน / อาจารย์
+- list หรือ card ของ work items
+- badge หมวดงาน เช่น `RESEARCH`, `TEACHING`
+- badge ประเภทงาน เช่น `PUBLICATION`, `LECTURE`
+- badge visibility เช่น `PUBLIC`
+- ชื่อผลงาน
+- คำอธิบายสั้น
+- ปีการศึกษา
+- รายชื่ออาจารย์ที่เกี่ยวข้อง
+- บทบาทของอาจารย์ในผลงาน เช่น `AUTHOR`, `INSTRUCTOR`, `PRINCIPAL_INVESTIGATOR`
+- pagination เช่น page, page size, total
+- ปุ่มหรือ link ไปหน้า detail ของ work item ซึ่งจะใช้ #68 ต่อ
+
+API นี้เป็น public list endpoint ดังนั้นเป้าหมายคือ “เห็นรายการพอให้เลือกและกดดูต่อ” ไม่ใช่ “เห็นข้อมูลลึกทั้งหมดของผลงาน”
+
+## Expected UI Fields
+
+ตารางนี้คือ field ที่ frontend ควรเอาไปแสดงในหน้า list และเหตุผลที่ต้องมี
+
+| UI field | ใช้แสดงในหน้าเว็บ | จำเป็นไหม | หมายเหตุ |
+|---|---|---|---|
+| `id` | ใช้เป็น key และ link ไป detail | จำเป็น | ใช้กับ #68 เช่น `/outputs/{id}` |
+| `title` | ชื่อผลงานบน card/list | จำเป็น | ต้องอ่านง่ายและไม่ว่าง |
+| `description` | คำอธิบายสั้นใต้ชื่อผลงาน | ควรมี | UI อาจ truncate เหลือ 1-2 บรรทัด |
+| `category.code` | badge/code เช่น `RESEARCH` | จำเป็น | ใช้ filter และสี badge |
+| `category.label_th` | label ภาษาไทย เช่น `งานวิชาการ/วิจัย` | ควรมี | ใช้แสดงกับผู้ใช้ไทย |
+| `category.label_en` | label อังกฤษ | optional | ใช้ถ้า UI bilingual |
+| `type.code` | badge/code เช่น `PUBLICATION` | จำเป็น | ใช้ filter ประเภทงาน |
+| `type.label_th` | label ประเภทงานภาษาไทย | ควรมี | เช่น `ผลงานตีพิมพ์` |
+| `type.label_en` | label ประเภทงานอังกฤษ | optional | ใช้ถ้า UI bilingual |
+| `academic_period.id` | filter/key ของปีการศึกษา | จำเป็น | มาจาก relation `faculty_work_item` |
+| `academic_period.label` | label เช่น `2/2567` | จำเป็น | แสดงบน card |
+| `academic_period.academic_year` | ปีการศึกษา เช่น `2567` | ควรมี | ช่วย sort/filter |
+| `academic_period.semester` | ภาคการศึกษา เช่น `2` | ควรมี | ช่วยแสดงรายละเอียด |
+| `evaluation_period.id` | filter/key ของรอบประเมิน | ควรมี | ใช้กับ filter ขั้นสูง |
+| `evaluation_period.label` | label รอบประเมิน | ควรมี | แสดงถ้า UI ต้องการ |
+| `faculty[].id` | key ของอาจารย์ | จำเป็น | ใช้ link ไปหน้า faculty |
+| `faculty[].display_name` | ชื่ออาจารย์ | จำเป็น | เช่น `ผศ.ดร.ประภาพร รัตนธำรง` |
+| `faculty[].slug` | public slug | จำเป็น | ใช้ทำ URL หน้าอาจารย์ |
+| `faculty[].role` | บทบาทในผลงาน | จำเป็น | เช่น `AUTHOR`, `INSTRUCTOR` |
+| `faculty[].contribution_order` | ลำดับผู้มีส่วนร่วม | ควรมี | สำคัญกับงานหลายอาจารย์ |
+| `faculty[].contribution_percent` | สัดส่วนผลงาน | ควรมี | แสดงได้เฉพาะ public-safe |
+| `visibility` | badge `PUBLIC` | จำเป็น | public endpoint ควรคืนเฉพาะ `PUBLIC` |
+| `start_date` | วันที่เริ่มต้นของ work item | optional | ใช้ sort/display ถ้ามี |
+| `end_date` | วันที่สิ้นสุดของ work item | optional | ใช้ sort/display ถ้ามี |
+| `updated_at` | วันที่ update ล่าสุด | ควรมี | ใช้ sort default และแสดง “อัปเดตล่าสุด” |
+
+## Data Source / Table Mapping
+
+ตารางนี้คือ mapping ระหว่าง response field กับ table/attribute จริง
+
+| Response field | Source table | Source attribute | วิธี join / หมายเหตุ |
+|---|---|---|---|
+| `items[].id` | `work_item` | `id` | primary id ของรายการ |
+| `items[].title` | `work_item` | `title` | title หลักของ work item |
+| `items[].description` | `work_item` | `description` | summary สำหรับ list |
+| `items[].category.code` | `work_item` | `category_code` | FK ไป `work_category.code` |
+| `items[].category.label_th` | `work_category` | `label_th` | join `work_category.code = work_item.category_code` |
+| `items[].category.label_en` | `work_category` | `label_en` | join `work_category.code = work_item.category_code` |
+| `items[].type.code` | `work_item` | `work_type_code` | FK ไป `work_type.code` |
+| `items[].type.label_th` | `work_type` | `label_th` | join ด้วย `(category_code, code)` |
+| `items[].type.label_en` | `work_type` | `label_en` | join ด้วย `(category_code, code)` |
+| `items[].visibility` | `work_item` | `visibility` | public route ต้องเป็น `PUBLIC` เท่านั้น |
+| `items[].status` | `work_item` | `status` | ใช้ filter backend เท่านั้น ไม่จำเป็นต้อง expose |
+| `items[].start_date` | `work_item` | `start_date` | optional display/sort |
+| `items[].end_date` | `work_item` | `end_date` | optional display/sort |
+| `items[].updated_at` | `work_item` | `updated_at` | default sorting |
+| `items[].academic_period.id` | `faculty_work_item` | `academic_period_id` | relation-level period |
+| `items[].academic_period.label` | `academic_period` | `label` | join `academic_period.id = faculty_work_item.academic_period_id` |
+| `items[].academic_period.academic_year` | `academic_period` | `academic_year` | ใช้ filter ปี |
+| `items[].academic_period.semester` | `academic_period` | `semester` | ใช้ filter ภาค |
+| `items[].evaluation_period.id` | `faculty_work_item` | `evaluation_period_id` | relation-level evaluation period |
+| `items[].evaluation_period.code` | `evaluation_period` | `code` | join `evaluation_period.id = faculty_work_item.evaluation_period_id` |
+| `items[].evaluation_period.label` | `evaluation_period` | `label` | ใช้แสดงรอบประเมิน |
+| `items[].faculty[].id` | `faculty` | `id` | join ผ่าน `faculty_work_item.faculty_id` |
+| `items[].faculty[].display_name` | `faculty` | `name_th`, fallback `name_en` | ใช้ `COALESCE(name_th, name_en)` |
+| `items[].faculty[].slug` | `faculty` | `public_slug` | ใช้สร้าง link หน้าอาจารย์ |
+| `items[].faculty[].role` | `faculty_work_item` | `role` | บทบาทของอาจารย์ใน work item |
+| `items[].faculty[].contribution_order` | `faculty_work_item` | `contribution_order` | ใช้เรียง contributor |
+| `items[].faculty[].contribution_percent` | `faculty_work_item` | `contribution_percent` | แสดงได้ถ้า public-safe |
+| `page` | request/query | `page` | default `1` |
+| `page_size` | request/query | `page_size` | default `20`, max `100` |
+| `total` | SQL count | `COUNT(DISTINCT work_item.id)` | count หลัง apply filters |
+
+## Recommended Full Response Shape
+
+ให้ implement response แบบมีข้อมูลพอสำหรับ UI ตั้งแต่แรก เพื่อไม่ให้ frontend ต้องเดา field เอง
+
+```json
+{
+  "items": [
+    {
+      "id": "wi-pub-2024-privacy-edge",
+      "title": "Privacy-Preserving Edge Analytics for Smart Campus Workload Signals",
+      "description": "Synthetic publication used for keyword search demo. Keyword: privacy.",
+      "category": {
+        "code": "RESEARCH",
+        "label_th": "งานวิชาการ/วิจัย",
+        "label_en": "Research and Academic Output"
+      },
+      "type": {
+        "code": "PUBLICATION",
+        "label_th": "ผลงานตีพิมพ์",
+        "label_en": "Publication"
+      },
+      "academic_period": {
+        "id": "ap-2567-1",
+        "label": "1/2567",
+        "academic_year": 2567,
+        "semester": "1"
+      },
+      "evaluation_period": {
+        "id": "eval-2567-full-year",
+        "code": "2567_FULL_YEAR",
+        "label": "ปีการศึกษา 2567"
+      },
+      "faculty": [
+        {
+          "id": "fac_prapaporn-rattanatamrong",
+          "display_name": "ผศ.ดร.ประภาพร รัตนธำรง",
+          "slug": "prapaporn-rattanatamrong",
+          "role": "CORRESPONDING_AUTHOR",
+          "contribution_order": 1,
+          "contribution_percent": 60
+        },
+        {
+          "id": "fac_kasidit-chanchio",
+          "display_name": "ผศ.ดร.กษิดิศ ชาญเชี่ยว",
+          "slug": "kasidit-chanchio",
+          "role": "AUTHOR",
+          "contribution_order": 2,
+          "contribution_percent": 40
+        }
+      ],
+      "visibility": "PUBLIC",
+      "start_date": "2024-10-01",
+      "end_date": "2024-10-01",
+      "updated_at": "2026-09-12T00:00:00Z"
+    }
+  ],
+  "page": 1,
+  "page_size": 20,
+  "total": 1
+}
+```
+
+หมายเหตุ:
+
+- `academic_period` และ `evaluation_period` มาจาก `faculty_work_item` เพราะ work item หนึ่งรายการอาจผูกกับอาจารย์หลายคนผ่าน relation table
+- ถ้า work item มีหลาย faculty relation ที่ period ต่างกัน ให้ implementation ต้องเลือกกติกาให้ชัดเจน เช่นใช้ relation ที่ตรงกับ filter ก่อน หรือ aggregate distinct periods ในอนาคต
+- สำหรับ #66 เวอร์ชันแรก ให้ยึด period ที่มาจาก relation ที่ถูกใช้ในผลลัพธ์ และเขียน test ให้ครอบคลุม demo data
+
+## Query / Filter Mapping
+
+| Query parameter | ใช้ filter จาก table | Attribute | กติกา |
+|---|---|---|---|
+| `faculty_id` | `faculty_work_item` / `faculty` | `faculty_id`, `faculty.id` | คืน work items ที่ผูกกับอาจารย์คนนั้น |
+| `academic_period_id` | `faculty_work_item` | `academic_period_id` | filter ตาม period ใน relation |
+| `evaluation_period_id` | `faculty_work_item` | `evaluation_period_id` | filter ตาม evaluation period ใน relation |
+| `category` | `work_item` / `work_category` | `category_code`, `code` | ต้องเป็น code ที่มีจริงและ active |
+| `type` | `work_item` / `work_type` | `work_type_code`, `code` | ต้องเป็น type ที่มีจริงและอยู่ใต้ category ที่เลือกถ้ามี category |
+| `visibility` | `work_item` | `visibility` | public route อนุญาตเฉพาะ `PUBLIC` หรือไม่ส่งค่า |
+| `q` | `work_item`, `faculty`, `work_category`, `work_type` | `title`, `description`, `name_th`, `name_en`, labels | search แบบ case-insensitive |
+| `page` | request | `page` | default `1`, min `1` |
+| `page_size` | request | `page_size` | default `20`, max `100` |
+
+## Public-Safe Fields
+
+ต้องส่งออกใน public response:
+
+- `work_item.id`
+- `work_item.title`
+- `work_item.description`
+- `work_item.category_code`
+- `work_category.label_th`, `label_en`
+- `work_item.work_type_code`
+- `work_type.label_th`, `label_en`
+- `academic_period.id`, `label`, `academic_year`, `semester`
+- `evaluation_period.id`, `code`, `label`
+- public faculty id/name/slug
+- public-safe role/contribution fields จาก `faculty_work_item`
+- `work_item.visibility`
+- `work_item.start_date`, `end_date`, `updated_at`
+
+ห้ามส่งออกใน public response ของ #66:
+
+- `work_item.source_score`
+- `work_item.source_weight`
+- `work_item.source_section_code`
+- `work_item.import_batch_id`
+- `work_item.source_record_id`
+- `faculty_work_item.contribution_note`
+- `faculty_work_item.quantity`
+- `faculty_work_item.credits`
+- `faculty_work_item.hours`
+- `source_record.raw_record`
+- `audit_event`
+- `app_user` / `app_role` / auth data
+- evidence detail หรือ private S3 key
+- subtype detail tables แบบเต็ม เพราะเป็นหน้าที่ของ #68
+
+## Expected Demo Result Baseline
+
+ถ้าใช้ demo dataset ใน `data/v2/fixtures/` และเรียก public route แบบไม่ส่ง filter เพิ่ม ควรเห็นเฉพาะ work items ที่ `status = ACTIVE` และ `visibility = PUBLIC`
+
+Expected public work items:
+
+| Work item id | Title | Category | Type | Expected faculty |
+|---|---|---|---|---|
+| `wi-pub-2019-multi-container` | `Multi-Container Application Migration with Load Balanced and Adaptive Parallel TCP` | `RESEARCH` | `PUBLICATION` | `prapaporn-rattanatamrong` |
+| `wi-pub-2024-privacy-edge` | `Privacy-Preserving Edge Analytics for Smart Campus Workload Signals` | `RESEARCH` | `PUBLICATION` | `prapaporn-rattanatamrong`, `kasidit-chanchio` |
+| `wi-pub-2025-hci-agent` | `Adaptive Interface Agents for Computing Education` | `RESEARCH` | `PUBLICATION` | `nuttanont-hongwarittorrn` |
+| `wi-service-2568-speaker` | `Invited Speaker: Responsible AI and Privacy in Education` | `ACADEMIC_SERVICE` | `INVITED_SPEAKER` | `nuttanont-hongwarittorrn` |
+
+ดังนั้น public smoke test พื้นฐานควรตรวจได้อย่างน้อย:
+
+- `GET /api/v2/work-items` ได้ `total = 4` เมื่อใช้ demo data ตาม fixtures
+- `GET /api/v2/work-items?category=RESEARCH` ได้ 3 รายการ public
+- `GET /api/v2/work-items?type=PUBLICATION` ได้ 3 รายการ public
+- `GET /api/v2/work-items?q=privacy` ไม่คืน restricted/internal rows ใน public route
+- `GET /api/v2/work-items?faculty_id=fac_prapaporn-rattanatamrong&type=PUBLICATION` ได้ 2 รายการ public
+- `GET /api/v2/work-items?category=TEACHING` ได้ `items: []` ใน public route ถ้า teaching demo data ยังเป็น `INTERNAL`
+
 ## Validation Rules
 
 - `page` default = `1`, minimum = `1`
