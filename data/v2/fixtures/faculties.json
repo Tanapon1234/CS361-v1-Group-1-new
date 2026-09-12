@@ -1,0 +1,68 @@
+[
+  {
+    "id": "fac_kasidit-chanchio",
+    "public_slug": "kasidit-chanchio",
+    "name_th": "ผศ.ดร.กษิดิศ ชาญเชี่ยว",
+    "name_en": "Asst.Prof.Dr. Kasidit Chanchio",
+    "academic_position": "ผู้ช่วยศาสตราจารย์",
+    "department": "Computer Science",
+    "office_public": "อาคาร LC-2 ชั้น 2 ห้อง 210",
+    "phone_public": "0-2986-9156 ext. 200",
+    "email_public": "ckasidit@tu.ac.th",
+    "profile_image_url": "https://cs.sci.tu.ac.th/wp-content/uploads/2021/02/5-scaled-e1612367119916.jpg",
+    "profile_image_alt": "ผศ.ดร.กษิดิศ ชาญเชี่ยว",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "metadata": {
+      "synthetic": false,
+      "source_system": "V1_PUBLIC_FACULTY",
+      "source_type": "JSON",
+      "source_record_key": "faculty/kasidit-chanchio",
+      "source_note": "Reused from V1 public faculty detail serving JSON"
+    }
+  },
+  {
+    "id": "fac_nuttanont-hongwarittorrn",
+    "public_slug": "nuttanont-hongwarittorrn",
+    "name_th": "รศ.ดร.ณัฐธนนท์ หงส์วริทธิ์ธร",
+    "name_en": "Assoc.Prof.Dr. Nuttanont Hongwarittorrn",
+    "academic_position": "รองศาสตราจารย์",
+    "department": "Computer Science",
+    "office_public": "อาคาร LC-2 ชั้น 2 ห้อง 210",
+    "phone_public": "0-2986-9156 ext. 229",
+    "email_public": "nuttanon@tu.ac.th",
+    "profile_image_url": "https://cs.sci.tu.ac.th/wp-content/uploads/2020/05/1587629164.jpg",
+    "profile_image_alt": "รศ.ดร.ณัฐธนนท์ หงส์วริทธิ์ธร",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "metadata": {
+      "synthetic": false,
+      "source_system": "V1_PUBLIC_FACULTY",
+      "source_type": "JSON",
+      "source_record_key": "faculty/nuttanont-hongwarittorrn",
+      "source_note": "Reused from V1 public faculty detail serving JSON"
+    }
+  },
+  {
+    "id": "fac_prapaporn-rattanatamrong",
+    "public_slug": "prapaporn-rattanatamrong",
+    "name_th": "ผศ.ดร.ประภาพร รัตนธำรง",
+    "name_en": "Asst.Prof.Dr. Prapaporn Rattanatamrong",
+    "academic_position": "ผู้ช่วยศาสตราจารย์",
+    "department": "Computer Science",
+    "office_public": "อาคาร LC-2 ชั้น 2 ห้อง 210",
+    "phone_public": "0-2986-9256 ext. 225",
+    "email_public": "rattanat@tu.ac.th",
+    "profile_image_url": "https://cs.sci.tu.ac.th/wp-content/uploads/2020/05/Picture30.jpg",
+    "profile_image_alt": "ผศ.ดร.ประภาพร รัตนธำรง",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "metadata": {
+      "synthetic": false,
+      "source_system": "V1_PUBLIC_FACULTY",
+      "source_type": "JSON",
+      "source_record_key": "faculty/prapaporn-rattanatamrong",
+      "source_note": "Reused from V1 public faculty detail serving JSON"
+    }
+  }
+]

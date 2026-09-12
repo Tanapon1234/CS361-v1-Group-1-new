@@ -1,0 +1,20 @@
+[
+  {
+    "work_item_id": "wi-admin-2567-course-coordinator",
+    "position_title": "Course Coordinator",
+    "organization_unit": "Department of Computer Science",
+    "appointment_type": "COURSE_COORDINATION",
+    "appointed_from": "2025-01-01",
+    "appointed_to": "2025-05-31",
+    "appointment_reference": "SYN-ADMIN-2567-CS333"
+  },
+  {
+    "work_item_id": "wi-admin-2568-program-committee",
+    "position_title": "Graduate Program Quality Assurance Working Group Member",
+    "organization_unit": "Department of Computer Science",
+    "appointment_type": "PROGRAM_ADMINISTRATION",
+    "appointed_from": "2025-08-01",
+    "appointed_to": "2025-12-31",
+    "appointment_reference": "SYN-ADMIN-2568-QA"
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "code": "LECTURE",
+    "category_code": "TEACHING",
+    "label_th": "วิชาบรรยาย",
+    "label_en": "Lecture",
+    "default_visibility": "INTERNAL",
+    "display_order": 10,
+    "is_active": true
+  },
+  {
+    "code": "LAB",
+    "category_code": "TEACHING",
+    "label_th": "วิชาปฏิบัติการ",
+    "label_en": "Laboratory",
+    "default_visibility": "INTERNAL",
+    "display_order": 20,
+    "is_active": true
+  },
+  {
+    "code": "SEMINAR",
+    "category_code": "TEACHING",
+    "label_th": "สัมมนา",
+    "label_en": "Seminar",
+    "default_visibility": "INTERNAL",
+    "display_order": 30,
+    "is_active": true
+  },
+  {
+    "code": "PUBLICATION",
+    "category_code": "RESEARCH",
+    "label_th": "ผลงานตีพิมพ์",
+    "label_en": "Publication",
+    "default_visibility": "PUBLIC",
+    "display_order": 210,
+    "is_active": true
+  },
+  {
+    "code": "RESEARCH_PROJECT",
+    "category_code": "RESEARCH",
+    "label_th": "โครงการวิจัย",
+    "label_en": "Research Project",
+    "default_visibility": "INTERNAL",
+    "display_order": 220,
+    "is_active": true
+  },
+  {
+    "code": "RESEARCH_GRANT",
+    "category_code": "RESEARCH",
+    "label_th": "ทุนวิจัย",
+    "label_en": "Research Grant",
+    "default_visibility": "INTERNAL",
+    "display_order": 230,
+    "is_active": true
+  },
+  {
+    "code": "SENIOR_PROJECT",
+    "category_code": "SUPERVISION",
+    "label_th": "ซีเนียร์โปรเจกต์/ปัญหาพิเศษ",
+    "label_en": "Senior Project",
+    "default_visibility": "INTERNAL",
+    "display_order": 110,
+    "is_active": true
+  },
+  {
+    "code": "THESIS",
+    "category_code": "SUPERVISION",
+    "label_th": "วิทยานิพนธ์/สารนิพนธ์",
+    "label_en": "Thesis or Independent Study",
+    "default_visibility": "RESTRICTED",
+    "display_order": 130,
+    "is_active": true
+  },
+  {
+    "code": "COOPERATIVE_EDUCATION",
+    "category_code": "SUPERVISION",
+    "label_th": "สหกิจศึกษา",
+    "label_en": "Cooperative Education",
+    "default_visibility": "INTERNAL",
+    "display_order": 120,
+    "is_active": true
+  },
+  {
+    "code": "COMMITTEE",
+    "category_code": "ACADEMIC_SERVICE",
+    "label_th": "คณะกรรมการ/คณะทำงาน",
+    "label_en": "Committee",
+    "default_visibility": "INTERNAL",
+    "display_order": 310,
+    "is_active": true
+  },
+  {
+    "code": "ACADEMIC_REVIEWER",
+    "category_code": "ACADEMIC_SERVICE",
+    "label_th": "ผู้ประเมินผลงานทางวิชาการ",
+    "label_en": "Academic Reviewer",
+    "default_visibility": "INTERNAL",
+    "display_order": 320,
+    "is_active": true
+  },
+  {
+    "code": "INVITED_SPEAKER",
+    "category_code": "ACADEMIC_SERVICE",
+    "label_th": "วิทยากร/ผู้ทรงคุณวุฒิ",
+    "label_en": "Invited Speaker or Expert",
+    "default_visibility": "PUBLIC",
+    "display_order": 340,
+    "is_active": true
+  },
+  {
+    "code": "COURSE_COORDINATOR",
+    "category_code": "ADMINISTRATION",
+    "label_th": "ผู้ประสานงานรายวิชา",
+    "label_en": "Course Coordinator",
+    "default_visibility": "INTERNAL",
+    "display_order": 40,
+    "is_active": true
+  },
+  {
+    "code": "PROGRAM_ADMINISTRATION",
+    "category_code": "ADMINISTRATION",
+    "label_th": "งานบริหารหลักสูตร/สาขา",
+    "label_en": "Program Administration",
+    "default_visibility": "INTERNAL",
+    "display_order": 420,
+    "is_active": true
+  }
+]

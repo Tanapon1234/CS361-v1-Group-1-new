@@ -1,0 +1,381 @@
+[
+  {
+    "id": "wi-teach-2566-1-cs222",
+    "category_code": "TEACHING",
+    "work_type_code": "LECTURE",
+    "title": "CS222 Data Structures Lecture",
+    "description": "Synthetic teaching workload for undergraduate lecture section.",
+    "start_date": "2023-08-15",
+    "end_date": "2023-12-15",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 200,
+    "source_weight": 1.0,
+    "source_section_code": "1.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/teaching/2566/1/cs222",
+      "source_type": "JSON",
+      "source_note": "Synthetic teaching row for search/filter demo"
+    }
+  },
+  {
+    "id": "wi-teach-2567-2-cs333",
+    "category_code": "TEACHING",
+    "work_type_code": "LECTURE",
+    "title": "CS333 Cloud Application Development Lecture",
+    "description": "Synthetic lecture workload for cloud application development.",
+    "start_date": "2025-01-10",
+    "end_date": "2025-05-10",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 200,
+    "source_weight": 1.0,
+    "source_section_code": "1.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/teaching/2567/2/cs333-lecture",
+      "source_type": "JSON",
+      "source_note": "Synthetic teaching row for query Faculty A Year 2567 Semester 2"
+    }
+  },
+  {
+    "id": "wi-teach-2567-2-cs333-lab",
+    "category_code": "TEACHING",
+    "work_type_code": "LAB",
+    "title": "CS333 Cloud Application Development Laboratory",
+    "description": "Synthetic lab workload paired with CS333 lecture.",
+    "start_date": "2025-01-10",
+    "end_date": "2025-05-10",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 120,
+    "source_weight": 0.6,
+    "source_section_code": "1.2",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/teaching/2567/2/cs333-lab",
+      "source_type": "JSON",
+      "source_note": "Synthetic lab workload for teaching detail UI"
+    }
+  },
+  {
+    "id": "wi-teach-2568-1-cs498",
+    "category_code": "TEACHING",
+    "work_type_code": "SEMINAR",
+    "title": "CS498 Research Seminar in Human Computer Interaction",
+    "description": "Synthetic graduate seminar workload with a long title for UI layout testing.",
+    "start_date": "2025-08-15",
+    "end_date": "2025-12-15",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 150,
+    "source_weight": 0.75,
+    "source_section_code": "1.4",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/teaching/2568/1/cs498",
+      "source_type": "JSON",
+      "source_note": "Synthetic seminar workload for long title UI case"
+    }
+  },
+  {
+    "id": "wi-pub-2019-multi-container",
+    "category_code": "RESEARCH",
+    "work_type_code": "PUBLICATION",
+    "title": "Multi-Container Application Migration with Load Balanced and Adaptive Parallel TCP",
+    "description": "Thongthavorn, Wongsatorn & Rattanatamrong, Prapaporn. (2019). Multi-Container Application Migration with Load Balanced and Adaptive Parallel TCP. 55-62. 10.1109/HPCS48598.2019.9188218.",
+    "start_date": "2019-01-01",
+    "end_date": "2019-12-31",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "source_score": 50,
+    "source_weight": 1.25,
+    "source_section_code": "2.3.1",
+    "metadata": {
+      "synthetic": false,
+      "source_system": "V1_PUBLIC_FACULTY",
+      "source_record_key": "faculty/prapaporn-rattanatamrong/selected_publications/doi/10.1109/hpcs48598.2019.9188218",
+      "source_type": "JSON",
+      "related_v1_slug": "prapaporn-rattanatamrong",
+      "source_note": "Mapped from V1 selected_publications"
+    }
+  },
+  {
+    "id": "wi-pub-2024-privacy-edge",
+    "category_code": "RESEARCH",
+    "work_type_code": "PUBLICATION",
+    "title": "Privacy-Preserving Edge Analytics for Smart Campus Workload Signals",
+    "description": "Synthetic publication used for keyword search demo. Keyword: privacy.",
+    "start_date": "2024-10-01",
+    "end_date": "2024-10-01",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "source_score": 75,
+    "source_weight": 1.5,
+    "source_section_code": "2.3.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/publication/2024/privacy-edge",
+      "source_type": "JSON",
+      "source_note": "Synthetic public publication for keyword search and many-faculty contribution demo"
+    }
+  },
+  {
+    "id": "wi-pub-2025-hci-agent",
+    "category_code": "RESEARCH",
+    "work_type_code": "PUBLICATION",
+    "title": "Adaptive Interface Agents for Computing Education",
+    "description": "Synthetic HCI publication for public repository list/detail demo.",
+    "start_date": "2025-03-15",
+    "end_date": "2025-03-15",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "source_score": 65,
+    "source_weight": 1.25,
+    "source_section_code": "2.3.2",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/publication/2025/hci-agent",
+      "source_type": "JSON",
+      "source_note": "Synthetic publication with optional fields left sparse"
+    }
+  },
+  {
+    "id": "wi-research-2566-edge-middleware",
+    "category_code": "RESEARCH",
+    "work_type_code": "RESEARCH_PROJECT",
+    "title": "Edge Middleware for Distributed Faculty Output Processing",
+    "description": "Synthetic funded research project for 2566.",
+    "start_date": "2023-09-01",
+    "end_date": "2024-08-31",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 120,
+    "source_weight": 1.0,
+    "source_section_code": "2.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/research-project/2566/edge-middleware",
+      "source_type": "JSON",
+      "source_note": "Synthetic research project row"
+    }
+  },
+  {
+    "id": "wi-research-2567-privacy-platform",
+    "category_code": "RESEARCH",
+    "work_type_code": "RESEARCH_PROJECT",
+    "title": "Privacy-Aware Repository Platform for Academic Workload Data",
+    "description": "Synthetic research project used for keyword search demo. Keyword: privacy.",
+    "start_date": "2024-08-01",
+    "end_date": "2025-07-31",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 140,
+    "source_weight": 1.1,
+    "source_section_code": "2.2",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/research-project/2567/privacy-platform",
+      "source_type": "JSON",
+      "source_note": "Synthetic many-faculty research project for contribution percent demo"
+    }
+  },
+  {
+    "id": "wi-grant-2568-hci-learning",
+    "category_code": "RESEARCH",
+    "work_type_code": "RESEARCH_GRANT",
+    "title": "Adaptive HCI Learning Analytics Grant",
+    "description": "Synthetic research grant for 2568 demo.",
+    "start_date": "2025-08-01",
+    "end_date": "2026-07-31",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 100,
+    "source_weight": 1.0,
+    "source_section_code": "2.8",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/research-grant/2568/hci-learning",
+      "source_type": "JSON",
+      "source_note": "Synthetic grant row"
+    }
+  },
+  {
+    "id": "wi-supervision-2566-senior-project",
+    "category_code": "SUPERVISION",
+    "work_type_code": "SENIOR_PROJECT",
+    "title": "Senior Project Supervision: Cloud Migration Dashboard",
+    "description": "Synthetic senior project supervision without student-identifying data.",
+    "start_date": "2023-08-15",
+    "end_date": "2024-05-15",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 40,
+    "source_weight": 0.2,
+    "source_section_code": "1.8",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/supervision/2566/senior-project-cloud-dashboard",
+      "source_type": "JSON",
+      "source_note": "Synthetic supervision row; no real student identities"
+    }
+  },
+  {
+    "id": "wi-supervision-2567-phd-thesis",
+    "category_code": "SUPERVISION",
+    "work_type_code": "THESIS",
+    "title": "PhD Thesis Supervision: Privacy-Preserving Distributed Systems",
+    "description": "Synthetic restricted PhD thesis supervision record. Keyword: privacy.",
+    "start_date": "2024-08-15",
+    "end_date": "2025-05-15",
+    "visibility": "RESTRICTED",
+    "status": "ACTIVE",
+    "source_score": 120,
+    "source_weight": 0.225,
+    "source_section_code": "1.9",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/supervision/2567/phd-thesis-privacy",
+      "source_type": "JSON",
+      "source_note": "Synthetic restricted supervision row; no real student identities"
+    }
+  },
+  {
+    "id": "wi-supervision-2567-coop",
+    "category_code": "SUPERVISION",
+    "work_type_code": "COOPERATIVE_EDUCATION",
+    "title": "Cooperative Education Supervision: Software Engineering Practice",
+    "description": "Synthetic cooperative education supervision record.",
+    "start_date": "2025-01-15",
+    "end_date": "2025-05-15",
+    "visibility": "RESTRICTED",
+    "status": "ACTIVE",
+    "source_score": 50,
+    "source_weight": 0.1,
+    "source_section_code": "1.10",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/supervision/2567/cooperative-education",
+      "source_type": "JSON",
+      "source_note": "Synthetic restricted supervision row; no real student identities"
+    }
+  },
+  {
+    "id": "wi-service-2566-curriculum-committee",
+    "category_code": "ACADEMIC_SERVICE",
+    "work_type_code": "COMMITTEE",
+    "title": "Computer Science Curriculum Revision Committee",
+    "description": "Synthetic internal academic service committee item.",
+    "start_date": "2023-09-01",
+    "end_date": "2024-02-28",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 50,
+    "source_weight": 0.25,
+    "source_section_code": "4.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/service/2566/curriculum-committee",
+      "source_type": "JSON",
+      "source_note": "Synthetic academic service committee row"
+    }
+  },
+  {
+    "id": "wi-service-2567-reviewer",
+    "category_code": "ACADEMIC_SERVICE",
+    "work_type_code": "ACADEMIC_REVIEWER",
+    "title": "External Academic Reviewer for Cloud Computing Manuscript",
+    "description": "Synthetic reviewer service record.",
+    "start_date": "2025-02-01",
+    "end_date": "2025-02-28",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 35,
+    "source_weight": 0.15,
+    "source_section_code": "4.4",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/service/2567/reviewer-cloud-manuscript",
+      "source_type": "JSON",
+      "source_note": "Synthetic academic reviewer row"
+    }
+  },
+  {
+    "id": "wi-service-2568-speaker",
+    "category_code": "ACADEMIC_SERVICE",
+    "work_type_code": "INVITED_SPEAKER",
+    "title": "Invited Speaker: Responsible AI and Privacy in Education",
+    "description": "Synthetic public invited speaker record. Keyword: privacy.",
+    "start_date": "2025-09-20",
+    "end_date": "2025-09-20",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "source_score": 45,
+    "source_weight": 0.2,
+    "source_section_code": "4.3",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/service/2568/invited-speaker-privacy",
+      "source_type": "JSON",
+      "source_note": "Synthetic public academic service row"
+    }
+  },
+  {
+    "id": "wi-admin-2567-course-coordinator",
+    "category_code": "ADMINISTRATION",
+    "work_type_code": "COURSE_COORDINATOR",
+    "title": "Course Coordinator for CS333 Cloud Application Development",
+    "description": "Synthetic administration workload for course coordination.",
+    "start_date": "2025-01-01",
+    "end_date": "2025-05-31",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 25,
+    "source_weight": 0.05,
+    "source_section_code": "3.1",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/administration/2567/course-coordinator-cs333",
+      "source_type": "JSON",
+      "source_note": "Synthetic course coordinator row"
+    }
+  },
+  {
+    "id": "wi-admin-2568-program-committee",
+    "category_code": "ADMINISTRATION",
+    "work_type_code": "PROGRAM_ADMINISTRATION",
+    "title": "Graduate Program Quality Assurance Working Group",
+    "description": "Synthetic administration workload for program quality assurance.",
+    "start_date": "2025-08-01",
+    "end_date": "2025-12-31",
+    "visibility": "INTERNAL",
+    "status": "ACTIVE",
+    "source_score": 40,
+    "source_weight": 0.2,
+    "source_section_code": "3.3",
+    "metadata": {
+      "synthetic": true,
+      "source_system": "SYNTHETIC_TEST_DATA",
+      "source_record_key": "demo/administration/2568/program-qa-working-group",
+      "source_type": "JSON",
+      "source_note": "Synthetic program administration row"
+    }
+  }
+]

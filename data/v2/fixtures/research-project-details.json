@@ -1,0 +1,41 @@
+[
+  {
+    "work_item_id": "wi-research-2566-edge-middleware",
+    "project_title": "Edge Middleware for Distributed Faculty Output Processing",
+    "funding_source": "Synthetic Faculty Research Fund",
+    "funding_type": "INTERNAL_GRANT",
+    "budget_amount": 250000,
+    "currency": "THB",
+    "project_status": "COMPLETED",
+    "contract_number": "SYN-EDGE-2566-001",
+    "principal_investigator": "Asst.Prof.Dr. Prapaporn Rattanatamrong",
+    "project_start_date": "2023-09-01",
+    "project_end_date": "2024-08-31"
+  },
+  {
+    "work_item_id": "wi-research-2567-privacy-platform",
+    "project_title": "Privacy-Aware Repository Platform for Academic Workload Data",
+    "funding_source": "Synthetic Digital University Program",
+    "funding_type": "EXTERNAL_GRANT",
+    "budget_amount": 480000,
+    "currency": "THB",
+    "project_status": "ACTIVE",
+    "contract_number": "SYN-PRIVACY-2567-002",
+    "principal_investigator": "Asst.Prof.Dr. Prapaporn Rattanatamrong",
+    "project_start_date": "2024-08-01",
+    "project_end_date": "2025-07-31"
+  },
+  {
+    "work_item_id": "wi-grant-2568-hci-learning",
+    "project_title": "Adaptive HCI Learning Analytics Grant",
+    "funding_source": "Synthetic Learning Innovation Fund",
+    "funding_type": "INTERNAL_GRANT",
+    "budget_amount": 320000,
+    "currency": "THB",
+    "project_status": "PLANNED",
+    "contract_number": "SYN-HCI-2568-001",
+    "principal_investigator": "Assoc.Prof.Dr. Nuttanont Hongwarittorrn",
+    "project_start_date": "2025-08-01",
+    "project_end_date": "2026-07-31"
+  }
+]
