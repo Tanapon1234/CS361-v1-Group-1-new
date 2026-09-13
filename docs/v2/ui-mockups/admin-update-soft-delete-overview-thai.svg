@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1320" viewBox="0 0 1900 1320">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .surface { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .soft { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .input { fill: #ffffff; stroke: #c9d2df; stroke-width: 1.1; }
+      .active { fill: #e8f1ff; stroke: #b8cdf5; stroke-width: 1; }
+      .danger { fill: #fff1f2; stroke: #f2a2ad; stroke-width: 1.1; }
+      .success { fill: #edfdf3; stroke: #9bd3ad; stroke-width: 1.1; }
+      .primary { fill: #155bd5; }
+      .red { fill: #d7374a; }
+      .green { fill: #12a150; }
+      .orange { fill: #f59e0b; }
+      .title { font: 700 34px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 17px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 15px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #20314f; }
+      .value { font: 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 13px "SFMono-Regular", Consolas, monospace; fill: #24324a; }
+      .monoSmall { font: 12px "SFMono-Regular", Consolas, monospace; fill: #42526b; }
+      .white { fill: #ffffff; font: 700 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; }
+      .line { stroke: #d8dee9; stroke-width: 1; }
+      .pillText { font: 700 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1900" height="1320"/>
+
+  <rect class="surface" x="0" y="0" width="1900" height="72"/>
+  <text x="34" y="32" class="h2">ระบบผลงานและภาระงานอาจารย์ V2</text>
+  <text x="34" y="54" class="tiny">Admin Update / Soft Delete API #71 • GET, PATCH, DELETE, RESTORE</text>
+  <text x="1655" y="42" class="label">Admin User</text>
+
+  <rect class="surface" x="0" y="72" width="250" height="1248"/>
+  <text x="32" y="130" class="label">เมนู Admin</text>
+  <text x="34" y="184" class="value">แดชบอร์ด</text>
+  <text x="34" y="234" class="value">คลังผลงาน</text>
+  <text x="34" y="284" class="value">เพิ่มผลงาน</text>
+  <rect class="active" x="20" y="312" rx="8" ry="8" width="210" height="44"/>
+  <text x="34" y="341" class="label">แก้ไข / ลบแบบนิ่ม</text>
+  <text x="34" y="394" class="value">Audit Logs</text>
+
+  <text x="290" y="124" class="title">แก้ไขผลงานหรือภาระงาน</text>
+  <text x="290" y="154" class="value">ภาพนี้คือหน้า admin ที่ใช้ API #71: โหลดรายละเอียด, แก้ไข, soft delete และ restore โดยไม่ลบข้อมูลถาวร</text>
+
+  <rect class="surface" x="285" y="185" rx="8" ry="8" width="1050" height="1045"/>
+  <rect class="surface" x="1360" y="185" rx="8" ry="8" width="500" height="1045"/>
+
+  <text x="315" y="230" class="h2">ข้อมูลรายการที่โหลดจาก Admin Detail</text>
+  <rect class="success" x="1085" y="205" rx="6" ry="6" width="105" height="30"/>
+  <text x="1112" y="225" class="label">ACTIVE</text>
+  <rect class="active" x="1205" y="205" rx="6" ry="6" width="92" height="30"/>
+  <text x="1228" y="225" class="label">INTERNAL</text>
+  <text x="315" y="258" class="tiny">GET /api/v2/admin/work-items/wi-teach-2567-2-cs333</text>
+
+  <text x="315" y="304" class="label">Work Item ID</text>
+  <rect class="input" x="315" y="316" rx="5" ry="5" width="445" height="40"/>
+  <text x="330" y="341" class="mono">wi-teach-2567-2-cs333</text>
+
+  <text x="790" y="304" class="label">ชื่อรายการ</text>
+  <rect class="input" x="790" y="316" rx="5" ry="5" width="505" height="40"/>
+  <text x="805" y="341" class="value">CS333 Software Engineering Lecture</text>
+
+  <text x="315" y="390" class="label">คำอธิบาย</text>
+  <rect class="input" x="315" y="402" rx="5" ry="5" width="980" height="56"/>
+  <text x="330" y="436" class="value">Lecture workload for semester 2/2567</text>
+
+  <text x="315" y="494" class="label">หมวดงาน</text>
+  <rect class="input" x="315" y="506" rx="5" ry="5" width="220" height="40"/>
+  <text x="330" y="531" class="mono">TEACHING</text>
+
+  <text x="560" y="494" class="label">ชนิดงาน</text>
+  <rect class="input" x="560" y="506" rx="5" ry="5" width="220" height="40"/>
+  <text x="575" y="531" class="mono">LECTURE</text>
+
+  <text x="805" y="494" class="label">การมองเห็น</text>
+  <rect class="input" x="805" y="506" rx="5" ry="5" width="220" height="40"/>
+  <text x="820" y="531" class="mono">INTERNAL</text>
+
+  <text x="1050" y="494" class="label">วันที่เริ่ม / สิ้นสุด</text>
+  <rect class="input" x="1050" y="506" rx="5" ry="5" width="245" height="40"/>
+  <text x="1065" y="531" class="monoSmall">2025-01-13 → 2025-05-09</text>
+
+  <line class="line" x1="315" y1="578" x2="1295" y2="578"/>
+
+  <text x="315" y="624" class="h2">แก้ไขความสัมพันธ์อาจารย์</text>
+  <text x="315" y="650" class="tiny">ถ้าส่ง faculty[] ใน PATCH จะ replace faculty_work_item ใน transaction เดียว</text>
+
+  <rect class="soft" x="315" y="682" rx="8" ry="8" width="980" height="118"/>
+  <text x="340" y="717" class="label">ผศ.ดร.ประภาพร รัตนธำรง</text>
+  <text x="340" y="747" class="monoSmall">faculty_id: fac_prapaporn-rattanatamrong • academic_period_id: ap-2567-2 • evaluation_period_id: eval-2567-full-year</text>
+  <text x="340" y="777" class="monoSmall">role: INSTRUCTOR • contribution_percent: 70 • credits: 3 • hours: 36</text>
+
+  <rect class="soft" x="315" y="820" rx="8" ry="8" width="980" height="88"/>
+  <text x="340" y="855" class="label">ผศ.ดร.กษิดิศ ชาญเชี่ยว</text>
+  <text x="340" y="885" class="monoSmall">role: CO_INSTRUCTOR • contribution_percent: 30 • credits: 3 • hours: 15</text>
+
+  <line class="line" x1="315" y1="940" x2="1295" y2="940"/>
+
+  <text x="315" y="986" class="h2">แก้ไข detail และ evidence</text>
+  <rect class="soft" x="315" y="1018" rx="8" ry="8" width="470" height="126"/>
+  <text x="340" y="1052" class="h3">detail.kind = teaching</text>
+  <text x="340" y="1080" class="monoSmall">course_code: CS333</text>
+  <text x="340" y="1105" class="monoSmall">student_count: 48 • workload_hours: 51</text>
+  <text x="340" y="1130" class="tiny">upsert teaching_detail</text>
+
+  <rect class="soft" x="825" y="1018" rx="8" ry="8" width="470" height="126"/>
+  <text x="850" y="1052" class="h3">evidence[] metadata</text>
+  <text x="850" y="1080" class="monoSmall">label: Updated course syllabus</text>
+  <text x="850" y="1105" class="monoSmall">reference_type: URL • visibility: INTERNAL</text>
+  <text x="850" y="1130" class="tiny">replace evidence_reference metadata เท่านั้น</text>
+
+  <rect class="soft" x="315" y="1164" rx="8" ry="8" width="580" height="42"/>
+  <text x="338" y="1191" class="tiny">PATCH ต้องไม่ล้าง field ที่ไม่ได้ส่ง และห้าม client set status, deleted_at, updated_by เอง</text>
+  <rect class="primary" x="930" y="1164" rx="6" ry="6" width="120" height="42"/>
+  <text x="961" y="1191" class="white">บันทึก</text>
+  <rect class="red" x="1065" y="1164" rx="6" ry="6" width="140" height="42"/>
+  <text x="1090" y="1191" class="white">Soft Delete</text>
+  <rect class="green" x="1220" y="1164" rx="6" ry="6" width="75" height="42"/>
+  <text x="1239" y="1191" class="white">Restore</text>
+
+  <!-- right summary -->
+  <text x="1392" y="230" class="h2">API ที่หน้านี้เรียก</text>
+
+  <rect class="soft" x="1392" y="260" rx="8" ry="8" width="430" height="128"/>
+  <text x="1418" y="294" class="h3">GET Admin Detail</text>
+  <text x="1418" y="322" class="monoSmall">GET /api/v2/admin/work-items/{id}</text>
+  <text x="1418" y="350" class="tiny">โหลดข้อมูลครบ รวม INTERNAL, RESTRICTED, DELETED</text>
+
+  <rect class="soft" x="1392" y="414" rx="8" ry="8" width="430" height="155"/>
+  <text x="1418" y="448" class="h3">PATCH Update</text>
+  <text x="1418" y="476" class="monoSmall">PATCH /api/v2/admin/work-items/{id}</text>
+  <text x="1418" y="504" class="tiny">แก้ core fields, faculty, detail, evidence</text>
+  <text x="1418" y="530" class="tiny">ใช้ BeginTransaction → Commit หรือ Rollback</text>
+
+  <rect class="danger" x="1392" y="595" rx="8" ry="8" width="430" height="150"/>
+  <text x="1418" y="629" class="h3">DELETE Soft Delete</text>
+  <text x="1418" y="657" class="monoSmall">DELETE /api/v2/admin/work-items/{id}</text>
+  <text x="1418" y="685" class="tiny">ตั้ง status = DELETED และ deleted_at = now()</text>
+  <text x="1418" y="711" class="tiny">ไม่ลบ child rows จริง</text>
+
+  <rect class="success" x="1392" y="771" rx="8" ry="8" width="430" height="150"/>
+  <text x="1418" y="805" class="h3">POST Restore</text>
+  <text x="1418" y="833" class="monoSmall">POST /api/v2/admin/work-items/{id}/restore</text>
+  <text x="1418" y="861" class="tiny">ตั้ง status = ACTIVE และ deleted_at = NULL</text>
+  <text x="1418" y="887" class="tiny">กลับมาอ่านได้ตาม visibility rule</text>
+
+  <rect class="surface" x="1392" y="956" rx="8" ry="8" width="430" height="170"/>
+  <text x="1418" y="990" class="h3">ต้องเกิด audit_event ทุกครั้ง</text>
+  <text x="1418" y="1020" class="monoSmall">WORK_ITEM_UPDATED</text>
+  <text x="1418" y="1046" class="monoSmall">WORK_ITEM_SOFT_DELETED</text>
+  <text x="1418" y="1072" class="monoSmall">WORK_ITEM_RESTORED</text>
+  <text x="1418" y="1100" class="tiny">เก็บ before_json, after_json, actor, request_id</text>
+
+  <rect class="active" x="1392" y="1162" rx="8" ry="8" width="430" height="44"/>
+  <text x="1418" y="1190" class="label">ทุก route ต้องใช้ ADMIN token จาก #69</text>
+</svg>

@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1160" viewBox="0 0 1800 1160">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .soft { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .api { fill: #eef4ff; stroke: #9bbcf2; stroke-width: 1.2; }
+      .db { fill: #eef7f1; stroke: #9bd3ad; stroke-width: 1.2; }
+      .danger { fill: #fff1f2; stroke: #f2a2ad; stroke-width: 1.2; }
+      .audit { fill: #fff7ed; stroke: #f5b56b; stroke-width: 1.2; }
+      .title { font: 700 34px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 17px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #20314f; }
+      .value { font: 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 12px "SFMono-Regular", Consolas, monospace; fill: #3c4960; }
+      .arrow { stroke: #7b8797; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .blue { fill: #155bd5; }
+      .green { fill: #12a150; }
+      .red { fill: #d7374a; }
+      .orange { fill: #f59e0b; }
+      .pillText { font: 700 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #ffffff; }
+      .line { stroke: #d8dee9; stroke-width: 1; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7b8797"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1160"/>
+  <text x="60" y="70" class="title">Payload และ Database Mapping ของการ์ด #71</text>
+  <text x="60" y="104" class="value">ภาพนี้สรุปว่า PATCH, DELETE, RESTORE ส่งอะไรเข้ามา และ backend ต้องอัปเดต table ไหนบ้าง</text>
+
+  <!-- PATCH -->
+  <rect class="api" x="60" y="150" rx="10" ry="10" width="500" height="410"/>
+  <rect class="blue" x="90" y="180" rx="5" ry="5" width="82" height="26"/>
+  <text x="111" y="198" class="pillText">PATCH</text>
+  <text x="90" y="240" class="h2">แก้ไขข้อมูล</text>
+  <text x="90" y="270" class="mono">PATCH /api/v2/admin/work-items/{id}</text>
+  <rect class="soft" x="90" y="304" rx="6" ry="6" width="410" height="205"/>
+  <text x="112" y="336" class="mono">{</text>
+  <text x="136" y="361" class="mono">"title": "CS333 ... Workshop",</text>
+  <text x="136" y="386" class="mono">"visibility": "INTERNAL",</text>
+  <text x="136" y="411" class="mono">"faculty": [ ... ],</text>
+  <text x="136" y="436" class="mono">"detail": { "kind": "teaching", ... },</text>
+  <text x="136" y="461" class="mono">"evidence": [ ... ]</text>
+  <text x="112" y="486" class="mono">}</text>
+  <text x="90" y="536" class="tiny">ไม่ส่ง field ไหน ห้ามล้าง field นั้น</text>
+
+  <rect class="db" x="690" y="150" rx="10" ry="10" width="470" height="410"/>
+  <rect class="green" x="720" y="180" rx="5" ry="5" width="88" height="26"/>
+  <text x="738" y="198" class="pillText">TABLES</text>
+  <text x="720" y="240" class="h2">PATCH กระทบอะไร</text>
+  <text x="720" y="282" class="label">work_item</text>
+  <text x="900" y="282" class="tiny">title, description, dates, visibility, updated_at</text>
+  <text x="720" y="322" class="label">faculty_work_item</text>
+  <text x="900" y="322" class="tiny">replace rows ถ้าส่ง faculty[]</text>
+  <text x="720" y="362" class="label">teaching_detail</text>
+  <text x="900" y="362" class="tiny">upsert ถ้า detail.kind = teaching</text>
+  <text x="720" y="402" class="label">evidence_reference</text>
+  <text x="900" y="402" class="tiny">replace metadata ถ้าส่ง evidence[]</text>
+  <text x="720" y="442" class="label">audit_event</text>
+  <text x="900" y="442" class="tiny">WORK_ITEM_UPDATED</text>
+  <rect class="soft" x="720" y="485" rx="6" ry="6" width="390" height="42"/>
+  <text x="742" y="512" class="tiny">ทุกอย่างอยู่ใน RDS Data API transaction เดียว</text>
+
+  <path class="arrow" d="M 565 355 C 610 355, 635 355, 682 355"/>
+
+  <!-- DELETE -->
+  <rect class="danger" x="60" y="635" rx="10" ry="10" width="500" height="290"/>
+  <rect class="red" x="90" y="665" rx="5" ry="5" width="82" height="26"/>
+  <text x="109" y="683" class="pillText">DELETE</text>
+  <text x="90" y="725" class="h2">ลบแบบนิ่ม</text>
+  <text x="90" y="755" class="mono">DELETE /api/v2/admin/work-items/{id}</text>
+  <rect class="soft" x="90" y="790" rx="6" ry="6" width="410" height="86"/>
+  <text x="112" y="824" class="mono">{ "reason": "Duplicate record" }</text>
+  <text x="112" y="850" class="tiny">optional body สำหรับบันทึกเหตุผลใน audit</text>
+  <text x="90" y="900" class="tiny">ไม่ลบ child rows และไม่ hard delete</text>
+
+  <rect class="db" x="690" y="635" rx="10" ry="10" width="470" height="290"/>
+  <rect class="green" x="720" y="665" rx="5" ry="5" width="88" height="26"/>
+  <text x="738" y="683" class="pillText">TABLES</text>
+  <text x="720" y="725" class="h2">DELETE กระทบอะไร</text>
+  <text x="720" y="770" class="label">work_item</text>
+  <text x="890" y="770" class="tiny">status = DELETED</text>
+  <text x="890" y="795" class="tiny">deleted_at = now(), updated_by, updated_at</text>
+  <text x="720" y="835" class="label">child rows</text>
+  <text x="890" y="835" class="tiny">preserve ไว้ทั้งหมด</text>
+  <text x="720" y="875" class="label">audit_event</text>
+  <text x="890" y="875" class="tiny">WORK_ITEM_SOFT_DELETED</text>
+
+  <path class="arrow" d="M 565 780 C 610 780, 635 780, 682 780"/>
+
+  <!-- RESTORE -->
+  <rect class="api" x="1230" y="150" rx="10" ry="10" width="500" height="290"/>
+  <rect class="green" x="1260" y="180" rx="5" ry="5" width="90" height="26"/>
+  <text x="1279" y="198" class="pillText">RESTORE</text>
+  <text x="1260" y="240" class="h2">กู้คืนรายการ</text>
+  <text x="1260" y="270" class="mono">POST /api/v2/admin/work-items/{id}/restore</text>
+  <rect class="soft" x="1260" y="305" rx="6" ry="6" width="410" height="86"/>
+  <text x="1282" y="339" class="mono">{ "reason": "Deleted by mistake" }</text>
+  <text x="1282" y="365" class="tiny">optional body สำหรับ audit</text>
+
+  <rect class="db" x="1230" y="485" rx="10" ry="10" width="500" height="250"/>
+  <rect class="green" x="1260" y="515" rx="5" ry="5" width="88" height="26"/>
+  <text x="1278" y="533" class="pillText">TABLES</text>
+  <text x="1260" y="575" class="h2">RESTORE กระทบอะไร</text>
+  <text x="1260" y="620" class="label">work_item</text>
+  <text x="1430" y="620" class="tiny">status = ACTIVE</text>
+  <text x="1430" y="645" class="tiny">deleted_at = NULL, updated_by, updated_at</text>
+  <text x="1260" y="685" class="label">audit_event</text>
+  <text x="1430" y="685" class="tiny">WORK_ITEM_RESTORED</text>
+
+  <!-- validation -->
+  <rect class="audit" x="1230" y="790" rx="10" ry="10" width="500" height="250"/>
+  <rect class="orange" x="1260" y="820" rx="5" ry="5" width="100" height="26"/>
+  <text x="1277" y="838" class="pillText">RULES</text>
+  <text x="1260" y="880" class="h2">ข้อห้ามสำคัญ</text>
+  <text x="1260" y="922" class="value">client ห้าม set id, status, deleted_at เอง</text>
+  <text x="1260" y="952" class="value">client ห้าม set created_by, updated_by, audit actor เอง</text>
+  <text x="1260" y="982" class="value">source_score, import_batch_id ต้อง preserve ไม่รับจาก payload</text>
+  <text x="1260" y="1012" class="value">invalid payload ต้อง return 400 พร้อม field-level details</text>
+
+  <!-- Bottom flow -->
+  <rect class="panel" x="60" y="985" rx="8" ry="8" width="1100" height="82"/>
+  <text x="90" y="1020" class="label">Transaction plan:</text>
+  <text x="235" y="1020" class="tiny">Verify ADMIN → Load before_json → Validate → Update child tables → Load after_json → Insert audit_event → Commit</text>
+  <text x="235" y="1048" class="tiny">ถ้าขั้นตอนใด fail ต้อง Rollback และไม่เหลือ partial update</text>
+</svg>
