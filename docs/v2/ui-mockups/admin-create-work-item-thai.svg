@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1420" viewBox="0 0 1900 1420">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .surface { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .soft { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .header { fill: #ffffff; stroke: #d8dee9; stroke-width: 1; }
+      .nav { fill: #ffffff; stroke: #d8dee9; stroke-width: 1; }
+      .active { fill: #e8f1ff; stroke: #b8cdf5; stroke-width: 1; }
+      .primary { fill: #155bd5; }
+      .outline { fill: #ffffff; stroke: #b8c2d4; stroke-width: 1.2; }
+      .input { fill: #ffffff; stroke: #c9d2df; stroke-width: 1.1; }
+      .muted-box { fill: #f9fbfe; stroke: #dbe3ee; stroke-width: 1; }
+      .title { font: 700 34px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 18px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 15px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #20314f; }
+      .value { font: 14px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 13px "SFMono-Regular", Consolas, monospace; fill: #24324a; }
+      .mono-small { font: 12px "SFMono-Regular", Consolas, monospace; fill: #42526b; }
+      .white { fill: #ffffff; font: 700 15px "Noto Sans Thai", "Tahoma", Arial, sans-serif; }
+      .required { fill: #d7374a; font: 700 14px "Noto Sans Thai", "Tahoma", Arial, sans-serif; }
+      .chip { fill: #e8f1ff; stroke: #b8cdf5; stroke-width: 1; }
+      .chipText { font: 600 13px "Noto Sans Thai", "Tahoma", Arial, sans-serif; fill: #155bd5; }
+      .green { fill: #12a150; }
+      .orange { fill: #f59e0b; }
+      .line { stroke: #d8dee9; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1900" height="1420"/>
+
+  <!-- Header -->
+  <rect class="header" x="0" y="0" width="1900" height="72"/>
+  <text x="34" y="32" class="h2">ระบบผลงานและภาระงานอาจารย์ V2</text>
+  <text x="34" y="54" class="tiny">Admin Create Work Item API #70 • POST /api/v2/admin/work-items</text>
+  <rect class="chip" x="1590" y="21" rx="6" ry="6" width="130" height="30"/>
+  <text x="1614" y="41" class="chipText">ADMIN เท่านั้น</text>
+  <text x="1750" y="41" class="label">Admin User</text>
+
+  <!-- Sidebar -->
+  <rect class="nav" x="0" y="72" width="250" height="1348"/>
+  <text x="32" y="128" class="label">เมนู</text>
+  <text x="34" y="182" class="value">แดชบอร์ด</text>
+  <text x="34" y="232" class="value">คลังผลงาน</text>
+  <rect class="active" x="20" y="260" rx="8" ry="8" width="210" height="44"/>
+  <text x="34" y="289" class="label">เพิ่มผลงาน/ภาระงาน</text>
+  <text x="34" y="342" class="value">รายการที่แก้ไขได้</text>
+  <text x="34" y="392" class="value">ตั้งค่า</text>
+
+  <!-- Main title -->
+  <text x="290" y="124" class="title">เพิ่มผลงานหรือภาระงานใหม่</text>
+  <text x="290" y="154" class="value">ฟอร์มนี้คือภาพ UI ที่ใช้เรียก API #70 แล้วบันทึกลง Aurora จริงหลายตารางใน transaction เดียว</text>
+
+  <!-- Main layout columns -->
+  <rect class="surface" x="285" y="180" rx="8" ry="8" width="1035" height="1136"/>
+  <rect class="surface" x="1345" y="180" rx="8" ry="8" width="515" height="1136"/>
+
+  <!-- Core information -->
+  <text x="315" y="224" class="h2">1. ข้อมูลหลักของรายการ</text>
+  <text x="315" y="250" class="tiny">เก็บในตาราง work_item</text>
+
+  <text x="315" y="294" class="label">Work Item ID</text><text x="418" y="294" class="required">*</text>
+  <rect class="input" x="315" y="306" rx="5" ry="5" width="460" height="40"/>
+  <text x="330" y="331" class="mono">wi-admin-demo-2567-cs333-lecture</text>
+
+  <text x="805" y="294" class="label">ชื่อรายการ</text><text x="875" y="294" class="required">*</text>
+  <rect class="input" x="805" y="306" rx="5" ry="5" width="470" height="40"/>
+  <text x="820" y="331" class="value">CS333 Software Engineering Lecture</text>
+
+  <text x="315" y="380" class="label">คำอธิบาย</text>
+  <rect class="input" x="315" y="392" rx="5" ry="5" width="960" height="58"/>
+  <text x="330" y="426" class="value">Lecture workload for semester 2/2567</text>
+
+  <text x="315" y="482" class="label">หมวดงาน</text><text x="379" y="482" class="required">*</text>
+  <rect class="input" x="315" y="494" rx="5" ry="5" width="220" height="40"/>
+  <text x="330" y="519" class="mono">TEACHING</text>
+
+  <text x="560" y="482" class="label">ชนิดงาน</text><text x="620" y="482" class="required">*</text>
+  <rect class="input" x="560" y="494" rx="5" ry="5" width="220" height="40"/>
+  <text x="575" y="519" class="mono">LECTURE</text>
+
+  <text x="805" y="482" class="label">การมองเห็น</text><text x="887" y="482" class="required">*</text>
+  <rect class="input" x="805" y="494" rx="5" ry="5" width="220" height="40"/>
+  <text x="820" y="519" class="mono">INTERNAL</text>
+
+  <text x="1050" y="482" class="label">วันที่เริ่ม / สิ้นสุด</text>
+  <rect class="input" x="1050" y="494" rx="5" ry="5" width="225" height="40"/>
+  <text x="1065" y="519" class="mono-small">2025-01-13 → 2025-05-09</text>
+
+  <line class="line" x1="315" y1="566" x2="1275" y2="566"/>
+
+  <!-- Faculty -->
+  <text x="315" y="612" class="h2">2. อาจารย์เจ้าของรายการและปีการศึกษา</text>
+  <text x="315" y="638" class="tiny">เก็บในตาราง faculty_work_item และผูกกับ faculty / academic_period / evaluation_period</text>
+
+  <text x="315" y="682" class="label">อาจารย์</text><text x="365" y="682" class="required">*</text>
+  <rect class="input" x="315" y="694" rx="5" ry="5" width="460" height="40"/>
+  <text x="330" y="719" class="mono-small">fac_prapaporn-rattanatamrong</text>
+
+  <text x="805" y="682" class="label">บทบาท</text>
+  <rect class="input" x="805" y="694" rx="5" ry="5" width="220" height="40"/>
+  <text x="820" y="719" class="mono">INSTRUCTOR</text>
+
+  <text x="1050" y="682" class="label">ลำดับ / สัดส่วน</text>
+  <rect class="input" x="1050" y="694" rx="5" ry="5" width="225" height="40"/>
+  <text x="1065" y="719" class="mono-small">order 1 • 100%</text>
+
+  <text x="315" y="768" class="label">ปีการศึกษา</text><text x="389" y="768" class="required">*</text>
+  <rect class="input" x="315" y="780" rx="5" ry="5" width="220" height="40"/>
+  <text x="330" y="805" class="mono">ap-2567-2</text>
+
+  <text x="560" y="768" class="label">รอบประเมิน</text>
+  <rect class="input" x="560" y="780" rx="5" ry="5" width="220" height="40"/>
+  <text x="575" y="805" class="mono-small">eval-2567-full-year</text>
+
+  <text x="805" y="768" class="label">จำนวน / หน่วยกิต / ชั่วโมง</text>
+  <rect class="input" x="805" y="780" rx="5" ry="5" width="470" height="40"/>
+  <text x="820" y="805" class="mono-small">quantity 1 • credits 3 • hours 45</text>
+
+  <line class="line" x1="315" y1="852" x2="1275" y2="852"/>
+
+  <!-- Detail -->
+  <text x="315" y="898" class="h2">3. รายละเอียดเฉพาะประเภทงาน</text>
+  <text x="315" y="924" class="tiny">ตัวอย่างนี้เป็นงานสอน จึงเก็บใน teaching_detail ถ้าเป็นวิจัย/บริการ/ดูแลนักศึกษา UI จะเปลี่ยน field ตามประเภท</text>
+
+  <text x="315" y="968" class="label">ชนิด detail</text><text x="395" y="968" class="required">*</text>
+  <rect class="input" x="315" y="980" rx="5" ry="5" width="220" height="40"/>
+  <text x="330" y="1005" class="mono">teaching</text>
+
+  <text x="560" y="968" class="label">รหัสวิชา</text>
+  <rect class="input" x="560" y="980" rx="5" ry="5" width="220" height="40"/>
+  <text x="575" y="1005" class="mono">CS333</text>
+
+  <text x="805" y="968" class="label">ชื่อวิชา</text>
+  <rect class="input" x="805" y="980" rx="5" ry="5" width="470" height="40"/>
+  <text x="820" y="1005" class="value">Software Engineering</text>
+
+  <text x="315" y="1054" class="label">ระดับการศึกษา</text>
+  <rect class="input" x="315" y="1066" rx="5" ry="5" width="220" height="40"/>
+  <text x="330" y="1091" class="mono-small">UNDERGRADUATE</text>
+
+  <text x="560" y="1054" class="label">รูปแบบการสอน</text>
+  <rect class="input" x="560" y="1066" rx="5" ry="5" width="220" height="40"/>
+  <text x="575" y="1091" class="mono">LECTURE</text>
+
+  <text x="805" y="1054" class="label">จำนวน sec / นักศึกษา</text>
+  <rect class="input" x="805" y="1066" rx="5" ry="5" width="220" height="40"/>
+  <text x="820" y="1091" class="mono-small">1 section • 45 คน</text>
+
+  <text x="1050" y="1054" class="label">ชั่วโมงรวม</text>
+  <rect class="input" x="1050" y="1066" rx="5" ry="5" width="225" height="40"/>
+  <text x="1065" y="1091" class="mono-small">45 lecture + 0 lab</text>
+
+  <text x="315" y="1140" class="label">หมายเหตุอ้างอิง</text>
+  <rect class="input" x="315" y="1152" rx="5" ry="5" width="960" height="40"/>
+  <text x="330" y="1177" class="value">Semester 2/2567 teaching assignment</text>
+
+  <line class="line" x1="315" y1="1224" x2="1275" y2="1224"/>
+
+  <!-- Evidence -->
+  <text x="315" y="1270" class="h2">4. หลักฐานประกอบ</text>
+  <text x="315" y="1296" class="tiny">เก็บ metadata ใน evidence_reference เท่านั้น การ์ดนี้ยังไม่อัปโหลดไฟล์จริงเข้า S3</text>
+
+  <text x="315" y="1340" class="label">Evidence ID</text>
+  <rect class="input" x="315" y="1352" rx="5" ry="5" width="280" height="40"/>
+  <text x="330" y="1377" class="mono-small">ev-admin-demo-2567-cs333-syllabus</text>
+
+  <text x="620" y="1340" class="label">Label</text>
+  <rect class="input" x="620" y="1352" rx="5" ry="5" width="210" height="40"/>
+  <text x="635" y="1377" class="value">Course syllabus</text>
+
+  <text x="855" y="1340" class="label">Type / Visibility</text>
+  <rect class="input" x="855" y="1352" rx="5" ry="5" width="185" height="40"/>
+  <text x="870" y="1377" class="mono-small">URL • INTERNAL</text>
+
+  <text x="1065" y="1340" class="label">URL / MIME</text>
+  <rect class="input" x="1065" y="1352" rx="5" ry="5" width="210" height="40"/>
+  <text x="1080" y="1377" class="mono-small">https://... • text/html</text>
+
+  <!-- Right panel -->
+  <text x="1378" y="224" class="h2">Payload ที่ส่งเข้า API</text>
+  <text x="1378" y="250" class="tiny">สรุป field ทั้งหมดจาก Request Payload ของการ์ด #70</text>
+
+  <rect class="muted-box" x="1378" y="278" rx="6" ry="6" width="450" height="238"/>
+  <text x="1400" y="310" class="h3">work_item</text>
+  <text x="1400" y="340" class="mono-small">id, title, description</text>
+  <text x="1400" y="365" class="mono-small">category_code, work_type_code</text>
+  <text x="1400" y="390" class="mono-small">visibility, start_date, end_date</text>
+  <circle cx="1405" cy="430" r="6" class="green"/>
+  <text x="1422" y="435" class="tiny">สร้างแถวหลักในตาราง work_item</text>
+  <text x="1400" y="470" class="tiny">ตัวอย่าง: TEACHING / LECTURE / INTERNAL</text>
+
+  <rect class="muted-box" x="1378" y="538" rx="6" ry="6" width="450" height="238"/>
+  <text x="1400" y="570" class="h3">faculty[]</text>
+  <text x="1400" y="600" class="mono-small">faculty_id, academic_period_id</text>
+  <text x="1400" y="625" class="mono-small">evaluation_period_id, role</text>
+  <text x="1400" y="650" class="mono-small">contribution_order, contribution_percent</text>
+  <text x="1400" y="675" class="mono-small">quantity, credits, hours</text>
+  <circle cx="1405" cy="715" r="6" class="green"/>
+  <text x="1422" y="720" class="tiny">ผูก work item กับอาจารย์และปีการศึกษา</text>
+
+  <rect class="muted-box" x="1378" y="798" rx="6" ry="6" width="450" height="280"/>
+  <text x="1400" y="830" class="h3">detail.kind = teaching</text>
+  <text x="1400" y="860" class="mono-small">kind, course_code, course_title</text>
+  <text x="1400" y="885" class="mono-small">degree_level, teaching_mode</text>
+  <text x="1400" y="910" class="mono-small">section_count, student_count</text>
+  <text x="1400" y="935" class="mono-small">credits, lecture_hours, lab_hours</text>
+  <text x="1400" y="960" class="mono-small">workload_hours, reference_label</text>
+  <circle cx="1405" cy="1000" r="6" class="green"/>
+  <text x="1422" y="1005" class="tiny">กรณีงานสอนจะ insert teaching_detail</text>
+  <circle cx="1405" cy="1034" r="6" class="orange"/>
+  <text x="1422" y="1039" class="tiny">ถ้าเลือกวิจัย/บริการ UI ต้องเปลี่ยน detail fields</text>
+
+  <rect class="muted-box" x="1378" y="1100" rx="6" ry="6" width="450" height="166"/>
+  <text x="1400" y="1132" class="h3">evidence[]</text>
+  <text x="1400" y="1162" class="mono-small">id, label, reference_type</text>
+  <text x="1400" y="1187" class="mono-small">external_url, mime_type, visibility</text>
+  <text x="1400" y="1212" class="mono-small">s3_key / checksum_sha256 ถ้ามี</text>
+  <circle cx="1405" cy="1245" r="6" class="green"/>
+  <text x="1422" y="1250" class="tiny">เก็บหลักฐานเป็น metadata/reference</text>
+
+  <rect class="soft" x="1378" y="1290" rx="6" ry="6" width="450" height="74"/>
+  <text x="1400" y="1322" class="h3">เมื่อกด “สร้างรายการ”</text>
+  <text x="1400" y="1348" class="tiny">API จะเขียน work_item + faculty_work_item + detail + evidence + audit_event</text>
+
+  <!-- Footer buttons -->
+  <rect class="outline" x="1020" y="1265" rx="6" ry="6" width="100" height="42"/>
+  <text x="1047" y="1292" class="label">ยกเลิก</text>
+  <rect class="outline" x="1135" y="1265" rx="6" ry="6" width="140" height="42"/>
+  <text x="1160" y="1292" class="label">บันทึกร่าง</text>
+  <rect class="primary" x="1378" y="1378" rx="6" ry="6" width="450" height="0"/>
+  <rect class="primary" x="1160" y="1325" rx="6" ry="6" width="115" height="42"/>
+  <text x="1184" y="1352" class="white">สร้างรายการ</text>
+
+  <!-- Flow annotation -->
+  <rect class="soft" x="285" y="88" rx="6" ry="6" width="515" height="46"/>
+  <text x="306" y="117" class="tiny">Flow: Admin Form → API Gateway → Lambda → RDS Data API → Aurora</text>
+</svg>

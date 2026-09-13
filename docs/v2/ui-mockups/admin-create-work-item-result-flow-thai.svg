@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .soft { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .public { fill: #eef7f1; stroke: #9bd3ad; stroke-width: 1.2; }
+      .admin { fill: #eef4ff; stroke: #9bbcf2; stroke-width: 1.2; }
+      .internal { fill: #fff7ed; stroke: #f5b56b; stroke-width: 1.2; }
+      .title { font: 700 34px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 17px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #20314f; }
+      .value { font: 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 12px "SFMono-Regular", Consolas, monospace; fill: #3c4960; }
+      .arrow { stroke: #7b8797; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .line { stroke: #d8dee9; stroke-width: 1; }
+      .green { fill: #12a150; }
+      .blue { fill: #155bd5; }
+      .red { fill: #d7374a; }
+      .pillText { font: 700 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #ffffff; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7b8797"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1120"/>
+  <text x="60" y="70" class="title">หลัง Admin กด “สร้างรายการ” แล้วเกิดอะไรขึ้น</text>
+  <text x="60" y="104" class="value">ภาพนี้ช่วยเชื่อมการ์ด #70 กับโจทย์ระบบ: ข้อมูลที่สร้างจะกลายเป็น repository ที่ค้นหา กรอง ดูรายละเอียด และจัดการย้อนหลังได้</text>
+
+  <!-- Create response -->
+  <rect class="admin" x="60" y="160" rx="10" ry="10" width="500" height="300"/>
+  <rect class="blue" x="90" y="190" rx="5" ry="5" width="130" height="26"/>
+  <text x="108" y="208" class="pillText">ADMIN ACTION</text>
+  <text x="90" y="250" class="h2">Create Work Item สำเร็จ</text>
+  <text x="90" y="282" class="mono">POST /api/v2/admin/work-items</text>
+  <rect class="soft" x="90" y="320" rx="6" ry="6" width="410" height="102"/>
+  <text x="112" y="352" class="mono">{</text>
+  <text x="136" y="377" class="mono">"id": "wi-admin-demo-2567-cs333-lecture",</text>
+  <text x="136" y="402" class="mono">"status": "ACTIVE", "message": "created"</text>
+  <text x="112" y="427" class="mono">}</text>
+
+  <!-- DB -->
+  <rect class="panel" x="690" y="120" rx="10" ry="10" width="420" height="380"/>
+  <text x="720" y="166" class="h2">Aurora Database</text>
+  <text x="720" y="196" class="tiny">ข้อมูลถูก normalize เป็นหลายตาราง</text>
+  <line class="line" x1="720" y1="224" x2="1050" y2="224"/>
+  <text x="720" y="260" class="label">work_item</text>
+  <text x="720" y="288" class="label">faculty_work_item</text>
+  <text x="720" y="316" class="label">teaching_detail</text>
+  <text x="720" y="344" class="label">evidence_reference</text>
+  <text x="720" y="372" class="label">audit_event</text>
+  <rect class="soft" x="720" y="410" rx="6" ry="6" width="330" height="54"/>
+  <text x="742" y="443" class="tiny">ทุกตารางถูกเขียนใน transaction เดียว</text>
+
+  <!-- Public repository -->
+  <rect class="public" x="1240" y="140" rx="10" ry="10" width="500" height="340"/>
+  <rect class="green" x="1270" y="170" rx="5" ry="5" width="126" height="26"/>
+  <text x="1288" y="188" class="pillText">PUBLIC READ</text>
+  <text x="1270" y="230" class="h2">หน้า Repository สำหรับค้นหา/กรอง</text>
+  <text x="1270" y="262" class="mono">GET /api/v2/work-items</text>
+  <rect class="panel" x="1270" y="300" rx="8" ry="8" width="410" height="122"/>
+  <text x="1292" y="332" class="h3">CS333 Software Engineering Lecture</text>
+  <text x="1292" y="362" class="value">หมวด: งานสอน • ชนิด: วิชาบรรยาย</text>
+  <text x="1292" y="392" class="value">อาจารย์: ผศ.ดร.ประภาพร รัตนธำรง</text>
+  <text x="1292" y="414" class="tiny">แสดงเฉพาะเมื่อ visibility = PUBLIC และ status = ACTIVE</text>
+
+  <!-- Detail page -->
+  <rect class="public" x="1240" y="575" rx="10" ry="10" width="500" height="360"/>
+  <rect class="green" x="1270" y="605" rx="5" ry="5" width="126" height="26"/>
+  <text x="1288" y="623" class="pillText">PUBLIC DETAIL</text>
+  <text x="1270" y="665" class="h2">หน้ารายละเอียดผลงาน</text>
+  <text x="1270" y="697" class="mono">GET /api/v2/work-items/{id}</text>
+  <rect class="panel" x="1270" y="735" rx="8" ry="8" width="410" height="150"/>
+  <text x="1292" y="767" class="label">รายละเอียดงานสอน</text>
+  <text x="1292" y="795" class="value">รหัสวิชา: CS333</text>
+  <text x="1292" y="823" class="value">ชื่อวิชา: Software Engineering</text>
+  <text x="1292" y="851" class="value">นักศึกษา: 45 คน • ชั่วโมงรวม: 45</text>
+  <text x="1292" y="875" class="tiny">public API ต้องไม่เปิดข้อมูล private เช่น s3_key/checksum</text>
+
+  <!-- Admin edit -->
+  <rect class="admin" x="60" y="590" rx="10" ry="10" width="500" height="345"/>
+  <rect class="blue" x="90" y="620" rx="5" ry="5" width="132" height="26"/>
+  <text x="108" y="638" class="pillText">ADMIN EDIT</text>
+  <text x="90" y="680" class="h2">นำไปแก้ไขต่อในการ์ด #71</text>
+  <text x="90" y="712" class="mono">GET /api/v2/admin/work-items/{id}</text>
+  <text x="90" y="742" class="mono">PATCH /api/v2/admin/work-items/{id}</text>
+  <text x="90" y="772" class="mono">DELETE /api/v2/admin/work-items/{id}</text>
+  <rect class="soft" x="90" y="812" rx="6" ry="6" width="410" height="78"/>
+  <text x="112" y="844" class="tiny">Admin เห็นข้อมูลมากกว่า public เช่น INTERNAL/RESTRICTED/deleted</text>
+  <text x="112" y="866" class="tiny">และแก้ไข/soft delete/restore พร้อม audit ได้</text>
+
+  <!-- Internal visibility warning -->
+  <rect class="internal" x="690" y="610" rx="10" ry="10" width="420" height="285"/>
+  <rect class="red" x="720" y="640" rx="5" ry="5" width="118" height="26"/>
+  <text x="738" y="658" class="pillText">VISIBILITY</text>
+  <text x="720" y="700" class="h2">ถ้า visibility = INTERNAL</text>
+  <text x="720" y="732" class="value">ข้อมูลถูกสร้างจริงใน database เหมือนกัน</text>
+  <text x="720" y="762" class="value">แต่ public API ต้องไม่แสดงรายการนี้</text>
+  <rect class="soft" x="720" y="800" rx="6" ry="6" width="330" height="58"/>
+  <text x="742" y="833" class="tiny">ใช้สำหรับข้อมูลภายในหรือหลักฐานที่ยังไม่ควรเผยแพร่</text>
+
+  <!-- Arrows -->
+  <path class="arrow" d="M 560 305 C 610 305, 635 305, 682 305"/>
+  <path class="arrow" d="M 1110 300 C 1160 300, 1185 300, 1230 300"/>
+  <path class="arrow" d="M 1110 760 C 1160 760, 1185 760, 1230 760"/>
+  <path class="arrow" d="M 690 760 C 630 760, 604 760, 568 760"/>
+
+  <!-- Bottom note -->
+  <rect class="soft" x="60" y="1000" rx="8" ry="8" width="1680" height="66"/>
+  <text x="92" y="1032" class="label">สรุป: การ์ด #70 คือ write path สำหรับสร้างข้อมูลต้นทางให้ระบบ V2 ทั้งหมด</text>
+  <text x="92" y="1056" class="tiny">เมื่อสร้างแล้ว การ์ด #66/#67/#68 ใช้อ่านข้อมูล, #71 ใช้แก้/ลบ, และ #72-#79 ใช้ทำ UI ให้ผู้ใช้และ admin ใช้งานจริง</text>
+</svg>

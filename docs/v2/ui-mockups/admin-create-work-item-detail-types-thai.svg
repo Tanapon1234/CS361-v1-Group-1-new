@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1180" viewBox="0 0 1800 1180">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .active { fill: #eef4ff; stroke: #8fb3ef; stroke-width: 1.5; }
+      .field { fill: #ffffff; stroke: #c9d2df; stroke-width: 1; }
+      .muted { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .warn { fill: #fff7ed; stroke: #f5b56b; stroke-width: 1; }
+      .title { font: 700 34px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 17px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #20314f; }
+      .value { font: 13px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 12px "SFMono-Regular", Consolas, monospace; fill: #3c4960; }
+      .blue { fill: #155bd5; }
+      .green { fill: #12a150; }
+      .orange { fill: #f59e0b; }
+      .pillText { font: 700 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1800" height="1180"/>
+  <text x="60" y="70" class="title">ภาพ UI: detail.kind เปลี่ยนตามประเภทงาน</text>
+  <text x="60" y="104" class="value">ในการ์ด #70 ฟอร์มหลักเหมือนกัน แต่ส่วนรายละเอียดเฉพาะประเภทงานต้องเปลี่ยนตาม `category_code` และ `work_type_code`</text>
+
+  <!-- Top selector -->
+  <rect class="panel" x="60" y="145" rx="10" ry="10" width="1680" height="138"/>
+  <text x="90" y="190" class="h2">ตัวเลือกหมวด/ชนิดงาน</text>
+  <rect class="active" x="90" y="215" rx="8" ry="8" width="240" height="44"/>
+  <text x="112" y="244" class="label">TEACHING / LECTURE</text>
+  <rect class="panel" x="350" y="215" rx="8" ry="8" width="240" height="44"/>
+  <text x="373" y="244" class="label">RESEARCH / PUBLICATION</text>
+  <rect class="panel" x="610" y="215" rx="8" ry="8" width="270" height="44"/>
+  <text x="634" y="244" class="label">RESEARCH / RESEARCH_PROJECT</text>
+  <rect class="panel" x="900" y="215" rx="8" ry="8" width="230" height="44"/>
+  <text x="923" y="244" class="label">SUPERVISION / THESIS</text>
+  <rect class="panel" x="1150" y="215" rx="8" ry="8" width="260" height="44"/>
+  <text x="1174" y="244" class="label">ACADEMIC_SERVICE / SERVICE</text>
+  <rect class="panel" x="1430" y="215" rx="8" ry="8" width="240" height="44"/>
+  <text x="1453" y="244" class="label">ADMINISTRATION</text>
+
+  <!-- Teaching card -->
+  <rect class="active" x="60" y="325" rx="10" ry="10" width="530" height="360"/>
+  <rect class="blue" x="90" y="354" rx="5" ry="5" width="94" height="26"/>
+  <text x="110" y="372" class="pillText">สอน</text>
+  <text x="90" y="414" class="h2">Teaching Detail</text>
+  <text x="90" y="442" class="tiny">insert/update: teaching_detail</text>
+  <rect class="field" x="90" y="476" rx="5" ry="5" width="205" height="40"/>
+  <text x="106" y="501" class="mono">course_code = CS333</text>
+  <rect class="field" x="315" y="476" rx="5" ry="5" width="235" height="40"/>
+  <text x="331" y="501" class="mono">course_title</text>
+  <rect class="field" x="90" y="536" rx="5" ry="5" width="205" height="40"/>
+  <text x="106" y="561" class="mono">degree_level</text>
+  <rect class="field" x="315" y="536" rx="5" ry="5" width="235" height="40"/>
+  <text x="331" y="561" class="mono">teaching_mode = LECTURE</text>
+  <rect class="field" x="90" y="596" rx="5" ry="5" width="205" height="40"/>
+  <text x="106" y="621" class="mono">student_count = 45</text>
+  <rect class="field" x="315" y="596" rx="5" ry="5" width="235" height="40"/>
+  <text x="331" y="621" class="mono">workload_hours = 45</text>
+  <text x="90" y="663" class="value">ใช้เมื่อรายการคือภาระงานสอน เช่น บรรยาย แล็บ สัมมนา</text>
+
+  <!-- Publication -->
+  <rect class="panel" x="635" y="325" rx="10" ry="10" width="530" height="360"/>
+  <rect class="green" x="665" y="354" rx="5" ry="5" width="94" height="26"/>
+  <text x="682" y="372" class="pillText">ตีพิมพ์</text>
+  <text x="665" y="414" class="h2">Publication Detail</text>
+  <text x="665" y="442" class="tiny">insert/update: publication_detail</text>
+  <rect class="field" x="665" y="476" rx="5" ry="5" width="230" height="40"/>
+  <text x="681" y="501" class="mono">publication_title</text>
+  <rect class="field" x="915" y="476" rx="5" ry="5" width="210" height="40"/>
+  <text x="931" y="501" class="mono">venue</text>
+  <rect class="field" x="665" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="681" y="561" class="mono">year</text>
+  <rect class="field" x="825" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="841" y="561" class="mono">doi</text>
+  <rect class="field" x="985" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="1001" y="561" class="mono">quartile</text>
+  <rect class="field" x="665" y="596" rx="5" ry="5" width="230" height="40"/>
+  <text x="681" y="621" class="mono">indexing_database</text>
+  <rect class="field" x="915" y="596" rx="5" ry="5" width="210" height="40"/>
+  <text x="931" y="621" class="mono">external_url</text>
+  <text x="665" y="663" class="value">ใช้กับงานวิจัยประเภท PUBLICATION เช่น journal/proceeding</text>
+
+  <!-- Research project -->
+  <rect class="panel" x="1210" y="325" rx="10" ry="10" width="530" height="360"/>
+  <rect class="green" x="1240" y="354" rx="5" ry="5" width="108" height="26"/>
+  <text x="1256" y="372" class="pillText">โครงการวิจัย</text>
+  <text x="1240" y="414" class="h2">Research Project Detail</text>
+  <text x="1240" y="442" class="tiny">insert/update: research_project_detail</text>
+  <rect class="field" x="1240" y="476" rx="5" ry="5" width="230" height="40"/>
+  <text x="1256" y="501" class="mono">project_title</text>
+  <rect class="field" x="1490" y="476" rx="5" ry="5" width="210" height="40"/>
+  <text x="1506" y="501" class="mono">funding_source</text>
+  <rect class="field" x="1240" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="1256" y="561" class="mono">budget</text>
+  <rect class="field" x="1400" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="1416" y="561" class="mono">currency</text>
+  <rect class="field" x="1560" y="536" rx="5" ry="5" width="140" height="40"/>
+  <text x="1576" y="561" class="mono">status</text>
+  <rect class="field" x="1240" y="596" rx="5" ry="5" width="230" height="40"/>
+  <text x="1256" y="621" class="mono">project_start_date</text>
+  <rect class="field" x="1490" y="596" rx="5" ry="5" width="210" height="40"/>
+  <text x="1506" y="621" class="mono">project_end_date</text>
+  <text x="1240" y="663" class="value">ใช้กับ RESEARCH_PROJECT หรือ RESEARCH_GRANT</text>
+
+  <!-- Supervision -->
+  <rect class="panel" x="60" y="735" rx="10" ry="10" width="530" height="330"/>
+  <rect class="orange" x="90" y="764" rx="5" ry="5" width="128" height="26"/>
+  <text x="107" y="782" class="pillText">ดูแลนักศึกษา</text>
+  <text x="90" y="824" class="h2">Supervision Detail</text>
+  <text x="90" y="852" class="tiny">insert/update: supervision_detail</text>
+  <rect class="field" x="90" y="886" rx="5" ry="5" width="205" height="40"/>
+  <text x="106" y="911" class="mono">supervision_type</text>
+  <rect class="field" x="315" y="886" rx="5" ry="5" width="235" height="40"/>
+  <text x="331" y="911" class="mono">supervision_role</text>
+  <rect class="field" x="90" y="946" rx="5" ry="5" width="205" height="40"/>
+  <text x="106" y="971" class="mono">program_name</text>
+  <rect class="field" x="315" y="946" rx="5" ry="5" width="235" height="40"/>
+  <text x="331" y="971" class="mono">student_count</text>
+  <text x="90" y="1024" class="value">ใช้กับ senior project, thesis, coop, advisor</text>
+
+  <!-- Service -->
+  <rect class="panel" x="635" y="735" rx="10" ry="10" width="530" height="330"/>
+  <rect class="blue" x="665" y="764" rx="5" ry="5" width="128" height="26"/>
+  <text x="681" y="782" class="pillText">บริการวิชาการ</text>
+  <text x="665" y="824" class="h2">Service Detail</text>
+  <text x="665" y="852" class="tiny">insert/update: service_detail</text>
+  <rect class="field" x="665" y="886" rx="5" ry="5" width="205" height="40"/>
+  <text x="681" y="911" class="mono">service_scope</text>
+  <rect class="field" x="890" y="886" rx="5" ry="5" width="235" height="40"/>
+  <text x="906" y="911" class="mono">organization_name</text>
+  <rect class="field" x="665" y="946" rx="5" ry="5" width="205" height="40"/>
+  <text x="681" y="971" class="mono">service_role</text>
+  <rect class="field" x="890" y="946" rx="5" ry="5" width="235" height="40"/>
+  <text x="906" y="971" class="mono">service_date</text>
+  <text x="665" y="1024" class="value">ใช้กับ committee, reviewer, editor, invited speaker</text>
+
+  <!-- Admin -->
+  <rect class="panel" x="1210" y="735" rx="10" ry="10" width="530" height="330"/>
+  <rect class="blue" x="1240" y="764" rx="5" ry="5" width="94" height="26"/>
+  <text x="1257" y="782" class="pillText">บริหาร</text>
+  <text x="1240" y="824" class="h2">Administration Detail</text>
+  <text x="1240" y="852" class="tiny">insert/update: administration_detail</text>
+  <rect class="field" x="1240" y="886" rx="5" ry="5" width="205" height="40"/>
+  <text x="1256" y="911" class="mono">position_title</text>
+  <rect class="field" x="1465" y="886" rx="5" ry="5" width="235" height="40"/>
+  <text x="1481" y="911" class="mono">organization_unit</text>
+  <rect class="field" x="1240" y="946" rx="5" ry="5" width="205" height="40"/>
+  <text x="1256" y="971" class="mono">appointed_from</text>
+  <rect class="field" x="1465" y="946" rx="5" ry="5" width="235" height="40"/>
+  <text x="1481" y="971" class="mono">appointed_to</text>
+  <text x="1240" y="1024" class="value">ใช้กับ course coordinator, admin position, program admin</text>
+
+  <rect class="warn" x="60" y="1092" rx="8" ry="8" width="1680" height="54"/>
+  <text x="88" y="1126" class="label">ข้อควรระวัง: research type บางตัว เช่น CONFERENCE_PRESENTATION, BOOK_OR_CHAPTER ยังไม่มี detail table เฉพาะ ต้องเลือก policy ก่อน implement ว่าจะ reject หรือ map เข้า table ไหน</text>
+</svg>
