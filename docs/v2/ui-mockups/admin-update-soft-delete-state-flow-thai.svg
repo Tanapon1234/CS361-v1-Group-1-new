@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120">
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #d8dee9; stroke-width: 1.2; }
+      .activeBox { fill: #edfdf3; stroke: #9bd3ad; stroke-width: 1.4; }
+      .deletedBox { fill: #fff1f2; stroke: #f2a2ad; stroke-width: 1.4; }
+      .adminBox { fill: #eef4ff; stroke: #9bbcf2; stroke-width: 1.2; }
+      .soft { fill: #f2f6fb; stroke: #d8dee9; stroke-width: 1; }
+      .title { font: 700 34px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h2 { font: 700 22px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .h3 { font: 700 17px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #10203d; }
+      .label { font: 600 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #20314f; }
+      .value { font: 14px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #52637a; }
+      .tiny { font: 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #6b7b91; }
+      .mono { font: 12px "SFMono-Regular", Consolas, monospace; fill: #3c4960; }
+      .arrow { stroke: #7b8797; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .red { fill: #d7374a; }
+      .green { fill: #12a150; }
+      .blue { fill: #155bd5; }
+      .orange { fill: #f59e0b; }
+      .pillText { font: 700 12px "Noto Sans Thai", Tahoma, Arial, sans-serif; fill: #ffffff; }
+      .line { stroke: #d8dee9; stroke-width: 1; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7b8797"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1120"/>
+  <text x="60" y="70" class="title">ภาพสถานะของ Work Item: Update, Soft Delete, Restore</text>
+  <text x="60" y="104" class="value">การ์ด #71 ไม่ลบข้อมูลถาวร แต่เปลี่ยนสถานะและเก็บ audit เพื่อให้ตรวจสอบย้อนหลังได้</text>
+
+  <!-- State boxes -->
+  <rect class="activeBox" x="70" y="180" rx="12" ry="12" width="430" height="260"/>
+  <rect class="green" x="100" y="210" rx="5" ry="5" width="92" height="26"/>
+  <text x="119" y="228" class="pillText">ACTIVE</text>
+  <text x="100" y="272" class="h2">สถานะเริ่มต้น</text>
+  <text x="100" y="306" class="mono">work_item.status = ACTIVE</text>
+  <text x="100" y="334" class="mono">deleted_at = null</text>
+  <line class="line" x1="100" y1="360" x2="455" y2="360"/>
+  <text x="100" y="392" class="value">Public API อ่านได้ถ้า visibility = PUBLIC</text>
+  <text x="100" y="418" class="value">Admin API อ่านได้ทุก visibility</text>
+
+  <rect class="deletedBox" x="690" y="180" rx="12" ry="12" width="430" height="260"/>
+  <rect class="red" x="720" y="210" rx="5" ry="5" width="105" height="26"/>
+  <text x="740" y="228" class="pillText">DELETED</text>
+  <text x="720" y="272" class="h2">หลัง Soft Delete</text>
+  <text x="720" y="306" class="mono">work_item.status = DELETED</text>
+  <text x="720" y="334" class="mono">deleted_at = now()</text>
+  <line class="line" x1="720" y1="360" x2="1075" y2="360"/>
+  <text x="720" y="392" class="value">Public API ต้องไม่แสดงรายการนี้</text>
+  <text x="720" y="418" class="value">Admin API ยังดูได้เพื่อ restore/audit</text>
+
+  <rect class="activeBox" x="1290" y="180" rx="12" ry="12" width="430" height="260"/>
+  <rect class="green" x="1320" y="210" rx="5" ry="5" width="105" height="26"/>
+  <text x="1339" y="228" class="pillText">RESTORED</text>
+  <text x="1320" y="272" class="h2">หลัง Restore</text>
+  <text x="1320" y="306" class="mono">work_item.status = ACTIVE</text>
+  <text x="1320" y="334" class="mono">deleted_at = null</text>
+  <line class="line" x1="1320" y1="360" x2="1675" y2="360"/>
+  <text x="1320" y="392" class="value">กลับมาใช้ต่อได้</text>
+  <text x="1320" y="418" class="value">Public เห็นเฉพาะเมื่อ visibility = PUBLIC</text>
+
+  <path class="arrow" d="M 505 300 C 570 300, 610 300, 680 300"/>
+  <text x="545" y="270" class="label">DELETE soft delete</text>
+  <text x="545" y="326" class="mono">status = DELETED</text>
+
+  <path class="arrow" d="M 1125 300 C 1190 300, 1225 300, 1280 300"/>
+  <text x="1160" y="270" class="label">POST restore</text>
+  <text x="1160" y="326" class="mono">status = ACTIVE</text>
+
+  <!-- API impact -->
+  <rect class="panel" x="70" y="535" rx="10" ry="10" width="510" height="410"/>
+  <rect class="blue" x="100" y="565" rx="5" ry="5" width="110" height="26"/>
+  <text x="119" y="583" class="pillText">ADMIN API</text>
+  <text x="100" y="625" class="h2">Admin เห็นและจัดการได้</text>
+  <text x="100" y="662" class="mono">GET /api/v2/admin/work-items/{id}</text>
+  <text x="100" y="690" class="value">เห็น ACTIVE, INTERNAL, RESTRICTED, DELETED</text>
+  <text x="100" y="728" class="mono">PATCH /api/v2/admin/work-items/{id}</text>
+  <text x="100" y="756" class="value">แก้ core fields, faculty, detail, evidence</text>
+  <text x="100" y="794" class="mono">DELETE /api/v2/admin/work-items/{id}</text>
+  <text x="100" y="822" class="value">ลบแบบนิ่ม ไม่ hard delete</text>
+  <text x="100" y="860" class="mono">POST /api/v2/admin/work-items/{id}/restore</text>
+  <text x="100" y="888" class="value">คืนสถานะ ACTIVE</text>
+
+  <rect class="panel" x="645" y="535" rx="10" ry="10" width="510" height="410"/>
+  <rect class="green" x="675" y="565" rx="5" ry="5" width="112" height="26"/>
+  <text x="694" y="583" class="pillText">PUBLIC API</text>
+  <text x="675" y="625" class="h2">Public ต้องถูกกรองเสมอ</text>
+  <text x="675" y="662" class="mono">GET /api/v2/work-items</text>
+  <text x="675" y="690" class="value">ไม่ return status = DELETED</text>
+  <text x="675" y="728" class="mono">GET /api/v2/faculties/{facultyId}/work-items</text>
+  <text x="675" y="756" class="value">ไม่แสดงรายการที่ถูกลบ</text>
+  <text x="675" y="794" class="mono">GET /api/v2/work-items/{id}</text>
+  <text x="675" y="822" class="value">ถ้า deleted ให้ 404 หรือไม่เปิดข้อมูล</text>
+  <rect class="soft" x="675" y="858" rx="6" ry="6" width="420" height="50"/>
+  <text x="697" y="889" class="tiny">restore แล้ว public จะเห็นได้เฉพาะ visibility = PUBLIC</text>
+
+  <rect class="panel" x="1220" y="535" rx="10" ry="10" width="500" height="410"/>
+  <rect class="orange" x="1250" y="565" rx="5" ry="5" width="90" height="26"/>
+  <text x="1268" y="583" class="pillText">AUDIT</text>
+  <text x="1250" y="625" class="h2">ทุก action ต้องมี audit trail</text>
+  <text x="1250" y="662" class="mono">WORK_ITEM_UPDATED</text>
+  <text x="1250" y="690" class="value">เมื่อ PATCH สำเร็จ</text>
+  <text x="1250" y="728" class="mono">WORK_ITEM_SOFT_DELETED</text>
+  <text x="1250" y="756" class="value">เมื่อ DELETE สำเร็จ</text>
+  <text x="1250" y="794" class="mono">WORK_ITEM_RESTORED</text>
+  <text x="1250" y="822" class="value">เมื่อ restore สำเร็จ</text>
+  <rect class="soft" x="1250" y="858" rx="6" ry="6" width="410" height="50"/>
+  <text x="1272" y="889" class="tiny">บันทึก actor, request_id, before_json, after_json</text>
+
+  <rect class="adminBox" x="70" y="990" rx="8" ry="8" width="1650" height="66"/>
+  <text x="100" y="1024" class="label">สรุป: การ์ด #71 ทำให้ข้อมูลที่สร้างจาก #70 ถูกแก้ไข ปิดซ่อน และกู้คืนได้อย่างปลอดภัย</text>
+  <text x="100" y="1048" class="tiny">ระบบตอบโจทย์การจัดการ repository จริง เพราะข้อมูลไม่หายถาวร มี audit และ public API ไม่เห็นข้อมูลที่ถูกลบหรือไม่ควรเผยแพร่</text>
+</svg>
