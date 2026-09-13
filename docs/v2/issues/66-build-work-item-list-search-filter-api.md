@@ -30,6 +30,27 @@ V2 ต้องให้ผู้ใช้ค้นหาและกรอง�
 - demo dataset ใน `data/v2/fixtures/`
 - Master Data API จาก #64 สำหรับ filter options
 
+## Database Alignment Check
+
+เช็กกับไฟล์ใน `database/` แล้ว การ์ดนี้อ้างอิง table/attribute ที่มีอยู่จริงใน schema:
+
+- `work_item`: `id`, `category_code`, `work_type_code`, `title`, `description`, `start_date`, `end_date`, `visibility`, `status`, `updated_at`
+- `work_category`: `code`, `label_th`, `label_en`, `is_active`
+- `work_type`: `code`, `category_code`, `label_th`, `label_en`, `is_active`
+- `faculty_work_item`: `faculty_id`, `work_item_id`, `academic_period_id`, `evaluation_period_id`, `role`, `contribution_order`, `contribution_percent`
+- `faculty`: `id`, `public_slug`, `name_th`, `name_en`, `visibility`, `status`
+- `academic_period`: `id`, `academic_year`, `semester`, `label`
+- `evaluation_period`: `id`, `code`, `label`
+
+ตัวอย่าง id ในการ์ดนี้ต้องใช้รูปแบบจริงจาก demo/Aurora dev:
+
+- faculty id: `fac_prapaporn-rattanatamrong`
+- academic period id: `ap-2567-1`, `ap-2567-2`
+- evaluation period id/code: `eval-2567-full-year` / `EVAL-2567`
+- work type code: `PUBLICATION`, `INVITED_SPEAKER`, `LECTURE`, ไม่ใช้ชื่อเก่าแบบ `TEACHING_LECTURE`
+
+หมายเหตุ: `database/seeds/001_master_data.sql` มี master data มากกว่า fixture demo บางส่วน เช่น `OTHER` category และ work types เพิ่มเติม รวมปัจจุบันใน Aurora dev คือ `work_category = 6`, `work_type = 26` แต่ public work item demo ที่ #66 ต้องเห็นมี 4 รายการตาม visibility rule
+
 ## เป้าหมาย
 
 สร้าง read API สำหรับ list/search ที่:
@@ -95,29 +116,55 @@ GET /api/v2/work-items
 ตัวอย่าง query:
 
 ```text
-/api/v2/work-items?faculty_id=fac_prapaporn&academic_period_id=ap_2567_2&category=TEACHING&page=1&page_size=20
+/api/v2/work-items?faculty_id=fac_prapaporn-rattanatamrong&academic_period_id=ap-2567-1&category=RESEARCH&type=PUBLICATION&page=1&page_size=20
 ```
 
-Response:
+ตัวอย่าง response จากข้อมูล demo/public ที่มีอยู่จริง:
 
 ```json
 {
   "items": [
     {
-      "id": "wi-teach-2567-2-cs333",
-      "title": "CS333 Software Engineering Lecture",
-      "category": "TEACHING",
-      "type": "TEACHING_LECTURE",
+      "id": "wi-pub-2024-privacy-edge",
+      "title": "Privacy-Preserving Edge Analytics for Smart Campus Workload Signals",
+      "description": "Synthetic publication used for keyword search demo. Keyword: privacy.",
+      "category": {
+        "code": "RESEARCH",
+        "label_th": "งานวิชาการ/วิจัย",
+        "label_en": "Research and Academic Output"
+      },
+      "type": {
+        "code": "PUBLICATION",
+        "label_th": "ผลงานตีพิมพ์",
+        "label_en": "Publication"
+      },
       "academic_period": {
-        "id": "ap_2567_2",
-        "label": "2/2567"
+        "id": "ap-2567-1",
+        "label": "1/2567",
+        "academic_year": 2567,
+        "semester": "1"
+      },
+      "evaluation_period": {
+        "id": "eval-2567-full-year",
+        "code": "EVAL-2567",
+        "label": "Evaluation 2567"
       },
       "faculty": [
         {
-          "id": "fac_prapaporn",
-          "display_name": "ผศ. ดร. ประภาภรณ์ รัตนธรรมรงค์",
+          "id": "fac_prapaporn-rattanatamrong",
+          "display_name": "ผศ.ดร.ประภาพร รัตนธำรง",
           "slug": "prapaporn-rattanatamrong",
-          "role": "INSTRUCTOR"
+          "role": "CORRESPONDING_AUTHOR",
+          "contribution_order": 1,
+          "contribution_percent": 60
+        },
+        {
+          "id": "fac_kasidit-chanchio",
+          "display_name": "ผศ.ดร.กษิดิศ ชาญเชี่ยว",
+          "slug": "kasidit-chanchio",
+          "role": "AUTHOR",
+          "contribution_order": 2,
+          "contribution_percent": 40
         }
       ],
       "visibility": "PUBLIC",
@@ -250,8 +297,8 @@ API นี้เป็น public list endpoint ดังนั้นเป้า
       },
       "evaluation_period": {
         "id": "eval-2567-full-year",
-        "code": "2567_FULL_YEAR",
-        "label": "ปีการศึกษา 2567"
+        "code": "EVAL-2567",
+        "label": "Evaluation 2567"
       },
       "faculty": [
         {
