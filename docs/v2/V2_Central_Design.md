@@ -106,7 +106,7 @@ CloudFront เป็น optional/deferred service ใช้ได้เฉพา
 
 ภาพ architecture สำหรับ V2:
 
-![V2 AWS Service Architecture](./v2-aws-service-architecture.png)
+![V2 AWS Service Architecture](./v2-aws-service-architecture.jpg)
 
 ### 6.1 Primary Request Flow
 

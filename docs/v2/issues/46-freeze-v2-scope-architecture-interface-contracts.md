@@ -6,8 +6,9 @@
 
 - `docs/v2/V2_Central_Design.md` — เอกสาร freeze หลักของ V2 scope, architecture, interface contracts, entity baseline, visibility boundary, V1 compatibility และ dependency map
 - `docs/v2/README.md` — สารบัญเอกสาร V2 และ link ไปยัง artifacts/issue cards
-- `docs/v2/v2-aws-service-architecture.png` — ภาพ architecture แบบ AWS service-icon style
-- `docs/v2/v2-full-architecture-clean.png` — ภาพ architecture เวอร์ชัน clean/readable
+- `docs/v2/v2-aws-service-architecture.jpg` — ภาพ architecture หลักแบบ AWS service-icon style
+- `docs/v2/v2-full-architecture-clean.png` — ภาพ architecture เวอร์ชัน clean/readable สำหรับรายงานหรือ slide
+- `docs/v2/v2-full-architecture.png` — ภาพ architecture เวอร์ชันเต็มอีกไฟล์สำหรับใช้แทน/สำรองในเอกสาร
 
 ## สรุป
 
