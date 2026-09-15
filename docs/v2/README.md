@@ -25,8 +25,9 @@ V2 มีเป้าหมายเพื่อยกระบบจาก V1 p
 | [deployment-env.md](./deployment-env.md) | environment variables ที่ backend/import/projection ต้องใช้หลัง deploy |
 | [security.md](./security.md) | V2 security boundary สำหรับ secrets, IAM, Data API และ evidence |
 | [aws-foundation-evidence.md](./aws-foundation-evidence.md) | evidence checklist สำหรับปิด Issue #48 |
-| [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) | Architecture diagram แบบ AWS service-icon style |
-| [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) | Architecture diagram เวอร์ชัน clean/readable |
+| [v2-aws-service-architecture.jpg](./v2-aws-service-architecture.jpg) | Architecture diagram หลักแบบ AWS service-icon style สำหรับ V2 |
+| [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) | Architecture diagram เวอร์ชัน clean/readable สำหรับรายงานหรือ slide |
+| [v2-full-architecture.png](./v2-full-architecture.png) | Architecture diagram เวอร์ชันเต็มอีกไฟล์สำหรับใช้แทน/สำรองในเอกสาร |
 
 ---
 
@@ -86,7 +87,7 @@ Production rule สำหรับ issue cards ชุดนี้: การ์�
 
 1. อ่าน [V2_Central_Design.md](./V2_Central_Design.md) เพื่อเข้าใจ scope และ contracts ที่ freeze แล้ว
 2. อ่าน [erd.md](./erd.md), [data-contract.md](./data-contract.md), และ [schema-decisions.md](./schema-decisions.md) ก่อนเริ่มงาน database/API
-3. ใช้ [v2-aws-service-architecture.png](./v2-aws-service-architecture.png) ในรายงานหรือ slide เพื่ออธิบาย architecture
+3. ใช้ [v2-aws-service-architecture.jpg](./v2-aws-service-architecture.jpg) เป็นภาพ architecture หลักในรายงานหรือ slide และใช้ [v2-full-architecture-clean.png](./v2-full-architecture-clean.png) เมื่ออยากได้ภาพใหญ่กว่า
 4. เริ่ม implementation planning จาก issue #48 เป็นต้นไปหลัง schema baseline ผ่าน review
 5. ถ้างานถัดไปต้องเปลี่ยนชื่อ entity, route, visibility rule หรือ V1 compatibility rule ให้เปิด decision/update แยกก่อนแก้
 
