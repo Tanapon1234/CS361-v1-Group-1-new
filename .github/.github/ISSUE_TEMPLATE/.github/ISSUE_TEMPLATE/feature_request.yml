@@ -1,0 +1,64 @@
+name: Feature Request
+description: เสนอฟีเจอร์หรือไอเดียใหม่สำหรับโปรเจกต์
+title: "[FEATURE] "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ขอบคุณที่เสนอไอเดียใหม่ให้โปรเจกต์! กรุณากรอกรายละเอียดด้านล่างให้ครบถ้วน
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: ปัญหาที่ต้องการแก้ / ที่มาของไอเดีย
+      description: ตอนนี้ขาดอะไร หรือมีปัญหาอะไรที่ฟีเจอร์นี้จะช่วยแก้
+      placeholder: "เช่น ตอนนี้ยังไม่มีระบบแจ้งเตือนเมื่อ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: ฟีเจอร์ที่ต้องการ
+      description: อธิบายฟีเจอร์ที่อยากให้เพิ่มโดยละเอียด
+      placeholder: "อยากให้มี..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: ทางเลือกอื่น (ถ้ามี)
+      description: เคยคิดวิธีอื่นไหมที่แก้ปัญหาเดียวกันได้
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ความสำคัญ
+      options:
+        - Low
+        - Medium
+        - High
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: ข้อมูลเพิ่มเติม
+      description: Screenshot, mockup, หรือลิงก์อ้างอิงอื่นๆ
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: ได้ค้นหาแล้วว่ายังไม่มี issue ซ้ำกัน
+          required: true
