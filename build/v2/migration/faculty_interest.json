@@ -1,0 +1,667 @@
+[
+  {
+    "id": "int_5a87875969d33726",
+    "faculty_id": "fac_denduang-pradubsuwun",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Formal Verification",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_c68a460a2a41daf5",
+    "faculty_id": "fac_denduang-pradubsuwun",
+    "interest_type": "EXPERTISE",
+    "value": "Formal verification",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3ca985ae362d16c6",
+    "faculty_id": "fac_kasidit-chanchio",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Fault Tolerance",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_45b8f7464be02642",
+    "faculty_id": "fac_kasidit-chanchio",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Distributed and Parallel Processing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_fa7bdce204c1c032",
+    "faculty_id": "fac_kasidit-chanchio",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "High Performance Computing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_117c346fc782850a",
+    "faculty_id": "fac_kasidit-chanchio",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "System Software",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_a6b649db423d09bd",
+    "faculty_id": "fac_krittakom-srijiranon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data Mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8b82cdae59a8f2b5",
+    "faculty_id": "fac_krittakom-srijiranon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Machine Learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_511eec19d5b3f123",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Human-Computer Interaction",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_54d6c34aa2a2095b",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Child-Computer Interaction",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_53cd2d4335acc4f5",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Human and Psychological factors in designing UX/UI",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3042ee8ceebf6dfe",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "UX/UI research methods",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_9f8329c49c507328",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Mobile Usability",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_b8d7b93417cb4d38",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "EXPERTISE",
+    "value": "วิจัยด้านการปฏิสัมพันธ์ระหว่างมนุษย์และคอมพิวเตอร์ และระหว่างเด็กและคอมพิวเตอร์ ศึกษาในเชิงทฤษฎี วัดผลและประเมินผล รวมถึงการประยุกต์ใช้ทฤษฎีในการสร้างผลิตภัณฑ์ต่าง ๆ",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_653ab0c98dbe757a",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "EXPERTISE",
+    "value": "วิจัยด้านมนุษยปัจจัยและปัจจัยเชิงจิตวิทยาที่มีอิทธิพลต่อการออกแบบส่วนต่อประสานและประสบการณ์ผู้ใช้",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d5c9b0cff903ef46",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "EXPERTISE",
+    "value": "การประยุกต์ใช้วิธีวิจัยรูปแบบต่าง ๆ ในการออกแบบส่วนต่อประสานและประสบการณ์ผู้ใช้",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_5c55dc3ccd40e608",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "interest_type": "EXPERTISE",
+    "value": "งานวิจัยด้านความยากง่ายในการใช้งานอุปกรณ์สื่อสารแบบเคลื่อนที่",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_cd91d891432d1e1e",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Medical image processing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_291729d196a51c02",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Artificial Intelligence",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_2b3113abef2d3be5",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8cc06ffdded2e29e",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Human Computer Interaction",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_4889172dd7e9e388",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Animated Characters",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_00262992990783e9",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Pedagogical Agents",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_75b0778bb23bb8de",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Individual Differences in HCI",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_64b47217f605ecdb",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Adaptive Interface",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d83b14d69ab76c43",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Usability Testing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_562f0d1c428641e3",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Competency Modeling",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_ee12dc6db70b3217",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Computational algorithm",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_41b03aeab4f824d5",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "E-learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_057d0804ae15d332",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Geographic information system (GIS)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_54ce05854d6887ed",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Adaptive Assessment",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_6406d76aec882bb8",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "EXPERTISE",
+    "value": "ระบบสารสนเทศภูมิศาสตร์",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_2d42dd191a5f08db",
+    "faculty_id": "fac_onjira-sitthisak",
+    "interest_type": "EXPERTISE",
+    "value": "การประยุกต์ให้ competency modeling กับการเรียนรู้",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d4971989f37d0a02",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Optimization",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d17d49ce719d7c8f",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Production Scheduling & Management",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_cdc6a4a0537fcce2",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Management Mathematics",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_52c581f0e9204a4e",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Machine Learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_fe57dd98a4c6ccbd",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Machine Learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_da25457bed80263b",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data Mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_4988616728e4047f",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data Analytics",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_80cdfd754e265bb2",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Association Mining Mobile and Web Applications",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_580923a4cb47d705",
+    "faculty_id": "fac_pakorn-waewsawangwong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Formal Modeling",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_58d13ae9185f78b6",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Artificial Intelligence",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_58354f1d7c121fc3",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_574dd842175538d5",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Optimization algorithms",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3aca8e99788ef973",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "e-Testing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_cb237cd7983fbac5",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Social network analytics",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_52e1fc2b0ceb758f",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "EXPERTISE",
+    "value": "การออกแบบและพัฒนาระบบจัดการข้อสอบและคลังข้อสอบ",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_5e23e6e5415004ba",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "EXPERTISE",
+    "value": "การประยุกต์ใช้เทคโนโลยีปัญญาประดิษฐ์และการเรียนรู้ของเครื่องจักรเพื่อแก้ปัญหา",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_97823cb1b36ee58d",
+    "faculty_id": "fac_pokpong-songmuang",
+    "interest_type": "EXPERTISE",
+    "value": "การวิเคราะห์เครือข่ายสังคมออนไลน์",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_37268839046a6241",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Distributed Systems and Middleware",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_c30ad9e6a5ac1281",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Cloud and Edge Computing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_86e6d78ebe1478d6",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Big Data Engineering",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_f7d1619277e4e64e",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Digital Twins",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_7565726a9adcf810",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data-Driven Decision Support Systems",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8268f57e481bff73",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Real-Time Scheduling",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3e2248af0f7a467f",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "EXPERTISE",
+    "value": "การออกแบบสถาปัตยกรรมของระบบสารสนเทศ (IT systems) บริการบนระบบอินเตอร์เน็ต (Internet-based services) และโครงสร้างพื้นฐานไซเบอร์ (Cyberinfrastructure) แบบกระจายศูนย์ (Distributed systems) และแบบที่อาศัยกลยุทธ์เชิงเทคนิคและศักยภาพของคลาวด์ (Cloud computing) เป็นองค์ประกอบ",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_9a68cabf1a20516b",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "EXPERTISE",
+    "value": "ระบบในการบริหารจัดการการไหลของข้อมูล (Data workflow) เพื่อจัดเก็บ โอนย้าย และวิเคราะห์ข้อมูลทั้งในเซิร์ฟเวอร์บนคลาวด์และเอดจ์ (Cloud and Edge servers)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_69ee9363e23fe959",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "interest_type": "EXPERTISE",
+    "value": "ระบบแสดงข้อมูลเป็นภาพ เพื่อสนับสนุนการใช้ข้อมูลประกอบการตัดสินใจขององค์กร (Dashboard and Decision support systems)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_c64a3df037e3b0b7",
+    "faculty_id": "fac_saowaluk-watanapa",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Image Processing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_923daa46857c769c",
+    "faculty_id": "fac_satanat-kitsiranuwat",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Bioinformatics",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_579ce3e0241e10b0",
+    "faculty_id": "fac_satanat-kitsiranuwat",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Machine Learning/ Data Mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_f5734f90b30b0bbd",
+    "faculty_id": "fac_satanat-kitsiranuwat",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Mathematical Modeling",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_28547fd8d2f9b531",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Software Engineering (Software Verification, Software Process)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_0b1e9681b456dc69",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Simulation Model",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_b03b0099c062f570",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Software Modeling (Formal Method)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_e1c7616f027334f5",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Artificial Intelligence & Data Mining & Machine Learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_74e6ed19b40d8795",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Formal Ontologies and Semantic Web Technology",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8dd0e1130f54a6aa",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Body Sensor Networks & Internet of Things (IoTs)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d69d229a2208c6a3",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Medical Informatics & Hospital Information Systems",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3d108edcb9e7a66c",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "EXPERTISE",
+    "value": "การวิเคราะห์และประมวลผลสัญญาณด้านสุขภาพและการแพทย์ (อาทิเช่น สัญญาณคลื่นไฟฟ้าหัวใจ และสัญญาณตรวจจับความเร่งในระนาบ 3 มิติ)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_b56516bc61465188",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "EXPERTISE",
+    "value": "การวิเคราะห์และสร้างเหมืองข้อมูลจากข้อมูลสื่อสังคมออนไลน์ (Social Media Analytics and Mining) เช่น ข้อมูลบน Twitter FB และ Pantip",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_6f165998bc2e45df",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "EXPERTISE",
+    "value": "ระบบบริหารจัดการโรงพยาบาล (อาทิเช่น ระบบบริหารจัดการคิวผู้ป่วย)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_a0b92986b7fab5e9",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "interest_type": "EXPERTISE",
+    "value": "ระบบบริหารจัดการงานทะเบียนนักศึกษา",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_e52289541e8417dd",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Machine Learning/Data Mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8b0e0dd7dc9f1bde",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Human Movement Analysis",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_0a10acccb467b003",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data Clustering",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_fb9b28a41d45ffd6",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data Representation Learning",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_ca87ece0d2b68fab",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Matrix Factorization",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_4bf7a5be4f808eba",
+    "faculty_id": "fac_thapana-boonchoo",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Probabilistic Models",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d51c1a7db968cc57",
+    "faculty_id": "fac_wanida-putthividhya",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Software economics (เศรษฐศาสตร์การบริหารและการผลิตซอฟต์แวร์)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_48ba1cb822ec8d53",
+    "faculty_id": "fac_wanida-putthividhya",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Quality of Service (QOS)",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_bf8804200fc3998c",
+    "faculty_id": "fac_wanida-putthividhya",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Congestion Control",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_eb8038e5ec816fd7",
+    "faculty_id": "fac_wanida-putthividhya",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Network Security and Operating systems",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_4563a284267445c2",
+    "faculty_id": "fac_wilawan-rukpakavong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Distributed Systems",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_4df6b5b029f6fd54",
+    "faculty_id": "fac_wilawan-rukpakavong",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Programming Languages",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_7afdfca1817b2dc6",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Data / Process Mining",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_d360d895edf75e6f",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Semantics via Ontology",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_fd25cf09a6e0f4ea",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Ontology-Relational Mapping",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_2d786b5d31f9b265",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Topics related to Business Intelligence",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3d6876bc771a1cf3",
+    "faculty_id": "fac_worawan-marurngsith",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Agent-based, multi-agent, and Discrete-event Simulations",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_3f4ee172e5cb0848",
+    "faculty_id": "fac_worawan-marurngsith",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "High-performance computing on heterogeneous systems, GPGPU",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_ea6d5a4495c9f54b",
+    "faculty_id": "fac_worawan-marurngsith",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Compiler techniques for high performance computing",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_75d2698bdbc6efa9",
+    "faculty_id": "fac_worawan-marurngsith",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Performance Evaluation of Computer Systems",
+    "visibility": "PUBLIC"
+  },
+  {
+    "id": "int_8151b0595dc37dc6",
+    "faculty_id": "fac_worawan-marurngsith",
+    "interest_type": "RESEARCH_INTEREST",
+    "value": "Computers in Education",
+    "visibility": "PUBLIC"
+  }
+]
