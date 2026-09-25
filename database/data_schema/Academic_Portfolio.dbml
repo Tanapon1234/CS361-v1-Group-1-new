@@ -1,0 +1,151 @@
+Table lecturer {
+  lecturer_id uuid [pk, increment]
+
+  name_th varchar(255) [not null]
+  name_en varchar(255)
+
+  rank varchar(100)
+
+  profile_image_url text
+
+  office varchar(255)
+  phone varchar(50)
+  phone_extension varchar(50)
+  email varchar(255) [not null, unique]
+
+  cv_url text
+
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+
+  is_active     boolean       [not null, default: true]
+}
+
+
+Table education {
+  education_id smallint [pk, increment]
+
+  lecturer_id uuid [not null]
+
+  degree varchar(100)
+  field varchar(255)
+  institution varchar(500)
+  country varchar(100)
+  graduation_year varchar(10)
+}
+
+
+Table research_interest {
+  research_interest_id smallint [pk, increment]
+
+  name varchar(255) [not null, unique]
+}
+
+
+Table faculty_research_interest {
+  lecturer_id uuid [not null]
+  research_interest_id smallint [not null]
+
+  indexes {
+    (lecturer_id, research_interest_id) [pk]
+  }
+}
+
+
+Table expertise {
+  expertise_id smallint [pk, increment]
+
+  description text [not null]
+}
+
+
+Table faculty_expertise {
+  lecturer_id uuid [not null]
+  expertise_id smallint [not null]
+
+  indexes {
+    (lecturer_id, expertise_id) [pk]
+  }
+}
+
+
+Table publication {
+  publication_id int [pk, increment]
+
+  title text [not null]
+  publication_year smallint
+
+  venue text
+  volume varchar(50)
+  pages varchar(50)
+
+  doi varchar(255) [unique]
+
+  citation_text text
+
+  created_at timestamptz [default: `now()`]
+}
+
+
+Table faculty_publication {
+  lecturer_id uuid [not null]
+  publication_id int [not null]
+
+  // ลำดับผู้เขียน
+  author_order smallint
+
+  indexes {
+    (lecturer_id, publication_id) [pk]
+  }
+}
+
+
+
+Table publication_profile {
+  publication_profile_id smallint [pk, increment]
+
+  lecturer_id uuid [not null]
+
+  // google_scholar, researchgate, semantic_scholar, etc.
+  provider varchar(100) [not null]
+
+  url text [not null]
+
+  indexes {
+    (lecturer_id, provider, url) [unique]
+  }
+}
+
+
+
+// ==========================================
+// Relationships
+// ==========================================
+
+// Faculty -> Education
+Ref: education.lecturer_id > lecturer.lecturer_id [delete: cascade]
+
+
+// Faculty <-> Research Interest
+Ref: faculty_research_interest.lecturer_id > lecturer.lecturer_id [delete: cascade]
+
+Ref: faculty_research_interest.research_interest_id > research_interest.research_interest_id [delete: cascade]
+
+
+// Faculty <-> Expertise
+Ref: faculty_expertise.lecturer_id > lecturer.lecturer_id [delete: cascade]
+
+Ref: faculty_expertise.expertise_id > expertise.expertise_id [delete: cascade]
+
+
+// Faculty <-> Publication
+Ref: faculty_publication.lecturer_id > lecturer.lecturer_id [delete: cascade]
+
+Ref: faculty_publication.publication_id > publication.publication_id [delete: cascade]
+
+
+
+// External Publication Profiles
+Ref: publication_profile.lecturer_id > lecturer.lecturer_id [delete: cascade]
+
+
