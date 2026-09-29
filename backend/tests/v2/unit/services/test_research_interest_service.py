@@ -68,11 +68,47 @@ def test_list_research_interests_returns_page(
         1,
     )
 
-    result = service.list_research_interests(ResearchInterestListQuery(q="Machine"))
+    result = service.list_research_interests(ResearchInterestListQuery(search="Machine"))
 
-    assert result.items[0].name == "Machine Learning"
-    assert result.meta.total == 1
-    research_interest_dao.find_page.assert_called_once_with(q="Machine", limit=20, offset=0)
+    assert result.data[0].name == "Machine Learning"
+    assert result.pagination.total == 1
+    assert result.pagination.total_pages == 1
+    research_interest_dao.find_page.assert_called_once_with(
+        search="Machine", limit=20, offset=0, sort_order="asc"
+    )
+
+
+def test_list_research_interests_paginates(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.find_page.return_value = (
+        [ResearchInterest(research_interest_id=11, name="Robotics")],
+        21,
+    )
+
+    result = service.list_research_interests(
+        ResearchInterestListQuery(page=2, limit=10, sort_order="desc")
+    )
+
+    assert result.pagination.page == 2
+    assert result.pagination.limit == 10
+    assert result.pagination.total == 21
+    assert result.pagination.total_pages == 3
+    research_interest_dao.find_page.assert_called_once_with(
+        search=None, limit=10, offset=10, sort_order="desc"
+    )
+
+
+def test_list_research_interests_empty_result(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.find_page.return_value = ([], 0)
+
+    result = service.list_research_interests(ResearchInterestListQuery())
+
+    assert result.data == []
+    assert result.pagination.total == 0
+    assert result.pagination.total_pages == 0
 
 
 @pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement update")

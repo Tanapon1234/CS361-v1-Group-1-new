@@ -17,7 +17,7 @@ class ResearchInterestDAO(ABC):
 
     @abstractmethod
     def find_page(
-        self, *, q: str | None, limit: int, offset: int
+        self, *, search: str | None, limit: int, offset: int, sort_order: str
     ) -> tuple[Sequence[ResearchInterest], int]: ...
 
     @abstractmethod
