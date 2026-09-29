@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.daos.sql.base import SqlDAO
-from app.v2.models.research_interest import ResearchInterest
+from app.v2.models.research_interest import FacultyResearchInterest, ResearchInterest
 
 
 class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
@@ -52,8 +52,28 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
     def delete(self, research_interest: ResearchInterest) -> None:
         raise NotImplementedError
 
-    def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[ResearchInterest]:
-        raise NotImplementedError
+    def list_by_lecturer(
+        self, lecturer_id: UUID, *, search: str | None, sort_order: str
+    ) -> Sequence[ResearchInterest]:
+        statement = (
+            select(ResearchInterest)
+            .join(
+                FacultyResearchInterest,
+                FacultyResearchInterest.research_interest_id
+                == ResearchInterest.research_interest_id,
+            )
+            .where(FacultyResearchInterest.lecturer_id == lecturer_id)
+        )
+
+        if search:
+            statement = statement.where(ResearchInterest.name.ilike(f"%{search}%"))
+
+        order_by = (
+            ResearchInterest.name.desc()
+            if sort_order == "desc"
+            else ResearchInterest.name.asc()
+        )
+        return self.session.exec(statement.order_by(order_by)).all()
 
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
         raise NotImplementedError

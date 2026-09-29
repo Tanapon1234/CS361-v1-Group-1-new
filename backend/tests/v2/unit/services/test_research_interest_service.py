@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, create_autospec
+from uuid import uuid4
 
 import pytest
 
@@ -6,10 +7,12 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.research_interest_dto import (
+    LecturerResearchInterestListQuery,
     ResearchInterestCreateRequest,
     ResearchInterestListQuery,
     ResearchInterestUpdateRequest,
 )
+from app.v2.models.lecturer import Lecturer
 from app.v2.models.research_interest import ResearchInterest
 from app.v2.services.research_interest_service import ResearchInterestService
 
@@ -109,6 +112,65 @@ def test_list_research_interests_empty_result(
     assert result.data == []
     assert result.pagination.total == 0
     assert result.pagination.total_pages == 0
+
+
+def test_list_lecturer_research_interests_for_existing_lecturer(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.list_by_lecturer.return_value = [
+        ResearchInterest(research_interest_id=1, name="Machine Learning"),
+        ResearchInterest(research_interest_id=2, name="Machine Learning in Healthcare"),
+    ]
+
+    result = service.list_lecturer_research_interests(
+        lecturer_id, LecturerResearchInterestListQuery(search="machine")
+    )
+
+    assert [item.name for item in result.data] == [
+        "Machine Learning",
+        "Machine Learning in Healthcare",
+    ]
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+    research_interest_dao.list_by_lecturer.assert_called_once_with(
+        lecturer_id, search="machine", sort_order="asc"
+    )
+
+
+def test_list_lecturer_research_interests_empty(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.list_by_lecturer.return_value = []
+
+    result = service.list_lecturer_research_interests(
+        lecturer_id, LecturerResearchInterestListQuery(sort_order="desc")
+    )
+
+    assert result.data == []
+    research_interest_dao.list_by_lecturer.assert_called_once_with(
+        lecturer_id, search=None, sort_order="desc"
+    )
+
+
+def test_list_lecturer_research_interests_unknown_lecturer_raises_not_found(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError):
+        service.list_lecturer_research_interests(
+            lecturer_id, LecturerResearchInterestListQuery()
+        )
+
+    research_interest_dao.list_by_lecturer.assert_not_called()
 
 
 @pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement update")

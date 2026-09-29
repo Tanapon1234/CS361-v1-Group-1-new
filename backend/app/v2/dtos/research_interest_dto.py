@@ -37,6 +37,15 @@ class ResearchInterestListResponse(BaseModel):
     pagination: ResearchInterestPagination
 
 
+class LecturerResearchInterestListQuery(RequestDTO):
+    search: str | None = Field(default=None, max_length=100)
+    sort_order: Literal["asc", "desc"] = "asc"
+
+
+class LecturerResearchInterestListResponse(BaseModel):
+    data: list[ResearchInterestResponse]
+
+
 class LecturerResearchInterestsReplaceRequest(RequestDTO):
     """PUT body: the lecturer's complete set of research interests (replaces the old set)."""
 

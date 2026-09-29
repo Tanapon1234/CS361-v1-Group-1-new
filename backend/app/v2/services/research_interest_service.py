@@ -4,12 +4,14 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.common import ListResponse
 from app.v2.dtos.research_interest_dto import (
     LecturerResearchInterestsReplaceRequest,
+    LecturerResearchInterestListQuery,
+    LecturerResearchInterestListResponse,
     ResearchInterestCreateRequest,
     ResearchInterestListResponse,
     ResearchInterestListQuery,
@@ -74,9 +76,17 @@ class ResearchInterestService:
     # --- per lecturer ------------------------------------------------------------------
 
     def list_lecturer_research_interests(
-        self, lecturer_id: UUID
-    ) -> ListResponse[ResearchInterestResponse]:
-        raise NotImplementedError  # TODO
+        self, lecturer_id: UUID, query: LecturerResearchInterestListQuery
+    ) -> LecturerResearchInterestListResponse:
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        items = self.research_interest_dao.list_by_lecturer(
+            lecturer_id, search=query.search, sort_order=query.sort_order
+        )
+        return LecturerResearchInterestListResponse(
+            data=[ResearchInterestResponse.model_validate(item) for item in items]
+        )
 
     def replace_lecturer_research_interests(
         self, lecturer_id: UUID, data: LecturerResearchInterestsReplaceRequest
