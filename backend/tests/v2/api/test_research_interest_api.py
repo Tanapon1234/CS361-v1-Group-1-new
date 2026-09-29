@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from app.core.database import get_session
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.v2.dependencies import get_research_interest_service
 from app.v2.dtos.common import ListMeta, ListResponse
 from app.v2.dtos.research_interest_dto import (
@@ -121,11 +121,60 @@ def test_create_research_interest_duplicate_name_is_409(
 
 
 def test_update_research_interest(client: TestClient, service: MagicMock) -> None:
-    service.update_research_interest.return_value = interest(3)
+    service.update_research_interest.return_value = ResearchInterestResponse(
+        research_interest_id=3, name="Deep Learning"
+    )
 
     response = client.patch(f"{MASTER}/3", json={"name": "Deep Learning"})
 
     assert response.status_code == 200
+    assert response.json() == {"research_interest_id": 3, "name": "Deep Learning"}
+    research_interest_id, data = service.update_research_interest.call_args.args
+    assert research_interest_id == 3
+    assert data.name == "Deep Learning"
+
+
+def test_update_unknown_research_interest_is_404(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = NotFoundError(
+        "Research interest not found"
+    )
+
+    response = client.patch(f"{MASTER}/99", json={"name": "Deep Learning"})
+
+    assert response.status_code == 404
+
+
+def test_update_research_interest_missing_name_is_400(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = BadRequestError("name is required")
+
+    response = client.patch(f"{MASTER}/1", json={})
+
+    assert response.status_code == 400
+
+
+def test_update_research_interest_empty_name_is_422(
+    client: TestClient, service: MagicMock
+) -> None:
+    response = client.patch(f"{MASTER}/1", json={"name": ""})
+
+    assert response.status_code == 422
+    service.update_research_interest.assert_not_called()
+
+
+def test_update_research_interest_duplicate_name_is_409(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = ConflictError(
+        "Research interest name already exists"
+    )
+
+    response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
+
+    assert response.status_code == 409
 
 
 def test_delete_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -230,21 +279,27 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
     with TestClient(app) as client:
         create_response = client.post(MASTER, json={"name": "Machine Learning"})
         duplicate_response = client.post(MASTER, json={"name": "Machine Learning"})
+        update_response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
         list_response = client.get(MASTER, params={"search": "Machine"})
+        updated_list_response = client.get(MASTER, params={"search": "Deep"})
 
     assert create_response.status_code == 201
     assert create_response.json()["research_interest_id"] == 1
     assert duplicate_response.status_code == 409
+    assert update_response.status_code == 200
+    assert update_response.json() == {"research_interest_id": 1, "name": "Deep Learning"}
     assert list_response.status_code == 200
-    assert list_response.json()["data"] == [
-        {"research_interest_id": 1, "name": "Machine Learning"}
-    ]
+    assert list_response.json()["data"] == []
     assert list_response.json()["pagination"] == {
         "page": 1,
         "limit": 20,
-        "total": 1,
-        "total_pages": 1,
+        "total": 0,
+        "total_pages": 0,
     }
+    assert updated_list_response.status_code == 200
+    assert updated_list_response.json()["data"] == [
+        {"research_interest_id": 1, "name": "Deep Learning"}
+    ]
 
 
 def test_list_research_interests_search_pagination_and_sort(app: FastAPI) -> None:

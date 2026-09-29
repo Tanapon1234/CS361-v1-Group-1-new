@@ -47,7 +47,10 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
     def update(
         self, research_interest: ResearchInterest, values: Mapping[str, Any]
     ) -> ResearchInterest:
-        raise NotImplementedError
+        research_interest.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(research_interest)
+        return research_interest
 
     def delete(self, research_interest: ResearchInterest) -> None:
         raise NotImplementedError

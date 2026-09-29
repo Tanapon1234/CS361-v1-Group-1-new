@@ -4,17 +4,17 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.common import ListResponse
 from app.v2.dtos.research_interest_dto import (
-    LecturerResearchInterestsReplaceRequest,
     LecturerResearchInterestListQuery,
     LecturerResearchInterestListResponse,
+    LecturerResearchInterestsReplaceRequest,
     ResearchInterestCreateRequest,
-    ResearchInterestListResponse,
     ResearchInterestListQuery,
+    ResearchInterestListResponse,
     ResearchInterestPagination,
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
@@ -68,7 +68,24 @@ class ResearchInterestService:
     def update_research_interest(
         self, research_interest_id: int, data: ResearchInterestUpdateRequest
     ) -> ResearchInterestResponse:
-        raise NotImplementedError  # TODO
+        research_interest = self.research_interest_dao.get_by_id(research_interest_id)
+        if research_interest is None:
+            raise NotFoundError("Research interest not found")
+
+        values = data.model_dump(exclude_unset=True)
+        if "name" not in values:
+            raise BadRequestError("name is required")
+
+        duplicate = self.research_interest_dao.get_by_name(data.name)
+        if duplicate is not None and duplicate.research_interest_id != research_interest_id:
+            raise ConflictError("Research interest name already exists")
+
+        try:
+            updated = self.research_interest_dao.update(research_interest, values)
+        except IntegrityError as exc:
+            raise ConflictError("Research interest name already exists") from exc
+
+        return ResearchInterestResponse.model_validate(updated)
 
     def delete_research_interest(self, research_interest_id: int) -> None:
         raise NotImplementedError  # TODO

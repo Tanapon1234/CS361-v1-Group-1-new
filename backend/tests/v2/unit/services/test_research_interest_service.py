@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.research_interest_dto import (
@@ -173,7 +173,26 @@ def test_list_lecturer_research_interests_unknown_lecturer_raises_not_found(
     research_interest_dao.list_by_lecturer.assert_not_called()
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement update")
+def test_update_research_interest_success(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    existing = ResearchInterest(research_interest_id=1, name="Machine Learning")
+    updated = ResearchInterest(research_interest_id=1, name="Deep Learning")
+    research_interest_dao.get_by_id.return_value = existing
+    research_interest_dao.get_by_name.return_value = None
+    research_interest_dao.update.return_value = updated
+
+    result = service.update_research_interest(
+        1, ResearchInterestUpdateRequest(name="Deep Learning")
+    )
+
+    assert result.research_interest_id == 1
+    assert result.name == "Deep Learning"
+    research_interest_dao.update.assert_called_once_with(
+        existing, {"name": "Deep Learning"}
+    )
+
+
 def test_update_unknown_research_interest_raises_not_found(
     service: ResearchInterestService, research_interest_dao: MagicMock
 ) -> None:
@@ -181,3 +200,53 @@ def test_update_unknown_research_interest_raises_not_found(
 
     with pytest.raises(NotFoundError):
         service.update_research_interest(99, ResearchInterestUpdateRequest(name="x"))
+
+    research_interest_dao.update.assert_not_called()
+
+
+def test_update_research_interest_missing_name_raises_bad_request(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.get_by_id.return_value = ResearchInterest(
+        research_interest_id=1, name="Machine Learning"
+    )
+
+    with pytest.raises(BadRequestError):
+        service.update_research_interest(1, ResearchInterestUpdateRequest())
+
+    research_interest_dao.get_by_name.assert_not_called()
+    research_interest_dao.update.assert_not_called()
+
+
+def test_update_research_interest_duplicate_name_raises_conflict(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.get_by_id.return_value = ResearchInterest(
+        research_interest_id=1, name="Machine Learning"
+    )
+    research_interest_dao.get_by_name.return_value = ResearchInterest(
+        research_interest_id=2, name="Deep Learning"
+    )
+
+    with pytest.raises(ConflictError):
+        service.update_research_interest(
+            1, ResearchInterestUpdateRequest(name="Deep Learning")
+        )
+
+    research_interest_dao.update.assert_not_called()
+
+
+def test_update_research_interest_allows_same_record_name(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    existing = ResearchInterest(research_interest_id=1, name="Machine Learning")
+    research_interest_dao.get_by_id.return_value = existing
+    research_interest_dao.get_by_name.return_value = existing
+    research_interest_dao.update.return_value = existing
+
+    result = service.update_research_interest(
+        1, ResearchInterestUpdateRequest(name="Machine Learning")
+    )
+
+    assert result.research_interest_id == 1
+    assert result.name == "Machine Learning"
