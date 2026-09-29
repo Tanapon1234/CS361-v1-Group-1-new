@@ -13,6 +13,9 @@ class ResearchInterestDAO(ABC):
     def get_by_id(self, research_interest_id: int) -> ResearchInterest | None: ...
 
     @abstractmethod
+    def get_by_name(self, name: str) -> ResearchInterest | None: ...
+
+    @abstractmethod
     def find_page(
         self, *, q: str | None, limit: int, offset: int
     ) -> tuple[Sequence[ResearchInterest], int]: ...

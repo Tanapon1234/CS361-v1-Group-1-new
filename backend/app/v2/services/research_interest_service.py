@@ -2,9 +2,12 @@
 
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
+from app.core.exceptions import ConflictError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
-from app.v2.dtos.common import ListResponse, PageResponse
+from app.v2.dtos.common import ListResponse, PageMeta, PageResponse
 from app.v2.dtos.research_interest_dto import (
     LecturerResearchInterestsReplaceRequest,
     ResearchInterestCreateRequest,
@@ -12,6 +15,7 @@ from app.v2.dtos.research_interest_dto import (
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
 )
+from app.v2.models.research_interest import ResearchInterest
 
 
 class ResearchInterestService:
@@ -26,12 +30,26 @@ class ResearchInterestService:
     def list_research_interests(
         self, query: ResearchInterestListQuery
     ) -> PageResponse[ResearchInterestResponse]:
-        raise NotImplementedError  # TODO
+        items, total = self.research_interest_dao.find_page(
+            q=query.q, limit=query.limit, offset=query.offset
+        )
+        return PageResponse[ResearchInterestResponse](
+            items=[ResearchInterestResponse.model_validate(item) for item in items],
+            meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
+        )
 
     def create_research_interest(
         self, data: ResearchInterestCreateRequest
     ) -> ResearchInterestResponse:
-        raise NotImplementedError  # TODO
+        if self.research_interest_dao.get_by_name(data.name) is not None:
+            raise ConflictError("Research interest name already exists")
+
+        try:
+            research_interest = self.research_interest_dao.add(ResearchInterest(name=data.name))
+        except IntegrityError as exc:
+            raise ConflictError("Research interest name already exists") from exc
+
+        return ResearchInterestResponse.model_validate(research_interest)
 
     def update_research_interest(
         self, research_interest_id: int, data: ResearchInterestUpdateRequest
