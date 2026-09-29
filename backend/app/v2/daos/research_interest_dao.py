@@ -17,7 +17,7 @@ class ResearchInterestDAO(ABC):
 
     @abstractmethod
     def find_page(
-        self, *, q: str | None, limit: int, offset: int
+        self, *, search: str | None, limit: int, offset: int, sort_order: str
     ) -> tuple[Sequence[ResearchInterest], int]: ...
 
     @abstractmethod
@@ -34,7 +34,9 @@ class ResearchInterestDAO(ABC):
     # --- per lecturer (faculty_research_interest) ------------------------------------
 
     @abstractmethod
-    def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[ResearchInterest]: ...
+    def list_by_lecturer(
+        self, lecturer_id: UUID, *, search: str | None, sort_order: str
+    ) -> Sequence[ResearchInterest]: ...
 
     @abstractmethod
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:

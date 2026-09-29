@@ -4,14 +4,18 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
-from app.v2.dtos.common import ListResponse, PageMeta, PageResponse
+from app.v2.dtos.common import ListResponse
 from app.v2.dtos.research_interest_dto import (
     LecturerResearchInterestsReplaceRequest,
+    LecturerResearchInterestListQuery,
+    LecturerResearchInterestListResponse,
     ResearchInterestCreateRequest,
+    ResearchInterestListResponse,
     ResearchInterestListQuery,
+    ResearchInterestPagination,
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
 )
@@ -29,13 +33,23 @@ class ResearchInterestService:
 
     def list_research_interests(
         self, query: ResearchInterestListQuery
-    ) -> PageResponse[ResearchInterestResponse]:
+    ) -> ResearchInterestListResponse:
+        offset = (query.page - 1) * query.limit
         items, total = self.research_interest_dao.find_page(
-            q=query.q, limit=query.limit, offset=query.offset
+            search=query.search,
+            limit=query.limit,
+            offset=offset,
+            sort_order=query.sort_order,
         )
-        return PageResponse[ResearchInterestResponse](
-            items=[ResearchInterestResponse.model_validate(item) for item in items],
-            meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
+        total_pages = (total + query.limit - 1) // query.limit if total else 0
+        return ResearchInterestListResponse(
+            data=[ResearchInterestResponse.model_validate(item) for item in items],
+            pagination=ResearchInterestPagination(
+                page=query.page,
+                limit=query.limit,
+                total=total,
+                total_pages=total_pages,
+            ),
         )
 
     def create_research_interest(
@@ -62,9 +76,17 @@ class ResearchInterestService:
     # --- per lecturer ------------------------------------------------------------------
 
     def list_lecturer_research_interests(
-        self, lecturer_id: UUID
-    ) -> ListResponse[ResearchInterestResponse]:
-        raise NotImplementedError  # TODO
+        self, lecturer_id: UUID, query: LecturerResearchInterestListQuery
+    ) -> LecturerResearchInterestListResponse:
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        items = self.research_interest_dao.list_by_lecturer(
+            lecturer_id, search=query.search, sort_order=query.sort_order
+        )
+        return LecturerResearchInterestListResponse(
+            data=[ResearchInterestResponse.model_validate(item) for item in items]
+        )
 
     def replace_lecturer_research_interests(
         self, lecturer_id: UUID, data: LecturerResearchInterestsReplaceRequest
