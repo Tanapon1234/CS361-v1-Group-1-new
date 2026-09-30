@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import delete, func
 from sqlmodel import select
 
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
@@ -30,9 +30,7 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
             count_statement = count_statement.where(ResearchInterest.name.ilike(pattern))
 
         order_by = (
-            ResearchInterest.name.desc()
-            if sort_order == "desc"
-            else ResearchInterest.name.asc()
+            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
         )
         total = self.session.exec(count_statement).one()
         items = self.session.exec(statement.order_by(order_by).offset(offset).limit(limit)).all()
@@ -72,14 +70,23 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
             statement = statement.where(ResearchInterest.name.ilike(f"%{search}%"))
 
         order_by = (
-            ResearchInterest.name.desc()
-            if sort_order == "desc"
-            else ResearchInterest.name.asc()
+            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
         )
         return self.session.exec(statement.order_by(order_by)).all()
 
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
-        raise NotImplementedError
+        statement = delete(FacultyResearchInterest).where(
+            FacultyResearchInterest.lecturer_id == lecturer_id
+        )
+        self.session.exec(statement)
+        self.session.add_all(
+            FacultyResearchInterest(
+                lecturer_id=lecturer_id,
+                research_interest_id=research_interest_id,
+            )
+            for research_interest_id in research_interest_ids
+        )
+        self.session.flush()
 
     def remove_from_lecturer(self, lecturer_id: UUID, research_interest_id: int) -> bool:
         raise NotImplementedError

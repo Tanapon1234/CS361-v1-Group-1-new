@@ -8,6 +8,7 @@ from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.research_interest_dto import (
     LecturerResearchInterestListQuery,
+    LecturerResearchInterestsReplaceRequest,
     ResearchInterestCreateRequest,
     ResearchInterestListQuery,
     ResearchInterestUpdateRequest,
@@ -169,6 +170,104 @@ def test_list_lecturer_research_interests_unknown_lecturer_raises_not_found(
         service.list_lecturer_research_interests(lecturer_id, LecturerResearchInterestListQuery())
 
     research_interest_dao.list_by_lecturer.assert_not_called()
+
+
+def test_replace_lecturer_research_interests_replaces_complete_set(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    interests = {
+        1: ResearchInterest(research_interest_id=1, name="Machine Learning"),
+        3: ResearchInterest(research_interest_id=3, name="Computer Vision"),
+    }
+    research_interest_dao.get_by_id.side_effect = interests.get
+
+    result = service.replace_lecturer_research_interests(
+        lecturer_id,
+        LecturerResearchInterestsReplaceRequest(research_interest_ids=[1, 3]),
+    )
+
+    research_interest_dao.replace_for_lecturer.assert_called_once_with(lecturer_id, [1, 3])
+    assert [item.research_interest_id for item in result.items] == [1, 3]
+    assert result.meta.count == 2
+
+
+def test_replace_lecturer_research_interests_empty_list_clears_all(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+
+    result = service.replace_lecturer_research_interests(
+        lecturer_id,
+        LecturerResearchInterestsReplaceRequest(research_interest_ids=[]),
+    )
+
+    research_interest_dao.get_by_id.assert_not_called()
+    research_interest_dao.replace_for_lecturer.assert_called_once_with(lecturer_id, [])
+    assert result.items == []
+    assert result.meta.count == 0
+
+
+def test_replace_lecturer_research_interests_unknown_lecturer_does_not_write(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.replace_lecturer_research_interests(
+            lecturer_id,
+            LecturerResearchInterestsReplaceRequest(research_interest_ids=[1]),
+        )
+
+    research_interest_dao.get_by_id.assert_not_called()
+    research_interest_dao.replace_for_lecturer.assert_not_called()
+
+
+def test_replace_lecturer_research_interests_unknown_interest_does_not_write(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.get_by_id.side_effect = [
+        ResearchInterest(research_interest_id=1, name="Machine Learning"),
+        None,
+    ]
+
+    with pytest.raises(NotFoundError, match="Research interest 99 not found"):
+        service.replace_lecturer_research_interests(
+            lecturer_id,
+            LecturerResearchInterestsReplaceRequest(research_interest_ids=[1, 99]),
+        )
+
+    research_interest_dao.replace_for_lecturer.assert_not_called()
+
+
+def test_replace_lecturer_research_interests_propagates_write_error_for_rollback(
+    service: ResearchInterestService, research_interest_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.get_by_id.return_value = ResearchInterest(
+        research_interest_id=1, name="Machine Learning"
+    )
+    research_interest_dao.replace_for_lecturer.side_effect = RuntimeError("write failed")
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        service.replace_lecturer_research_interests(
+            lecturer_id,
+            LecturerResearchInterestsReplaceRequest(research_interest_ids=[1]),
+        )
 
 
 def test_update_research_interest_success(

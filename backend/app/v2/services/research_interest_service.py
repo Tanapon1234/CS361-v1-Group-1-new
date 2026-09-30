@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
-from app.v2.dtos.common import ListResponse
+from app.v2.dtos.common import ListMeta, ListResponse
 from app.v2.dtos.research_interest_dto import (
     LecturerResearchInterestListQuery,
     LecturerResearchInterestListResponse,
@@ -105,7 +105,21 @@ class ResearchInterestService:
     def replace_lecturer_research_interests(
         self, lecturer_id: UUID, data: LecturerResearchInterestsReplaceRequest
     ) -> ListResponse[ResearchInterestResponse]:
-        raise NotImplementedError  # TODO: replace the whole set, return the new set
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        research_interests: list[ResearchInterest] = []
+        for research_interest_id in data.research_interest_ids:
+            research_interest = self.research_interest_dao.get_by_id(research_interest_id)
+            if research_interest is None:
+                raise NotFoundError(f"Research interest {research_interest_id} not found")
+            research_interests.append(research_interest)
+
+        self.research_interest_dao.replace_for_lecturer(lecturer_id, data.research_interest_ids)
+        return ListResponse[ResearchInterestResponse](
+            items=[ResearchInterestResponse.model_validate(item) for item in research_interests],
+            meta=ListMeta(count=len(research_interests)),
+        )
 
     def remove_lecturer_research_interest(
         self, lecturer_id: UUID, research_interest_id: int

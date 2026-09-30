@@ -247,16 +247,93 @@ def test_replace_lecturer_research_interests(client: TestClient, service: MagicM
     lecturer_id = uuid4()
     service.replace_lecturer_research_interests.return_value = ListResponse[
         ResearchInterestResponse
-    ](items=[], meta=ListMeta(count=0))
+    ](
+        items=[
+            ResearchInterestResponse(research_interest_id=1, name="Machine Learning"),
+            ResearchInterestResponse(research_interest_id=3, name="Computer Vision"),
+        ],
+        meta=ListMeta(count=2),
+    )
 
     response = client.put(
         f"/api/v2/lecturers/{lecturer_id}/research-interests",
-        json={"research_interest_ids": [1, 2]},
+        json={"research_interest_ids": [1, 3]},
     )
 
     assert response.status_code == 200
+    assert response.json() == {
+        "items": [
+            {"research_interest_id": 1, "name": "Machine Learning"},
+            {"research_interest_id": 3, "name": "Computer Vision"},
+        ],
+        "meta": {"count": 2},
+    }
     _, data = service.replace_lecturer_research_interests.call_args.args
-    assert data.research_interest_ids == [1, 2]
+    assert data.research_interest_ids == [1, 3]
+
+
+@pytest.mark.parametrize(
+    ("lecturer_id", "body"),
+    [
+        ("not-a-uuid", {"research_interest_ids": [1]}),
+        (str(uuid4()), {}),
+        (str(uuid4()), {"research_interest_ids": [0]}),
+        (str(uuid4()), {"research_interest_ids": [32768]}),
+        (str(uuid4()), {"research_interest_ids": ["1"]}),
+        (str(uuid4()), {"research_interest_ids": [1, 1]}),
+    ],
+    ids=[
+        "invalid-uuid",
+        "missing-ids",
+        "id-too-small",
+        "id-exceeds-smallint",
+        "id-not-integer",
+        "duplicate-id",
+    ],
+)
+def test_replace_lecturer_research_interests_invalid_request_is_422(
+    client: TestClient, service: MagicMock, lecturer_id: str, body: object
+) -> None:
+    response = client.put(
+        f"/api/v2/lecturers/{lecturer_id}/research-interests",
+        json=body,
+    )
+
+    assert response.status_code == 422
+    service.replace_lecturer_research_interests.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [NotFoundError("Lecturer not found"), NotFoundError("Research interest 99 not found")],
+    ids=["unknown-lecturer", "unknown-interest"],
+)
+def test_replace_lecturer_research_interests_not_found_is_404(
+    client: TestClient, service: MagicMock, error: NotFoundError
+) -> None:
+    service.replace_lecturer_research_interests.side_effect = error
+
+    response = client.put(
+        f"/api/v2/lecturers/{uuid4()}/research-interests",
+        json={"research_interest_ids": [1, 99]},
+    )
+
+    assert response.status_code == 404
+
+
+def test_replace_lecturer_research_interests_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.replace_lecturer_research_interests.side_effect = ServiceUnavailableError(
+        "Database unavailable"
+    )
+
+    response = client.put(
+        f"/api/v2/lecturers/{uuid4()}/research-interests",
+        json={"research_interest_ids": [1]},
+    )
+
+    assert response.status_code == 503
 
 
 def test_remove_lecturer_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -507,3 +584,154 @@ def test_list_lecturer_research_interests_search_sort_and_scope(app: FastAPI) ->
     assert empty_response.status_code == 200
     assert empty_response.json() == {"data": []}
     assert unknown_response.status_code == 404
+
+
+def test_put_lecturer_research_interests_replaces_and_clears_relationships(
+    app: FastAPI,
+) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    ResearchInterest.__table__.create(engine)
+    FacultyResearchInterest.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="Somchai",
+                    email="somchai@example.ac.th",
+                ),
+                ResearchInterest(research_interest_id=1, name="Machine Learning"),
+                ResearchInterest(research_interest_id=2, name="Data Mining"),
+                ResearchInterest(research_interest_id=3, name="Computer Vision"),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=1),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=2),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_research_interest_service, None)
+    app.dependency_overrides[get_session] = session_override
+    url = f"/api/v2/lecturers/{lecturer_id}/research-interests"
+
+    with TestClient(app) as client:
+        replace_response = client.put(url, json={"research_interest_ids": [1, 3]})
+
+    with engine.connect() as connection:
+        replaced_ids = (
+            connection.execute(
+                text(
+                    "SELECT research_interest_id FROM faculty_research_interest "
+                    "WHERE lecturer_id = :lecturer_id ORDER BY research_interest_id"
+                ),
+                {"lecturer_id": lecturer_id.hex},
+            )
+            .scalars()
+            .all()
+        )
+
+    with TestClient(app) as client:
+        clear_response = client.put(url, json={"research_interest_ids": []})
+
+    with engine.connect() as connection:
+        cleared_ids = (
+            connection.execute(
+                text(
+                    "SELECT research_interest_id FROM faculty_research_interest "
+                    "WHERE lecturer_id = :lecturer_id"
+                ),
+                {"lecturer_id": lecturer_id.hex},
+            )
+            .scalars()
+            .all()
+        )
+
+    assert replace_response.status_code == 200
+    assert replace_response.json() == {
+        "items": [
+            {"research_interest_id": 1, "name": "Machine Learning"},
+            {"research_interest_id": 3, "name": "Computer Vision"},
+        ],
+        "meta": {"count": 2},
+    }
+    assert replaced_ids == [1, 3]
+    assert clear_response.status_code == 200
+    assert clear_response.json() == {"items": [], "meta": {"count": 0}}
+    assert cleared_ids == []
+
+
+def test_put_lecturer_research_interests_rolls_back_when_replace_fails(
+    app: FastAPI,
+) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    ResearchInterest.__table__.create(engine)
+    FacultyResearchInterest.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="Somchai",
+                    email="somchai@example.ac.th",
+                ),
+                ResearchInterest(research_interest_id=1, name="Machine Learning"),
+                ResearchInterest(research_interest_id=2, name="Data Mining"),
+                ResearchInterest(research_interest_id=3, name="Computer Vision"),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=1),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=2),
+            ]
+        )
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TRIGGER fail_research_interest_3
+                BEFORE INSERT ON faculty_research_interest
+                WHEN NEW.research_interest_id = 3
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced replace failure');
+                END
+                """
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_research_interest_service, None)
+    app.dependency_overrides[get_session] = session_override
+    url = f"/api/v2/lecturers/{lecturer_id}/research-interests"
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.put(url, json={"research_interest_ids": [1, 3]})
+
+    with engine.connect() as connection:
+        remaining_ids = (
+            connection.execute(
+                text(
+                    "SELECT research_interest_id FROM faculty_research_interest "
+                    "WHERE lecturer_id = :lecturer_id ORDER BY research_interest_id"
+                ),
+                {"lecturer_id": lecturer_id.hex},
+            )
+            .scalars()
+            .all()
+        )
+
+    assert response.status_code == 500
+    assert remaining_ids == [1, 2]
