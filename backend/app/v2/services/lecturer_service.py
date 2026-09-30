@@ -57,7 +57,10 @@ class LecturerService:
         )
 
     def get_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
-        raise NotImplementedError  # TODO
+        lecturer = self.lecturer_dao.get_by_id(lecturer_id)
+        if lecturer is None:
+            raise NotFoundError("Lecturer not found")
+        return LecturerResponse.model_validate(lecturer)
 
     def update_lecturer(self, lecturer_id: UUID, data: LecturerUpdateRequest) -> LecturerResponse:
         raise NotImplementedError  # TODO

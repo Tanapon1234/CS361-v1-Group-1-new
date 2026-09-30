@@ -292,6 +292,44 @@ def test_list_lecturers_searches_filters_and_paginates(app: FastAPI) -> None:
     }
 
 
+def test_get_lecturer_reads_database_and_returns_not_found(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                name_en="Somchai Jaidee",
+                email="somchai@example.ac.th",
+                is_active=False,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        found_response = client.get(f"{BASE}/{lecturer_id}")
+        missing_response = client.get(f"{BASE}/{uuid4()}")
+
+    assert found_response.status_code == 200
+    assert found_response.json()["lecturer_id"] == str(lecturer_id)
+    assert found_response.json()["name_en"] == "Somchai Jaidee"
+    assert found_response.json()["is_active"] is False
+    assert missing_response.status_code == 404
+    assert missing_response.json()["detail"] == "Lecturer not found"
+
+
 def test_get_lecturer(client: TestClient, service: MagicMock) -> None:
     lecturer = make_lecturer()
     service.get_lecturer.return_value = lecturer

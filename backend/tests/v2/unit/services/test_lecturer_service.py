@@ -245,11 +245,39 @@ def test_deactivate_lecturer_propagates_update_error(
         service.deactivate_lecturer(lecturer_id)
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement GET lecturer")
+def test_get_lecturer_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+        is_active=False,
+    )
+
+    result = service.get_lecturer(lecturer_id)
+
+    assert result.lecturer_id == lecturer_id
+    assert result.name_th == "สมชาย"
+    assert result.is_active is False
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+
+
 def test_get_unknown_lecturer_raises_not_found(
     service: LecturerService, lecturer_dao: MagicMock
 ) -> None:
     lecturer_dao.get_by_id.return_value = None
 
-    with pytest.raises(NotFoundError):
+    lecturer_id = uuid4()
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.get_lecturer(lecturer_id)
+
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+
+
+def test_get_lecturer_propagates_query_error(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.get_by_id.side_effect = RuntimeError("query failed")
+
+    with pytest.raises(RuntimeError, match="query failed"):
         service.get_lecturer(uuid4())
