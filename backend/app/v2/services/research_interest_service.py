@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.common import ListResponse
@@ -73,9 +73,6 @@ class ResearchInterestService:
             raise NotFoundError("Research interest not found")
 
         values = data.model_dump(exclude_unset=True)
-        if "name" not in values:
-            raise BadRequestError("name is required")
-
         duplicate = self.research_interest_dao.get_by_name(data.name)
         if duplicate is not None and duplicate.research_interest_id != research_interest_id:
             raise ConflictError("Research interest name already exists")

@@ -12,7 +12,11 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from app.core.database import get_session
-from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from app.core.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
 from app.v2.dependencies import get_research_interest_service
 from app.v2.dtos.common import ListMeta, ListResponse
 from app.v2.dtos.research_interest_dto import (
@@ -134,32 +138,37 @@ def test_update_research_interest(client: TestClient, service: MagicMock) -> Non
     assert data.name == "Deep Learning"
 
 
-def test_update_unknown_research_interest_is_404(
-    client: TestClient, service: MagicMock
-) -> None:
-    service.update_research_interest.side_effect = NotFoundError(
-        "Research interest not found"
-    )
+def test_update_unknown_research_interest_is_404(client: TestClient, service: MagicMock) -> None:
+    service.update_research_interest.side_effect = NotFoundError("Research interest not found")
 
     response = client.patch(f"{MASTER}/99", json={"name": "Deep Learning"})
 
     assert response.status_code == 404
 
 
-def test_update_research_interest_missing_name_is_400(
-    client: TestClient, service: MagicMock
+@pytest.mark.parametrize(
+    "research_interest_id",
+    ["abc", "32768"],
+    ids=["not-numeric", "exceeds-smallint"],
+)
+def test_update_research_interest_invalid_id_is_422(
+    client: TestClient, service: MagicMock, research_interest_id: str
 ) -> None:
-    service.update_research_interest.side_effect = BadRequestError("name is required")
+    response = client.patch(f"{MASTER}/{research_interest_id}", json={"name": "Deep Learning"})
 
-    response = client.patch(f"{MASTER}/1", json={})
+    assert response.status_code == 422
+    service.update_research_interest.assert_not_called()
 
-    assert response.status_code == 400
 
-
-def test_update_research_interest_empty_name_is_422(
-    client: TestClient, service: MagicMock
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"name": ""}, {"name": None}, {"name": "Deep Learning", "unknown": True}],
+    ids=["missing-name", "empty-name", "null-name", "unknown-field"],
+)
+def test_update_research_interest_invalid_body_is_422(
+    client: TestClient, service: MagicMock, body: dict[str, object]
 ) -> None:
-    response = client.patch(f"{MASTER}/1", json={"name": ""})
+    response = client.patch(f"{MASTER}/1", json=body)
 
     assert response.status_code == 422
     service.update_research_interest.assert_not_called()
@@ -175,6 +184,16 @@ def test_update_research_interest_duplicate_name_is_409(
     response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
 
     assert response.status_code == 409
+
+
+def test_update_research_interest_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = ServiceUnavailableError("Database unavailable")
+
+    response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
+
+    assert response.status_code == 503
 
 
 def test_delete_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -194,9 +213,7 @@ def test_list_lecturer_research_interests(client: TestClient, service: MagicMock
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "data": [{"research_interest_id": 1, "name": "Machine Learning"}]
-    }
+    assert response.json() == {"data": [{"research_interest_id": 1, "name": "Machine Learning"}]}
 
 
 @pytest.mark.parametrize(

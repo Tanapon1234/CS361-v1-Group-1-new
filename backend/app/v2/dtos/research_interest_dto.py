@@ -10,7 +10,7 @@ class ResearchInterestCreateRequest(RequestDTO):
 
 
 class ResearchInterestUpdateRequest(RequestDTO):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
+    name: str = Field(min_length=1, max_length=255)
 
 
 class ResearchInterestListQuery(RequestDTO):

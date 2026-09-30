@@ -10,8 +10,8 @@ from app.v2.controllers.params import ResearchInterestId
 from app.v2.dependencies import ResearchInterestServiceDep
 from app.v2.dtos.research_interest_dto import (
     ResearchInterestCreateRequest,
-    ResearchInterestListResponse,
     ResearchInterestListQuery,
+    ResearchInterestListResponse,
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
 )
