@@ -100,9 +100,7 @@ def test_list_research_interests_invalid_query_is_422(
 def test_list_research_interests_service_error_is_problem_response(
     client: TestClient, service: MagicMock
 ) -> None:
-    service.list_research_interests.side_effect = ServiceUnavailableError(
-        "Database unavailable"
-    )
+    service.list_research_interests.side_effect = ServiceUnavailableError("Database unavailable")
 
     response = client.get(MASTER)
 
@@ -244,7 +242,17 @@ def test_delete_research_interest(client: TestClient, service: MagicMock) -> Non
     response = client.delete(f"{MASTER}/3")
 
     assert response.status_code == 204
+    assert response.content == b""
     service.delete_research_interest.assert_called_once_with(3)
+
+
+def test_delete_unknown_research_interest_is_404(client: TestClient, service: MagicMock) -> None:
+    service.delete_research_interest.side_effect = NotFoundError("Research interest not found")
+
+    response = client.delete(f"{MASTER}/99")
+
+    assert response.status_code == 404
+    service.delete_research_interest.assert_called_once_with(99)
 
 
 def test_list_lecturer_research_interests(client: TestClient, service: MagicMock) -> None:
@@ -263,9 +271,7 @@ def test_list_lecturer_research_interests(client: TestClient, service: MagicMock
     service.list_lecturer_research_interests.assert_called_once_with(lecturer_id)
 
 
-def test_list_lecturer_research_interests_empty(
-    client: TestClient, service: MagicMock
-) -> None:
+def test_list_lecturer_research_interests_empty(client: TestClient, service: MagicMock) -> None:
     lecturer_id = uuid4()
     service.list_lecturer_research_interests.return_value = lecturer_interest_list()
 
@@ -565,3 +571,61 @@ def test_put_lecturer_research_interests_replaces_and_clears_relationships(
     assert clear_response.json() == {"items": [], "meta": {"count": 0}}
     assert cleared_get_response.status_code == 200
     assert cleared_get_response.json() == {"items": [], "meta": {"count": 0}}
+
+
+def test_delete_research_interest_removes_record_and_cascades_relationship(
+    app: FastAPI,
+) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.begin() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+    Lecturer.__table__.create(engine)
+    ResearchInterest.__table__.create(engine)
+    FacultyResearchInterest.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="Somchai",
+                    email="somchai@example.ac.th",
+                ),
+                ResearchInterest(research_interest_id=1, name="Machine Learning"),
+                ResearchInterest(research_interest_id=2, name="Computer Vision"),
+            ]
+        )
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=1),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=2),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_research_interest_service, None)
+    app.dependency_overrides[get_session] = session_override
+    lecturer_url = f"/api/v2/lecturers/{lecturer_id}/research-interests"
+
+    with TestClient(app) as client:
+        delete_response = client.delete(f"{MASTER}/1")
+        master_response = client.get(MASTER)
+        lecturer_response = client.get(lecturer_url)
+
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+    assert master_response.json()["items"] == [
+        {"research_interest_id": 2, "name": "Computer Vision"}
+    ]
+    assert lecturer_response.json() == {
+        "items": [{"research_interest_id": 2, "name": "Computer Vision"}],
+        "meta": {"count": 1},
+    }

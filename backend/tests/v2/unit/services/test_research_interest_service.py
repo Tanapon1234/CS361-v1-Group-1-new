@@ -102,9 +102,7 @@ def test_list_research_interests_returns_page(
     assert result.meta.total == 1
     assert result.meta.limit == 20
     assert result.meta.offset == 0
-    research_interest_dao.find_page.assert_called_once_with(
-        q="Machine", limit=20, offset=0
-    )
+    research_interest_dao.find_page.assert_called_once_with(q="Machine", limit=20, offset=0)
 
 
 def test_list_research_interests_paginates(
@@ -115,16 +113,12 @@ def test_list_research_interests_paginates(
         21,
     )
 
-    result = service.list_research_interests(
-        ResearchInterestListQuery(limit=10, offset=10)
-    )
+    result = service.list_research_interests(ResearchInterestListQuery(limit=10, offset=10))
 
     assert result.meta.limit == 10
     assert result.meta.offset == 10
     assert result.meta.total == 21
-    research_interest_dao.find_page.assert_called_once_with(
-        q=None, limit=10, offset=10
-    )
+    research_interest_dao.find_page.assert_called_once_with(q=None, limit=10, offset=10)
 
 
 def test_list_research_interests_empty_result(
@@ -346,3 +340,25 @@ def test_update_research_interest_allows_same_record_name(
 
     assert result.research_interest_id == 1
     assert result.name == "Machine Learning"
+
+
+def test_delete_research_interest_success(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    existing = ResearchInterest(research_interest_id=1, name="Machine Learning")
+    research_interest_dao.get_by_id.return_value = existing
+
+    service.delete_research_interest(1)
+
+    research_interest_dao.delete.assert_called_once_with(existing)
+
+
+def test_delete_unknown_research_interest_raises_not_found(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Research interest not found"):
+        service.delete_research_interest(99)
+
+    research_interest_dao.delete.assert_not_called()
