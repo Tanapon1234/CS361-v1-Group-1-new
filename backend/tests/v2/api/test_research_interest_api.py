@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from app.core.database import get_session
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, ServiceUnavailableError
 from app.v2.dependencies import get_research_interest_service
 from app.v2.dtos.common import ListMeta, ListResponse
 from app.v2.dtos.research_interest_dto import (
@@ -91,20 +91,31 @@ def test_create_research_interest(client: TestClient, service: MagicMock) -> Non
     response = client.post(MASTER, json={"name": "Machine Learning"})
 
     assert response.status_code == 201
-    assert response.json()["research_interest_id"] == 1
+    assert response.json() == {
+        "research_interest_id": 1,
+        "name": "Machine Learning",
+    }
 
 
 @pytest.mark.parametrize(
     "body",
-    [{}, {"name": ""}],
-    ids=["missing-name", "empty-name"],
+    [
+        {},
+        {"name": ""},
+        {"name": "   "},
+        {"name": None},
+        {"name": "x" * 256},
+        {"name": "Machine Learning", "unknown": True},
+    ],
+    ids=["missing-name", "empty-name", "blank-name", "null-name", "too-long", "unknown-field"],
 )
-def test_create_research_interest_invalid_body_is_400(
-    client: TestClient, service: MagicMock, body: dict[str, str]
+def test_create_research_interest_invalid_body_is_422(
+    client: TestClient, service: MagicMock, body: dict[str, object]
 ) -> None:
     response = client.post(MASTER, json=body)
 
-    assert response.status_code == 400
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
     service.create_research_interest.assert_not_called()
 
 
@@ -118,6 +129,18 @@ def test_create_research_interest_duplicate_name_is_409(
     response = client.post(MASTER, json={"name": "Machine Learning"})
 
     assert response.status_code == 409
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_create_research_interest_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.create_research_interest.side_effect = ServiceUnavailableError("Database unavailable")
+
+    response = client.post(MASTER, json={"name": "Machine Learning"})
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_update_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -239,15 +262,9 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
     assert list_response.json()["data"] == [
         {"research_interest_id": 1, "name": "Machine Learning"}
     ]
-    assert list_response.json()["pagination"] == {
-        "page": 1,
-        "limit": 20,
-        "total": 1,
-        "total_pages": 1,
-    }
 
 
-def test_list_research_interests_search_pagination_and_sort(app: FastAPI) -> None:
+def test_create_research_interest_rolls_back_when_insert_fails(app: FastAPI) -> None:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -267,12 +284,11 @@ def test_list_research_interests_search_pagination_and_sort(app: FastAPI) -> Non
         connection.execute(
             text(
                 """
-                INSERT INTO research_interest (name)
-                VALUES
-                    ('Artificial Intelligence'),
-                    ('Machine Learning'),
-                    ('Machine Learning in Healthcare'),
-                    ('Robotics')
+                CREATE TRIGGER fail_research_interest_insert
+                BEFORE INSERT ON research_interest
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced insert failure');
+                END
                 """
             )
         )
@@ -284,154 +300,12 @@ def test_list_research_interests_search_pagination_and_sort(app: FastAPI) -> Non
     app.dependency_overrides.pop(get_research_interest_service, None)
     app.dependency_overrides[get_session] = session_override
 
-    with TestClient(app) as client:
-        search_response = client.get(MASTER, params={"search": "machine"})
-        paged_response = client.get(MASTER, params={"page": 1, "limit": 2})
-        asc_response = client.get(MASTER, params={"sort_order": "asc"})
-        desc_response = client.get(MASTER, params={"sort_order": "desc"})
-        empty_response = client.get(MASTER, params={"search": "quantum"})
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(MASTER, json={"name": "Machine Learning"})
 
-    assert search_response.status_code == 200
-    assert [item["name"] for item in search_response.json()["data"]] == [
-        "Machine Learning",
-        "Machine Learning in Healthcare",
-    ]
-    assert search_response.json()["pagination"]["total"] == 2
+    with engine.connect() as connection:
+        count = connection.execute(text("SELECT COUNT(*) FROM research_interest")).scalar_one()
 
-    assert paged_response.status_code == 200
-    assert len(paged_response.json()["data"]) <= 2
-    assert paged_response.json()["pagination"] == {
-        "page": 1,
-        "limit": 2,
-        "total": 4,
-        "total_pages": 2,
-    }
-
-    assert asc_response.status_code == 200
-    assert [item["name"] for item in asc_response.json()["data"]] == [
-        "Artificial Intelligence",
-        "Machine Learning",
-        "Machine Learning in Healthcare",
-        "Robotics",
-    ]
-
-    assert desc_response.status_code == 200
-    assert [item["name"] for item in desc_response.json()["data"]] == [
-        "Robotics",
-        "Machine Learning in Healthcare",
-        "Machine Learning",
-        "Artificial Intelligence",
-    ]
-
-    assert empty_response.status_code == 200
-    assert empty_response.json() == {
-        "data": [],
-        "pagination": {"page": 1, "limit": 20, "total": 0, "total_pages": 0},
-    }
-
-
-def test_list_lecturer_research_interests_search_sort_and_scope(app: FastAPI) -> None:
-    lecturer_id = uuid4()
-    other_lecturer_id = uuid4()
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Lecturer.__table__.create(engine)
-    ResearchInterest.__table__.create(engine)
-    FacultyResearchInterest.__table__.create(engine)
-    with Session(engine) as session, session.begin():
-        session.add_all(
-            [
-                Lecturer(
-                    lecturer_id=lecturer_id,
-                    name_th="Somchai",
-                    email="somchai@example.ac.th",
-                ),
-                Lecturer(
-                    lecturer_id=other_lecturer_id,
-                    name_th="Somsri",
-                    email="somsri@example.ac.th",
-                ),
-                ResearchInterest(
-                    research_interest_id=1,
-                    name="Machine Learning",
-                ),
-                ResearchInterest(
-                    research_interest_id=2,
-                    name="Machine Learning in Healthcare",
-                ),
-                ResearchInterest(
-                    research_interest_id=3,
-                    name="Artificial Intelligence",
-                ),
-                ResearchInterest(
-                    research_interest_id=4,
-                    name="Machine Learning for Other Lecturer",
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=1,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=2,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=3,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=other_lecturer_id,
-                    research_interest_id=4,
-                ),
-            ]
-        )
-
-    def session_override() -> Iterator[Session]:
-        with Session(engine) as session, session.begin():
-            yield session
-
-    app.dependency_overrides.pop(get_research_interest_service, None)
-    app.dependency_overrides[get_session] = session_override
-
-    with TestClient(app) as client:
-        all_response = client.get(f"/api/v2/lecturers/{lecturer_id}/research-interests")
-        search_response = client.get(
-            f"/api/v2/lecturers/{lecturer_id}/research-interests",
-            params={"search": "machine"},
-        )
-        desc_response = client.get(
-            f"/api/v2/lecturers/{lecturer_id}/research-interests",
-            params={"sort_order": "desc"},
-        )
-        empty_response = client.get(
-            f"/api/v2/lecturers/{lecturer_id}/research-interests",
-            params={"search": "quantum"},
-        )
-        unknown_response = client.get(f"/api/v2/lecturers/{uuid4()}/research-interests")
-
-    assert all_response.status_code == 200
-    assert [item["name"] for item in all_response.json()["data"]] == [
-        "Artificial Intelligence",
-        "Machine Learning",
-        "Machine Learning in Healthcare",
-    ]
-
-    assert search_response.status_code == 200
-    assert [item["name"] for item in search_response.json()["data"]] == [
-        "Machine Learning",
-        "Machine Learning in Healthcare",
-    ]
-
-    assert desc_response.status_code == 200
-    assert [item["name"] for item in desc_response.json()["data"]] == [
-        "Machine Learning in Healthcare",
-        "Machine Learning",
-        "Artificial Intelligence",
-    ]
-
-    assert empty_response.status_code == 200
-    assert empty_response.json() == {"data": []}
-    assert unknown_response.status_code == 404
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert count == 0

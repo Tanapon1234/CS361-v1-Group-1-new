@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, create_autospec
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
@@ -61,6 +62,30 @@ def test_create_research_interest_duplicate_name_raises_conflict(
         service.create_research_interest(ResearchInterestCreateRequest(name="Machine Learning"))
 
     research_interest_dao.add.assert_not_called()
+
+
+def test_create_research_interest_integrity_error_raises_conflict(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.get_by_name.return_value = None
+    unique_violation = Exception("duplicate")
+    unique_violation.sqlstate = "23505"  # type: ignore[attr-defined]
+    research_interest_dao.add.side_effect = IntegrityError(
+        "INSERT INTO research_interest", {}, unique_violation
+    )
+
+    with pytest.raises(ConflictError, match="Research interest name already exists"):
+        service.create_research_interest(ResearchInterestCreateRequest(name="Machine Learning"))
+
+
+def test_create_research_interest_propagates_unexpected_error_for_rollback(
+    service: ResearchInterestService, research_interest_dao: MagicMock
+) -> None:
+    research_interest_dao.get_by_name.return_value = None
+    research_interest_dao.add.side_effect = RuntimeError("write failed")
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        service.create_research_interest(ResearchInterestCreateRequest(name="Machine Learning"))
 
 
 def test_list_research_interests_returns_page(

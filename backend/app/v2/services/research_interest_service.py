@@ -22,6 +22,13 @@ from app.v2.dtos.research_interest_dto import (
 from app.v2.models.research_interest import ResearchInterest
 
 
+def _is_unique_violation(exc: IntegrityError) -> bool:
+    sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
+    if sqlstate == "23505":
+        return True
+    return "unique constraint failed" in str(exc.orig).lower()
+
+
 class ResearchInterestService:
     def __init__(
         self, research_interest_dao: ResearchInterestDAO, lecturer_dao: LecturerDAO
@@ -61,7 +68,9 @@ class ResearchInterestService:
         try:
             research_interest = self.research_interest_dao.add(ResearchInterest(name=data.name))
         except IntegrityError as exc:
-            raise ConflictError("Research interest name already exists") from exc
+            if _is_unique_violation(exc):
+                raise ConflictError("Research interest name already exists") from exc
+            raise
 
         return ResearchInterestResponse.model_validate(research_interest)
 
