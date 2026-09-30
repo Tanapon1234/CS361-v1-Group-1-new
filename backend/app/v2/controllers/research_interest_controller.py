@@ -2,15 +2,15 @@
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, Query, status
 from pydantic import ValidationError
 
 from app.core.exceptions import BadRequestError
 from app.v2.controllers.params import ResearchInterestId
 from app.v2.dependencies import ResearchInterestServiceDep
+from app.v2.dtos.common import PageResponse
 from app.v2.dtos.research_interest_dto import (
     ResearchInterestCreateRequest,
-    ResearchInterestListResponse,
     ResearchInterestListQuery,
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
@@ -21,24 +21,9 @@ router = APIRouter(prefix="/research-interests", tags=["research-interests"])
 
 @router.get("")
 def list_research_interests(
+    query: Annotated[ResearchInterestListQuery, Query()],
     service: ResearchInterestServiceDep,
-    search: str | None = None,
-    page: int = 1,
-    limit: int = 20,
-    sort_order: str = "asc",
-) -> ResearchInterestListResponse:
-    try:
-        query = ResearchInterestListQuery.model_validate(
-            {
-                "search": search,
-                "page": page,
-                "limit": limit,
-                "sort_order": sort_order,
-            }
-        )
-    except ValidationError as exc:
-        raise BadRequestError("Query parameters are invalid") from exc
-
+) -> PageResponse[ResearchInterestResponse]:
     return service.list_research_interests(query)
 
 

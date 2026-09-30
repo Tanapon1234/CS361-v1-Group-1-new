@@ -1,8 +1,7 @@
-from typing import Literal
-
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.v2.dtos.base import RequestDTO, ResponseDTO
+from app.v2.dtos.common import PageQuery
 
 
 class ResearchInterestCreateRequest(RequestDTO):
@@ -13,37 +12,13 @@ class ResearchInterestUpdateRequest(RequestDTO):
     name: str | None = Field(default=None, min_length=1, max_length=255)
 
 
-class ResearchInterestListQuery(RequestDTO):
-    search: str | None = Field(default=None, max_length=100)
-    page: int = Field(default=1, ge=1)
-    limit: int = Field(default=20, ge=1, le=100)
-    sort_order: Literal["asc", "desc"] = "asc"
+class ResearchInterestListQuery(PageQuery):
+    q: str | None = Field(default=None, max_length=100)
 
 
 class ResearchInterestResponse(ResponseDTO):
     research_interest_id: int
     name: str
-
-
-class ResearchInterestPagination(BaseModel):
-    page: int
-    limit: int
-    total: int
-    total_pages: int
-
-
-class ResearchInterestListResponse(BaseModel):
-    data: list[ResearchInterestResponse]
-    pagination: ResearchInterestPagination
-
-
-class LecturerResearchInterestListQuery(RequestDTO):
-    search: str | None = Field(default=None, max_length=100)
-    sort_order: Literal["asc", "desc"] = "asc"
-
-
-class LecturerResearchInterestListResponse(BaseModel):
-    data: list[ResearchInterestResponse]
 
 
 class LecturerResearchInterestsReplaceRequest(RequestDTO):
