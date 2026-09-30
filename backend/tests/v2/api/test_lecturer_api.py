@@ -163,6 +163,42 @@ def test_post_activate_lecturer_persists_status(app: FastAPI) -> None:
     assert lecturer.is_active is True
 
 
+def test_post_deactivate_lecturer_persists_status(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                email="somchai@example.ac.th",
+                is_active=True,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        response = client.post(f"{BASE}/{lecturer_id}/deactivate")
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is False
+    with Session(engine) as session:
+        lecturer = session.get(Lecturer, lecturer_id)
+    assert lecturer is not None
+    assert lecturer.is_active is False
+
+
 def test_list_lecturers_passes_query(client: TestClient, service: MagicMock) -> None:
     service.list_lecturers.return_value = PageResponse[LecturerResponse](
         items=[make_lecturer()], meta=PageMeta(total=1, limit=5, offset=0)

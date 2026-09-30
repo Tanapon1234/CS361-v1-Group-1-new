@@ -155,6 +155,72 @@ def test_activate_lecturer_propagates_update_error(
         service.activate_lecturer(lecturer_id)
 
 
+def test_deactivate_lecturer_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
+    lecturer_id = uuid4()
+    lecturer = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+        is_active=True,
+    )
+    lecturer_dao.get_by_id.return_value = lecturer
+
+    def update(entity: Lecturer, values: dict[str, bool]) -> Lecturer:
+        entity.sqlmodel_update(values)
+        return entity
+
+    lecturer_dao.update.side_effect = update
+
+    result = service.deactivate_lecturer(lecturer_id)
+
+    assert result.is_active is False
+    lecturer_dao.update.assert_called_once_with(lecturer, {"is_active": False})
+
+
+def test_deactivate_inactive_lecturer_is_idempotent(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+        is_active=False,
+    )
+
+    result = service.deactivate_lecturer(lecturer_id)
+
+    assert result.is_active is False
+    lecturer_dao.update.assert_not_called()
+
+
+def test_deactivate_unknown_lecturer_raises_not_found(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.deactivate_lecturer(uuid4())
+
+    lecturer_dao.update.assert_not_called()
+
+
+def test_deactivate_lecturer_propagates_update_error(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+        is_active=True,
+    )
+    lecturer_dao.update.side_effect = RuntimeError("write failed")
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        service.deactivate_lecturer(lecturer_id)
+
+
 @pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement GET lecturer")
 def test_get_unknown_lecturer_raises_not_found(
     service: LecturerService, lecturer_dao: MagicMock

@@ -64,4 +64,11 @@ class LecturerService:
         return LecturerResponse.model_validate(updated)
 
     def deactivate_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
-        raise NotImplementedError  # TODO: is_active = False
+        lecturer = self.lecturer_dao.get_by_id(lecturer_id)
+        if lecturer is None:
+            raise NotFoundError("Lecturer not found")
+        if not lecturer.is_active:
+            return LecturerResponse.model_validate(lecturer)
+
+        updated = self.lecturer_dao.update(lecturer, {"is_active": False})
+        return LecturerResponse.model_validate(updated)
