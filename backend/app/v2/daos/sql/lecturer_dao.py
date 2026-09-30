@@ -29,4 +29,7 @@ class SqlLecturerDAO(SqlDAO, LecturerDAO):
         return lecturer
 
     def update(self, lecturer: Lecturer, values: Mapping[str, Any]) -> Lecturer:
-        raise NotImplementedError
+        lecturer.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(lecturer)
+        return lecturer

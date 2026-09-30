@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.lecturer_dto import (
@@ -54,7 +54,14 @@ class LecturerService:
         raise NotImplementedError  # TODO
 
     def activate_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
-        raise NotImplementedError  # TODO: is_active = True
+        lecturer = self.lecturer_dao.get_by_id(lecturer_id)
+        if lecturer is None:
+            raise NotFoundError("Lecturer not found")
+        if lecturer.is_active:
+            return LecturerResponse.model_validate(lecturer)
+
+        updated = self.lecturer_dao.update(lecturer, {"is_active": True})
+        return LecturerResponse.model_validate(updated)
 
     def deactivate_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
         raise NotImplementedError  # TODO: is_active = False
