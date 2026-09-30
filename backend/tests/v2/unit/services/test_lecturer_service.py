@@ -8,12 +8,13 @@ from unittest.mock import MagicMock, create_autospec
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
+from app.v2.dtos.lecturer_dto import LecturerCreateRequest
+from app.v2.models.lecturer import Lecturer
 from app.v2.services.lecturer_service import LecturerService
-
-pytestmark = pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement LecturerService")
 
 
 @pytest.fixture
@@ -26,6 +27,69 @@ def service(lecturer_dao: MagicMock) -> LecturerService:
     return LecturerService(lecturer_dao)
 
 
+def test_create_lecturer_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
+    lecturer_dao.get_by_email.return_value = None
+    lecturer_dao.add.side_effect = lambda lecturer: lecturer
+
+    result = service.create_lecturer(
+        LecturerCreateRequest(
+            name_th="ผศ.ดร.สมชาย ใจดี",
+            name_en="Asst. Prof. Somchai Jaidee",
+            email="somchai@example.ac.th",
+        )
+    )
+
+    assert result.name_th == "ผศ.ดร.สมชาย ใจดี"
+    assert result.email == "somchai@example.ac.th"
+    assert result.is_active is True
+    lecturer_dao.get_by_email.assert_called_once_with("somchai@example.ac.th")
+    added = lecturer_dao.add.call_args.args[0]
+    assert isinstance(added, Lecturer)
+    assert added.name_en == "Asst. Prof. Somchai Jaidee"
+
+
+def test_create_lecturer_duplicate_email_raises_conflict(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.get_by_email.return_value = Lecturer(
+        name_th="Existing Lecturer", email="somchai@example.ac.th"
+    )
+
+    with pytest.raises(ConflictError, match="Email already used"):
+        service.create_lecturer(
+            LecturerCreateRequest(name_th="สมชาย", email="somchai@example.ac.th")
+        )
+
+    lecturer_dao.add.assert_not_called()
+
+
+def test_create_lecturer_unique_race_raises_conflict(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.get_by_email.return_value = None
+    unique_violation = Exception("duplicate")
+    unique_violation.sqlstate = "23505"  # type: ignore[attr-defined]
+    lecturer_dao.add.side_effect = IntegrityError("INSERT INTO lecturer", {}, unique_violation)
+
+    with pytest.raises(ConflictError, match="Email already used"):
+        service.create_lecturer(
+            LecturerCreateRequest(name_th="สมชาย", email="somchai@example.ac.th")
+        )
+
+
+def test_create_lecturer_propagates_unexpected_write_error(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.get_by_email.return_value = None
+    lecturer_dao.add.side_effect = RuntimeError("write failed")
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        service.create_lecturer(
+            LecturerCreateRequest(name_th="สมชาย", email="somchai@example.ac.th")
+        )
+
+
+@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement GET lecturer")
 def test_get_unknown_lecturer_raises_not_found(
     service: LecturerService, lecturer_dao: MagicMock
 ) -> None:

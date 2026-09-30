@@ -6,6 +6,9 @@ Tips: raise `NotFoundError` / `ConflictError` / `BadRequestError` from app.core.
 
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
+from app.core.exceptions import ConflictError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.lecturer_dto import (
@@ -14,6 +17,14 @@ from app.v2.dtos.lecturer_dto import (
     LecturerResponse,
     LecturerUpdateRequest,
 )
+from app.v2.models.lecturer import Lecturer
+
+
+def _is_unique_violation(exc: IntegrityError) -> bool:
+    sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
+    if sqlstate == "23505":
+        return True
+    return "unique constraint failed" in str(exc.orig).lower()
 
 
 class LecturerService:
@@ -21,7 +32,17 @@ class LecturerService:
         self.lecturer_dao = lecturer_dao
 
     def create_lecturer(self, data: LecturerCreateRequest) -> LecturerResponse:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_email(data.email) is not None:
+            raise ConflictError("Email already used")
+
+        try:
+            lecturer = self.lecturer_dao.add(Lecturer(**data.model_dump()))
+        except IntegrityError as exc:
+            if _is_unique_violation(exc):
+                raise ConflictError("Email already used") from exc
+            raise
+
+        return LecturerResponse.model_validate(lecturer)
 
     def list_lecturers(self, query: LecturerListQuery) -> PageResponse[LecturerResponse]:
         raise NotImplementedError  # TODO
