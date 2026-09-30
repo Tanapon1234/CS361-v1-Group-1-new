@@ -9,7 +9,7 @@ from app.v2.models.lecturer import Lecturer
 
 class SqlLecturerDAO(SqlDAO, LecturerDAO):
     def get_by_id(self, lecturer_id: UUID) -> Lecturer | None:
-        raise NotImplementedError
+        return self.session.get(Lecturer, lecturer_id)
 
     def find_page(
         self, *, q: str | None, is_active: bool | None, limit: int, offset: int
