@@ -14,6 +14,11 @@ class PublicationProfileDAO(ABC):
     def get_by_id(self, publication_profile_id: int) -> PublicationProfile | None: ...
 
     @abstractmethod
+    def get_by_identity(
+        self, *, lecturer_id: UUID, provider: str, url: str
+    ) -> PublicationProfile | None: ...
+
+    @abstractmethod
     def add(self, profile: PublicationProfile) -> PublicationProfile: ...
 
     @abstractmethod
