@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import delete, func
 from sqlmodel import select
 
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
@@ -19,20 +19,21 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
         return self.session.exec(statement).first()
 
     def find_page(
-        self, *, q: str | None, limit: int, offset: int
+        self, *, search: str | None, limit: int, offset: int, sort_order: str
     ) -> tuple[Sequence[ResearchInterest], int]:
         statement = select(ResearchInterest)
         count_statement = select(func.count()).select_from(ResearchInterest)
 
-        if q:
-            pattern = f"%{q}%"
+        if search:
+            pattern = f"%{search}%"
             statement = statement.where(ResearchInterest.name.ilike(pattern))
             count_statement = count_statement.where(ResearchInterest.name.ilike(pattern))
 
+        order_by = (
+            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
+        )
         total = self.session.exec(count_statement).one()
-        items = self.session.exec(
-            statement.order_by(ResearchInterest.name.asc()).offset(offset).limit(limit)
-        ).all()
+        items = self.session.exec(statement.order_by(order_by).offset(offset).limit(limit)).all()
         return items, total
 
     def add(self, research_interest: ResearchInterest) -> ResearchInterest:
@@ -44,13 +45,16 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
     def update(
         self, research_interest: ResearchInterest, values: Mapping[str, Any]
     ) -> ResearchInterest:
-        raise NotImplementedError
+        research_interest.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(research_interest)
+        return research_interest
 
     def delete(self, research_interest: ResearchInterest) -> None:
         raise NotImplementedError
 
     def list_by_lecturer(
-        self, lecturer_id: UUID
+        self, lecturer_id: UUID, *, search: str | None, sort_order: str
     ) -> Sequence[ResearchInterest]:
         statement = (
             select(ResearchInterest)
@@ -62,10 +66,27 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
             .where(FacultyResearchInterest.lecturer_id == lecturer_id)
         )
 
-        return self.session.exec(statement.order_by(ResearchInterest.name.asc())).all()
+        if search:
+            statement = statement.where(ResearchInterest.name.ilike(f"%{search}%"))
+
+        order_by = (
+            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
+        )
+        return self.session.exec(statement.order_by(order_by)).all()
 
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
-        raise NotImplementedError
+        statement = delete(FacultyResearchInterest).where(
+            FacultyResearchInterest.lecturer_id == lecturer_id
+        )
+        self.session.exec(statement)
+        self.session.add_all(
+            FacultyResearchInterest(
+                lecturer_id=lecturer_id,
+                research_interest_id=research_interest_id,
+            )
+            for research_interest_id in research_interest_ids
+        )
+        self.session.flush()
 
     def remove_from_lecturer(self, lecturer_id: UUID, research_interest_id: int) -> bool:
         raise NotImplementedError

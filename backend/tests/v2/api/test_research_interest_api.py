@@ -116,20 +116,31 @@ def test_create_research_interest(client: TestClient, service: MagicMock) -> Non
     response = client.post(MASTER, json={"name": "Machine Learning"})
 
     assert response.status_code == 201
-    assert response.json()["research_interest_id"] == 1
+    assert response.json() == {
+        "research_interest_id": 1,
+        "name": "Machine Learning",
+    }
 
 
 @pytest.mark.parametrize(
     "body",
-    [{}, {"name": ""}],
-    ids=["missing-name", "empty-name"],
+    [
+        {},
+        {"name": ""},
+        {"name": "   "},
+        {"name": None},
+        {"name": "x" * 256},
+        {"name": "Machine Learning", "unknown": True},
+    ],
+    ids=["missing-name", "empty-name", "blank-name", "null-name", "too-long", "unknown-field"],
 )
-def test_create_research_interest_invalid_body_is_400(
-    client: TestClient, service: MagicMock, body: dict[str, str]
+def test_create_research_interest_invalid_body_is_422(
+    client: TestClient, service: MagicMock, body: dict[str, object]
 ) -> None:
     response = client.post(MASTER, json=body)
 
-    assert response.status_code == 400
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
     service.create_research_interest.assert_not_called()
 
 
@@ -143,14 +154,90 @@ def test_create_research_interest_duplicate_name_is_409(
     response = client.post(MASTER, json={"name": "Machine Learning"})
 
     assert response.status_code == 409
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_create_research_interest_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.create_research_interest.side_effect = ServiceUnavailableError("Database unavailable")
+
+    response = client.post(MASTER, json={"name": "Machine Learning"})
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_update_research_interest(client: TestClient, service: MagicMock) -> None:
-    service.update_research_interest.return_value = interest(3)
+    service.update_research_interest.return_value = ResearchInterestResponse(
+        research_interest_id=3, name="Deep Learning"
+    )
 
     response = client.patch(f"{MASTER}/3", json={"name": "Deep Learning"})
 
     assert response.status_code == 200
+    assert response.json() == {"research_interest_id": 3, "name": "Deep Learning"}
+    research_interest_id, data = service.update_research_interest.call_args.args
+    assert research_interest_id == 3
+    assert data.name == "Deep Learning"
+
+
+def test_update_unknown_research_interest_is_404(client: TestClient, service: MagicMock) -> None:
+    service.update_research_interest.side_effect = NotFoundError("Research interest not found")
+
+    response = client.patch(f"{MASTER}/99", json={"name": "Deep Learning"})
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "research_interest_id",
+    ["abc", "32768"],
+    ids=["not-numeric", "exceeds-smallint"],
+)
+def test_update_research_interest_invalid_id_is_422(
+    client: TestClient, service: MagicMock, research_interest_id: str
+) -> None:
+    response = client.patch(f"{MASTER}/{research_interest_id}", json={"name": "Deep Learning"})
+
+    assert response.status_code == 422
+    service.update_research_interest.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"name": ""}, {"name": None}, {"name": "Deep Learning", "unknown": True}],
+    ids=["missing-name", "empty-name", "null-name", "unknown-field"],
+)
+def test_update_research_interest_invalid_body_is_422(
+    client: TestClient, service: MagicMock, body: dict[str, object]
+) -> None:
+    response = client.patch(f"{MASTER}/1", json=body)
+
+    assert response.status_code == 422
+    service.update_research_interest.assert_not_called()
+
+
+def test_update_research_interest_duplicate_name_is_409(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = ConflictError(
+        "Research interest name already exists"
+    )
+
+    response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
+
+    assert response.status_code == 409
+
+
+def test_update_research_interest_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_research_interest.side_effect = ServiceUnavailableError("Database unavailable")
+
+    response = client.patch(f"{MASTER}/1", json={"name": "Deep Learning"})
+
+    assert response.status_code == 503
 
 
 def test_delete_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -211,16 +298,93 @@ def test_replace_lecturer_research_interests(client: TestClient, service: MagicM
     lecturer_id = uuid4()
     service.replace_lecturer_research_interests.return_value = ListResponse[
         ResearchInterestResponse
-    ](items=[], meta=ListMeta(count=0))
+    ](
+        items=[
+            ResearchInterestResponse(research_interest_id=1, name="Machine Learning"),
+            ResearchInterestResponse(research_interest_id=3, name="Computer Vision"),
+        ],
+        meta=ListMeta(count=2),
+    )
 
     response = client.put(
         f"/api/v2/lecturers/{lecturer_id}/research-interests",
-        json={"research_interest_ids": [1, 2]},
+        json={"research_interest_ids": [1, 3]},
     )
 
     assert response.status_code == 200
+    assert response.json() == {
+        "items": [
+            {"research_interest_id": 1, "name": "Machine Learning"},
+            {"research_interest_id": 3, "name": "Computer Vision"},
+        ],
+        "meta": {"count": 2},
+    }
     _, data = service.replace_lecturer_research_interests.call_args.args
-    assert data.research_interest_ids == [1, 2]
+    assert data.research_interest_ids == [1, 3]
+
+
+@pytest.mark.parametrize(
+    ("lecturer_id", "body"),
+    [
+        ("not-a-uuid", {"research_interest_ids": [1]}),
+        (str(uuid4()), {}),
+        (str(uuid4()), {"research_interest_ids": [0]}),
+        (str(uuid4()), {"research_interest_ids": [32768]}),
+        (str(uuid4()), {"research_interest_ids": ["1"]}),
+        (str(uuid4()), {"research_interest_ids": [1, 1]}),
+    ],
+    ids=[
+        "invalid-uuid",
+        "missing-ids",
+        "id-too-small",
+        "id-exceeds-smallint",
+        "id-not-integer",
+        "duplicate-id",
+    ],
+)
+def test_replace_lecturer_research_interests_invalid_request_is_422(
+    client: TestClient, service: MagicMock, lecturer_id: str, body: object
+) -> None:
+    response = client.put(
+        f"/api/v2/lecturers/{lecturer_id}/research-interests",
+        json=body,
+    )
+
+    assert response.status_code == 422
+    service.replace_lecturer_research_interests.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [NotFoundError("Lecturer not found"), NotFoundError("Research interest 99 not found")],
+    ids=["unknown-lecturer", "unknown-interest"],
+)
+def test_replace_lecturer_research_interests_not_found_is_404(
+    client: TestClient, service: MagicMock, error: NotFoundError
+) -> None:
+    service.replace_lecturer_research_interests.side_effect = error
+
+    response = client.put(
+        f"/api/v2/lecturers/{uuid4()}/research-interests",
+        json={"research_interest_ids": [1, 99]},
+    )
+
+    assert response.status_code == 404
+
+
+def test_replace_lecturer_research_interests_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.replace_lecturer_research_interests.side_effect = ServiceUnavailableError(
+        "Database unavailable"
+    )
+
+    response = client.put(
+        f"/api/v2/lecturers/{uuid4()}/research-interests",
+        json={"research_interest_ids": [1]},
+    )
+
+    assert response.status_code == 503
 
 
 def test_remove_lecturer_research_interest(client: TestClient, service: MagicMock) -> None:
@@ -265,6 +429,8 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
     assert create_response.status_code == 201
     assert create_response.json()["research_interest_id"] == 1
     assert duplicate_response.status_code == 409
+    assert update_response.status_code == 200
+    assert update_response.json() == {"research_interest_id": 1, "name": "Deep Learning"}
     assert list_response.status_code == 200
     assert list_response.json()["items"] == [
         {"research_interest_id": 1, "name": "Machine Learning"}
@@ -274,6 +440,10 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
         "limit": 20,
         "offset": 0,
     }
+    assert updated_list_response.status_code == 200
+    assert updated_list_response.json()["data"] == [
+        {"research_interest_id": 1, "name": "Deep Learning"}
+    ]
 
 
 def test_list_research_interests_search_and_pagination(app: FastAPI) -> None:
@@ -296,12 +466,11 @@ def test_list_research_interests_search_and_pagination(app: FastAPI) -> None:
         connection.execute(
             text(
                 """
-                INSERT INTO research_interest (name)
-                VALUES
-                    ('Artificial Intelligence'),
-                    ('Machine Learning'),
-                    ('Machine Learning in Healthcare'),
-                    ('Robotics')
+                CREATE TRIGGER fail_research_interest_insert
+                BEFORE INSERT ON research_interest
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced insert failure');
+                END
                 """
             )
         )
@@ -342,9 +511,10 @@ def test_list_research_interests_search_and_pagination(app: FastAPI) -> None:
     }
 
 
-def test_list_lecturer_research_interests_search_sort_and_scope(app: FastAPI) -> None:
+def test_put_lecturer_research_interests_replaces_and_clears_relationships(
+    app: FastAPI,
+) -> None:
     lecturer_id = uuid4()
-    other_lecturer_id = uuid4()
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -361,43 +531,11 @@ def test_list_lecturer_research_interests_search_sort_and_scope(app: FastAPI) ->
                     name_th="Somchai",
                     email="somchai@example.ac.th",
                 ),
-                Lecturer(
-                    lecturer_id=other_lecturer_id,
-                    name_th="Somsri",
-                    email="somsri@example.ac.th",
-                ),
-                ResearchInterest(
-                    research_interest_id=1,
-                    name="Machine Learning",
-                ),
-                ResearchInterest(
-                    research_interest_id=2,
-                    name="Machine Learning in Healthcare",
-                ),
-                ResearchInterest(
-                    research_interest_id=3,
-                    name="Artificial Intelligence",
-                ),
-                ResearchInterest(
-                    research_interest_id=4,
-                    name="Machine Learning for Other Lecturer",
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=1,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=2,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=lecturer_id,
-                    research_interest_id=3,
-                ),
-                FacultyResearchInterest(
-                    lecturer_id=other_lecturer_id,
-                    research_interest_id=4,
-                ),
+                ResearchInterest(research_interest_id=1, name="Machine Learning"),
+                ResearchInterest(research_interest_id=2, name="Data Mining"),
+                ResearchInterest(research_interest_id=3, name="Computer Vision"),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=1),
+                FacultyResearchInterest(lecturer_id=lecturer_id, research_interest_id=2),
             ]
         )
 
@@ -407,6 +545,7 @@ def test_list_lecturer_research_interests_search_sort_and_scope(app: FastAPI) ->
 
     app.dependency_overrides.pop(get_research_interest_service, None)
     app.dependency_overrides[get_session] = session_override
+    url = f"/api/v2/lecturers/{lecturer_id}/research-interests"
 
     with TestClient(app) as client:
         all_response = client.get(f"/api/v2/lecturers/{lecturer_id}/research-interests")
