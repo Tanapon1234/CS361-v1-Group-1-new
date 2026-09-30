@@ -17,7 +17,7 @@ class ResearchInterestDAO(ABC):
 
     @abstractmethod
     def find_page(
-        self, *, search: str | None, limit: int, offset: int, sort_order: str
+        self, *, q: str | None, limit: int, offset: int
     ) -> tuple[Sequence[ResearchInterest], int]: ...
 
     @abstractmethod
@@ -35,7 +35,7 @@ class ResearchInterestDAO(ABC):
 
     @abstractmethod
     def list_by_lecturer(
-        self, lecturer_id: UUID, *, search: str | None, sort_order: str
+        self, lecturer_id: UUID
     ) -> Sequence[ResearchInterest]: ...
 
     @abstractmethod

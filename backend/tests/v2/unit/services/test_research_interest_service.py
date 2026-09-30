@@ -97,13 +97,14 @@ def test_list_research_interests_returns_page(
         1,
     )
 
-    result = service.list_research_interests(ResearchInterestListQuery(search="Machine"))
+    result = service.list_research_interests(ResearchInterestListQuery(q="Machine"))
 
-    assert result.data[0].name == "Machine Learning"
-    assert result.pagination.total == 1
-    assert result.pagination.total_pages == 1
+    assert result.items[0].name == "Machine Learning"
+    assert result.meta.total == 1
+    assert result.meta.limit == 20
+    assert result.meta.offset == 0
     research_interest_dao.find_page.assert_called_once_with(
-        search="Machine", limit=20, offset=0, sort_order="asc"
+        q="Machine", limit=20, offset=0
     )
 
 
@@ -116,15 +117,14 @@ def test_list_research_interests_paginates(
     )
 
     result = service.list_research_interests(
-        ResearchInterestListQuery(page=2, limit=10, sort_order="desc")
+        ResearchInterestListQuery(limit=10, offset=10)
     )
 
-    assert result.pagination.page == 2
-    assert result.pagination.limit == 10
-    assert result.pagination.total == 21
-    assert result.pagination.total_pages == 3
+    assert result.meta.limit == 10
+    assert result.meta.offset == 10
+    assert result.meta.total == 21
     research_interest_dao.find_page.assert_called_once_with(
-        search=None, limit=10, offset=10, sort_order="desc"
+        q=None, limit=10, offset=10
     )
 
 
@@ -135,9 +135,8 @@ def test_list_research_interests_empty_result(
 
     result = service.list_research_interests(ResearchInterestListQuery())
 
-    assert result.data == []
-    assert result.pagination.total == 0
-    assert result.pagination.total_pages == 0
+    assert result.items == []
+    assert result.meta.total == 0
 
 
 def test_list_lecturer_research_interests_for_existing_lecturer(
@@ -152,18 +151,15 @@ def test_list_lecturer_research_interests_for_existing_lecturer(
         ResearchInterest(research_interest_id=2, name="Machine Learning in Healthcare"),
     ]
 
-    result = service.list_lecturer_research_interests(
-        lecturer_id, LecturerResearchInterestListQuery(search="machine")
-    )
+    result = service.list_lecturer_research_interests(lecturer_id)
 
-    assert [item.name for item in result.data] == [
+    assert [item.name for item in result.items] == [
         "Machine Learning",
         "Machine Learning in Healthcare",
     ]
+    assert result.meta.count == 2
     lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
-    research_interest_dao.list_by_lecturer.assert_called_once_with(
-        lecturer_id, search="machine", sort_order="asc"
-    )
+    research_interest_dao.list_by_lecturer.assert_called_once_with(lecturer_id)
 
 
 def test_list_lecturer_research_interests_empty(
@@ -175,14 +171,11 @@ def test_list_lecturer_research_interests_empty(
     )
     research_interest_dao.list_by_lecturer.return_value = []
 
-    result = service.list_lecturer_research_interests(
-        lecturer_id, LecturerResearchInterestListQuery(sort_order="desc")
-    )
+    result = service.list_lecturer_research_interests(lecturer_id)
 
-    assert result.data == []
-    research_interest_dao.list_by_lecturer.assert_called_once_with(
-        lecturer_id, search=None, sort_order="desc"
-    )
+    assert result.items == []
+    assert result.meta.count == 0
+    research_interest_dao.list_by_lecturer.assert_called_once_with(lecturer_id)
 
 
 def test_list_lecturer_research_interests_unknown_lecturer_raises_not_found(
