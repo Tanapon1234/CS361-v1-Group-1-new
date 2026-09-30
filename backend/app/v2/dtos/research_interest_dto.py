@@ -1,6 +1,6 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 
 from app.v2.dtos.base import RequestDTO, ResponseDTO
 from app.v2.dtos.common import PageQuery

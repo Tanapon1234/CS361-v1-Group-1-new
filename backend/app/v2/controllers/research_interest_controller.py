@@ -2,8 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Query, status
-from pydantic import ValidationError
+from fastapi import APIRouter, Query, status
 
 from app.v2.controllers.params import ResearchInterestId
 from app.v2.dependencies import ResearchInterestServiceDep
@@ -11,7 +10,6 @@ from app.v2.dtos.common import PageResponse
 from app.v2.dtos.research_interest_dto import (
     ResearchInterestCreateRequest,
     ResearchInterestListQuery,
-    ResearchInterestListResponse,
     ResearchInterestResponse,
     ResearchInterestUpdateRequest,
 )

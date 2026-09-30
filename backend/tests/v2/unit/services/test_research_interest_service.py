@@ -8,7 +8,6 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.dtos.research_interest_dto import (
-    LecturerResearchInterestListQuery,
     LecturerResearchInterestsReplaceRequest,
     ResearchInterestCreateRequest,
     ResearchInterestListQuery,
@@ -185,7 +184,7 @@ def test_list_lecturer_research_interests_unknown_lecturer_raises_not_found(
     lecturer_dao.get_by_id.return_value = None
 
     with pytest.raises(NotFoundError):
-        service.list_lecturer_research_interests(lecturer_id, LecturerResearchInterestListQuery())
+        service.list_lecturer_research_interests(lecturer_id)
 
     research_interest_dao.list_by_lecturer.assert_not_called()
 

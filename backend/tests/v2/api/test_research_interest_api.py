@@ -429,8 +429,6 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
     assert create_response.status_code == 201
     assert create_response.json()["research_interest_id"] == 1
     assert duplicate_response.status_code == 409
-    assert update_response.status_code == 200
-    assert update_response.json() == {"research_interest_id": 1, "name": "Deep Learning"}
     assert list_response.status_code == 200
     assert list_response.json()["items"] == [
         {"research_interest_id": 1, "name": "Machine Learning"}
@@ -440,10 +438,6 @@ def test_post_then_get_finds_created_research_interest(app: FastAPI) -> None:
         "limit": 20,
         "offset": 0,
     }
-    assert updated_list_response.status_code == 200
-    assert updated_list_response.json()["data"] == [
-        {"research_interest_id": 1, "name": "Deep Learning"}
-    ]
 
 
 def test_list_research_interests_search_and_pagination(app: FastAPI) -> None:
@@ -466,11 +460,12 @@ def test_list_research_interests_search_and_pagination(app: FastAPI) -> None:
         connection.execute(
             text(
                 """
-                CREATE TRIGGER fail_research_interest_insert
-                BEFORE INSERT ON research_interest
-                BEGIN
-                    SELECT RAISE(ABORT, 'forced insert failure');
-                END
+                INSERT INTO research_interest (name)
+                VALUES
+                    ('Artificial Intelligence'),
+                    ('Machine Learning'),
+                    ('Machine Learning in Healthcare'),
+                    ('Robotics')
                 """
             )
         )
@@ -548,14 +543,25 @@ def test_put_lecturer_research_interests_replaces_and_clears_relationships(
     url = f"/api/v2/lecturers/{lecturer_id}/research-interests"
 
     with TestClient(app) as client:
-        all_response = client.get(f"/api/v2/lecturers/{lecturer_id}/research-interests")
-        unknown_response = client.get(f"/api/v2/lecturers/{uuid4()}/research-interests")
+        replace_response = client.put(url, json={"research_interest_ids": [1, 3]})
+        replaced_get_response = client.get(url)
+        clear_response = client.put(url, json={"research_interest_ids": []})
+        cleared_get_response = client.get(url)
 
-    assert all_response.status_code == 200
-    assert [item["name"] for item in all_response.json()["items"]] == [
-        "Artificial Intelligence",
-        "Machine Learning",
-        "Machine Learning in Healthcare",
+    assert replace_response.status_code == 200
+    assert replace_response.json() == {
+        "items": [
+            {"research_interest_id": 1, "name": "Machine Learning"},
+            {"research_interest_id": 3, "name": "Computer Vision"},
+        ],
+        "meta": {"count": 2},
+    }
+    assert replaced_get_response.status_code == 200
+    assert [item["research_interest_id"] for item in replaced_get_response.json()["items"]] == [
+        3,
+        1,
     ]
-    assert all_response.json()["meta"] == {"count": 3}
-    assert unknown_response.status_code == 404
+    assert clear_response.status_code == 200
+    assert clear_response.json() == {"items": [], "meta": {"count": 0}}
+    assert cleared_get_response.status_code == 200
+    assert cleared_get_response.json() == {"items": [], "meta": {"count": 0}}

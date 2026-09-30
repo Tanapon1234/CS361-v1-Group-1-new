@@ -19,21 +19,20 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
         return self.session.exec(statement).first()
 
     def find_page(
-        self, *, search: str | None, limit: int, offset: int, sort_order: str
+        self, *, q: str | None, limit: int, offset: int
     ) -> tuple[Sequence[ResearchInterest], int]:
         statement = select(ResearchInterest)
         count_statement = select(func.count()).select_from(ResearchInterest)
 
-        if search:
-            pattern = f"%{search}%"
+        if q:
+            pattern = f"%{q}%"
             statement = statement.where(ResearchInterest.name.ilike(pattern))
             count_statement = count_statement.where(ResearchInterest.name.ilike(pattern))
 
-        order_by = (
-            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
-        )
         total = self.session.exec(count_statement).one()
-        items = self.session.exec(statement.order_by(order_by).offset(offset).limit(limit)).all()
+        items = self.session.exec(
+            statement.order_by(ResearchInterest.name.asc()).offset(offset).limit(limit)
+        ).all()
         return items, total
 
     def add(self, research_interest: ResearchInterest) -> ResearchInterest:
@@ -54,7 +53,7 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
         raise NotImplementedError
 
     def list_by_lecturer(
-        self, lecturer_id: UUID, *, search: str | None, sort_order: str
+        self, lecturer_id: UUID
     ) -> Sequence[ResearchInterest]:
         statement = (
             select(ResearchInterest)
@@ -66,13 +65,7 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
             .where(FacultyResearchInterest.lecturer_id == lecturer_id)
         )
 
-        if search:
-            statement = statement.where(ResearchInterest.name.ilike(f"%{search}%"))
-
-        order_by = (
-            ResearchInterest.name.desc() if sort_order == "desc" else ResearchInterest.name.asc()
-        )
-        return self.session.exec(statement.order_by(order_by)).all()
+        return self.session.exec(statement.order_by(ResearchInterest.name.asc())).all()
 
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
         statement = delete(FacultyResearchInterest).where(
