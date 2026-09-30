@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
-from app.v2.dtos.common import PageResponse
+from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.lecturer_dto import (
     LecturerCreateRequest,
     LecturerListQuery,
@@ -45,7 +45,16 @@ class LecturerService:
         return LecturerResponse.model_validate(lecturer)
 
     def list_lecturers(self, query: LecturerListQuery) -> PageResponse[LecturerResponse]:
-        raise NotImplementedError  # TODO
+        items, total = self.lecturer_dao.find_page(
+            q=query.q,
+            is_active=query.is_active,
+            limit=query.limit,
+            offset=query.offset,
+        )
+        return PageResponse(
+            items=[LecturerResponse.model_validate(item) for item in items],
+            meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
+        )
 
     def get_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
         raise NotImplementedError  # TODO

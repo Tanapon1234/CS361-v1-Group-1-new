@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import func, or_
 from sqlmodel import select
 
 from app.v2.daos.lecturer_dao import LecturerDAO
@@ -20,7 +21,30 @@ class SqlLecturerDAO(SqlDAO, LecturerDAO):
     def find_page(
         self, *, q: str | None, is_active: bool | None, limit: int, offset: int
     ) -> tuple[Sequence[Lecturer], int]:
-        raise NotImplementedError
+        statement = select(Lecturer)
+        count_statement = select(func.count()).select_from(Lecturer)
+
+        if q:
+            pattern = f"%{q}%"
+            search_filter = or_(
+                Lecturer.name_th.ilike(pattern),
+                Lecturer.name_en.ilike(pattern),
+                Lecturer.email.ilike(pattern),
+            )
+            statement = statement.where(search_filter)
+            count_statement = count_statement.where(search_filter)
+
+        if is_active is not None:
+            statement = statement.where(Lecturer.is_active == is_active)
+            count_statement = count_statement.where(Lecturer.is_active == is_active)
+
+        total = self.session.exec(count_statement).one()
+        items = self.session.exec(
+            statement.order_by(Lecturer.name_th.asc(), Lecturer.lecturer_id.asc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        return items, total
 
     def add(self, lecturer: Lecturer) -> Lecturer:
         self.session.add(lecturer)

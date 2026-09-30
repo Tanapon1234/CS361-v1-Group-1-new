@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
-from app.v2.dtos.lecturer_dto import LecturerCreateRequest
+from app.v2.dtos.lecturer_dto import LecturerCreateRequest, LecturerListQuery
 from app.v2.models.lecturer import Lecturer
 from app.v2.services.lecturer_service import LecturerService
 
@@ -87,6 +87,30 @@ def test_create_lecturer_propagates_unexpected_write_error(
         service.create_lecturer(
             LecturerCreateRequest(name_th="สมชาย", email="somchai@example.ac.th")
         )
+
+
+def test_list_lecturers_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
+    lecturers = [
+        Lecturer(name_th="Alpha", email="alpha@example.ac.th"),
+        Lecturer(name_th="Beta", email="beta@example.ac.th", is_active=False),
+    ]
+    lecturer_dao.find_page.return_value = (lecturers, 5)
+    query = LecturerListQuery(q="a", is_active=True, limit=2, offset=1)
+
+    result = service.list_lecturers(query)
+
+    assert [item.name_th for item in result.items] == ["Alpha", "Beta"]
+    assert result.meta.model_dump() == {"total": 5, "limit": 2, "offset": 1}
+    lecturer_dao.find_page.assert_called_once_with(q="a", is_active=True, limit=2, offset=1)
+
+
+def test_list_lecturers_propagates_query_error(
+    service: LecturerService, lecturer_dao: MagicMock
+) -> None:
+    lecturer_dao.find_page.side_effect = RuntimeError("query failed")
+
+    with pytest.raises(RuntimeError, match="query failed"):
+        service.list_lecturers(LecturerListQuery())
 
 
 def test_activate_lecturer_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
