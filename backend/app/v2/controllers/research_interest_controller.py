@@ -1,11 +1,9 @@
 """Master list of research interests."""
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from fastapi import APIRouter, Body, status
-from pydantic import ValidationError
+from fastapi import APIRouter, Query, status
 
-from app.core.exceptions import BadRequestError
 from app.v2.controllers.params import ResearchInterestId
 from app.v2.dependencies import ResearchInterestServiceDep
 from app.v2.dtos.research_interest_dto import (
@@ -44,13 +42,8 @@ def list_research_interests(
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_research_interest(
-    body: Annotated[Any, Body()], service: ResearchInterestServiceDep
+    data: ResearchInterestCreateRequest, service: ResearchInterestServiceDep
 ) -> ResearchInterestResponse:
-    try:
-        data = ResearchInterestCreateRequest.model_validate(body)
-    except ValidationError as exc:
-        raise BadRequestError("Request body is invalid") from exc
-
     return service.create_research_interest(data)
 
 
