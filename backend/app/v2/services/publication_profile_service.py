@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.core.exceptions import NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
 from app.v2.dtos.common import ListResponse
@@ -36,4 +37,11 @@ class PublicationProfileService:
         raise NotImplementedError  # TODO
 
     def delete_publication_profile(self, lecturer_id: UUID, publication_profile_id: int) -> None:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        profile = self.publication_profile_dao.get_by_id(publication_profile_id)
+        if profile is None or profile.lecturer_id != lecturer_id:
+            raise NotFoundError("Publication profile not found")
+
+        self.publication_profile_dao.delete(profile)

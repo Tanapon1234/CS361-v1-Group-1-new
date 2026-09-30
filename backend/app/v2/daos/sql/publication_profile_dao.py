@@ -12,7 +12,7 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         raise NotImplementedError
 
     def get_by_id(self, publication_profile_id: int) -> PublicationProfile | None:
-        raise NotImplementedError
+        return self.session.get(PublicationProfile, publication_profile_id)
 
     def add(self, profile: PublicationProfile) -> PublicationProfile:
         raise NotImplementedError
@@ -21,4 +21,5 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         raise NotImplementedError
 
     def delete(self, profile: PublicationProfile) -> None:
-        raise NotImplementedError
+        self.session.delete(profile)
+        self.session.flush()
