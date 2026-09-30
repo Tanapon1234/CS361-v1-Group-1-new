@@ -362,3 +362,72 @@ def test_delete_unknown_research_interest_raises_not_found(
         service.delete_research_interest(99)
 
     research_interest_dao.delete.assert_not_called()
+
+
+def test_remove_lecturer_research_interest_success(
+    service: ResearchInterestService,
+    research_interest_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.get_by_id.return_value = ResearchInterest(
+        research_interest_id=1, name="Machine Learning"
+    )
+    research_interest_dao.remove_from_lecturer.return_value = True
+
+    service.remove_lecturer_research_interest(lecturer_id, 1)
+
+    research_interest_dao.remove_from_lecturer.assert_called_once_with(lecturer_id, 1)
+
+
+def test_remove_lecturer_research_interest_unknown_lecturer_does_not_write(
+    service: ResearchInterestService,
+    research_interest_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.remove_lecturer_research_interest(lecturer_id, 1)
+
+    research_interest_dao.get_by_id.assert_not_called()
+    research_interest_dao.remove_from_lecturer.assert_not_called()
+
+
+def test_remove_lecturer_research_interest_unknown_interest_does_not_write(
+    service: ResearchInterestService,
+    research_interest_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Research interest not found"):
+        service.remove_lecturer_research_interest(lecturer_id, 99)
+
+    research_interest_dao.remove_from_lecturer.assert_not_called()
+
+
+def test_remove_missing_lecturer_research_interest_relationship_raises_not_found(
+    service: ResearchInterestService,
+    research_interest_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id, name_th="Somchai", email="somchai@example.ac.th"
+    )
+    research_interest_dao.get_by_id.return_value = ResearchInterest(
+        research_interest_id=1, name="Machine Learning"
+    )
+    research_interest_dao.remove_from_lecturer.return_value = False
+
+    with pytest.raises(NotFoundError, match="relationship not found"):
+        service.remove_lecturer_research_interest(lecturer_id, 1)
