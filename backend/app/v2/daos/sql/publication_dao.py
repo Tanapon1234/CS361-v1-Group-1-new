@@ -2,9 +2,12 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import func, or_
+from sqlmodel import select
+
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.daos.sql.base import SqlDAO
-from app.v2.models.publication import Publication
+from app.v2.models.publication import FacultyPublication, Publication
 
 
 class SqlPublicationDAO(SqlDAO, PublicationDAO):
@@ -20,7 +23,38 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         limit: int,
         offset: int,
     ) -> tuple[Sequence[Publication], int]:
-        raise NotImplementedError
+        statement = select(Publication)
+        count_statement = select(func.count()).select_from(Publication)
+
+        if lecturer_id is not None:
+            statement = statement.join(FacultyPublication).where(
+                FacultyPublication.lecturer_id == lecturer_id
+            )
+            count_statement = count_statement.join(FacultyPublication).where(
+                FacultyPublication.lecturer_id == lecturer_id
+            )
+
+        if q:
+            pattern = f"%{q}%"
+            search_filter = or_(
+                Publication.title.ilike(pattern),
+                Publication.venue.ilike(pattern),
+                Publication.doi.ilike(pattern),
+            )
+            statement = statement.where(search_filter)
+            count_statement = count_statement.where(search_filter)
+
+        if publication_year is not None:
+            statement = statement.where(Publication.publication_year == publication_year)
+            count_statement = count_statement.where(
+                Publication.publication_year == publication_year
+            )
+
+        total = self.session.exec(count_statement).one()
+        publications = self.session.exec(
+            statement.order_by(Publication.publication_id.asc()).offset(offset).limit(limit)
+        ).all()
+        return publications, total
 
     def add(self, publication: Publication) -> Publication:
         raise NotImplementedError

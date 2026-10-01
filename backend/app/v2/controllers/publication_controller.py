@@ -7,6 +7,7 @@ from app.v2.dependencies import PublicationServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
+    PublicationListItemResponse,
     PublicationListQuery,
     PublicationResponse,
     PublicationUpdateRequest,
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/publications", tags=["publications"])
 @router.get("")
 def list_publications(
     query: Annotated[PublicationListQuery, Query()], service: PublicationServiceDep
-) -> PageResponse[PublicationResponse]:
+) -> PageResponse[PublicationListItemResponse]:
     return service.list_publications(query)
 
 
