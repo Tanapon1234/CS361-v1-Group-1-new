@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.v2.dtos.base import RequestDTO, ResponseDTO
 from app.v2.dtos.common import PageQuery
@@ -26,7 +26,13 @@ class PublicationUpdateRequest(RequestDTO):
     pages: str | None = Field(default=None, max_length=50)
     doi: str | None = Field(default=None, max_length=255)
     citation_text: str | None = None
-    lecturer_ids: list[UUID] | None = Field(default=None, description="Replaces all authors")
+
+    @field_validator("title")
+    @classmethod
+    def title_cannot_be_null(cls, value: str | None) -> str | None:
+        if value is None:
+            raise ValueError("title must not be null")
+        return value
 
 
 class PublicationListQuery(PageQuery):
@@ -45,3 +51,15 @@ class PublicationResponse(ResponseDTO):
     citation_text: str | None
     created_at: datetime | None
     lecturer_ids: list[UUID] = Field(default_factory=list)
+
+
+class PublicationUpdateResponse(ResponseDTO):
+    publication_id: int
+    title: str
+    publication_year: int | None
+    venue: str | None
+    volume: str | None
+    pages: str | None
+    doi: str | None
+    citation_text: str | None
+    created_at: datetime | None
