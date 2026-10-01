@@ -1,5 +1,8 @@
 from uuid import UUID
 
+from sqlalchemy.exc import OperationalError
+
+from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.common import PageResponse
@@ -31,7 +34,14 @@ class PublicationService:
         raise NotImplementedError  # TODO
 
     def delete_publication(self, publication_id: int) -> None:
-        raise NotImplementedError  # TODO
+        try:
+            publication = self.publication_dao.get_by_id(publication_id)
+            if publication is None:
+                raise NotFoundError("Publication not found")
+
+            self.publication_dao.delete(publication)
+        except OperationalError as exc:
+            raise ServiceUnavailableError("Database unavailable") from exc
 
     def list_lecturer_publications(
         self, lecturer_id: UUID, query: PublicationListQuery

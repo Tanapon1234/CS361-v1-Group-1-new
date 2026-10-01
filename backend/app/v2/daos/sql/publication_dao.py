@@ -9,7 +9,7 @@ from app.v2.models.publication import Publication
 
 class SqlPublicationDAO(SqlDAO, PublicationDAO):
     def get_by_id(self, publication_id: int) -> Publication | None:
-        raise NotImplementedError
+        return self.session.get(Publication, publication_id)
 
     def find_page(
         self,
@@ -29,7 +29,8 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         raise NotImplementedError
 
     def delete(self, publication: Publication) -> None:
-        raise NotImplementedError
+        self.session.delete(publication)
+        self.session.flush()
 
     def get_author_ids(self, publication_id: int) -> list[UUID]:
         raise NotImplementedError
