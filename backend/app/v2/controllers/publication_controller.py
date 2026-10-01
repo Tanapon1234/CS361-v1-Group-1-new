@@ -33,7 +33,7 @@ def create_publication(
 @router.get("/{publication_id}")
 def get_publication(
     publication_id: PublicationId, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationListItemResponse:
     return service.get_publication(publication_id)
 
 

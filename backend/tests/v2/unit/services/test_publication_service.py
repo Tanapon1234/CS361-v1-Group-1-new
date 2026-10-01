@@ -97,11 +97,46 @@ def test_list_publications_database_unavailable(
         service.list_publications(PublicationListQuery())
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement get publication")
+def test_get_publication_returns_mapped_dto(
+    service: PublicationService, publication_dao: MagicMock
+) -> None:
+    created_at = datetime(2026, 10, 1, tzinfo=UTC)
+    publication_dao.get_by_id.return_value = Publication(
+        publication_id=1,
+        title="A New Mobile Application",
+        publication_year=2018,
+        venue="Hospital Pediatrics",
+        volume="8",
+        pages=None,
+        doi="10.1542/hpeds.2018-0073",
+        citation_text="Wantanakorn, Pornchanok & ...",
+        created_at=created_at,
+    )
+
+    result = service.get_publication(1)
+
+    publication_dao.get_by_id.assert_called_once_with(1)
+    assert result.publication_id == 1
+    assert result.title == "A New Mobile Application"
+    assert result.pages is None
+    assert result.created_at == created_at
+
+
 def test_get_unknown_publication_raises_not_found(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:
     publication_dao.get_by_id.return_value = None
 
-    with pytest.raises(NotFoundError):
+    with pytest.raises(NotFoundError, match="Publication not found"):
         service.get_publication(99)
+
+
+def test_get_publication_database_unavailable(
+    service: PublicationService, publication_dao: MagicMock
+) -> None:
+    publication_dao.get_by_id.side_effect = OperationalError(
+        "SELECT publication", {}, Exception("connection refused")
+    )
+
+    with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
+        service.get_publication(1)

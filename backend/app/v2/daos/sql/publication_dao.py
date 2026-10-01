@@ -12,7 +12,7 @@ from app.v2.models.publication import FacultyPublication, Publication
 
 class SqlPublicationDAO(SqlDAO, PublicationDAO):
     def get_by_id(self, publication_id: int) -> Publication | None:
-        raise NotImplementedError
+        return self.session.get(Publication, publication_id)
 
     def find_page(
         self,

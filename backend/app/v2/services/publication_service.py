@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import OperationalError
 
-from app.core.exceptions import ServiceUnavailableError
+from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.common import PageMeta, PageResponse
@@ -45,8 +45,16 @@ class PublicationService:
     def create_publication(self, data: PublicationCreateRequest) -> PublicationResponse:
         raise NotImplementedError  # TODO: also save authors (data.lecturer_ids)
 
-    def get_publication(self, publication_id: int) -> PublicationResponse:
-        raise NotImplementedError  # TODO
+    def get_publication(self, publication_id: int) -> PublicationListItemResponse:
+        try:
+            publication = self.publication_dao.get_by_id(publication_id)
+        except OperationalError as exc:
+            raise ServiceUnavailableError("Database is unreachable") from exc
+
+        if publication is None:
+            raise NotFoundError("Publication not found")
+
+        return PublicationListItemResponse.model_validate(publication)
 
     def update_publication(
         self, publication_id: int, data: PublicationUpdateRequest

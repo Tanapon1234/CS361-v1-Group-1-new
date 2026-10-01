@@ -160,11 +160,22 @@ def test_create_publication_requires_title(client: TestClient, service: MagicMoc
 
 
 def test_get_publication(client: TestClient, service: MagicMock) -> None:
-    service.get_publication.return_value = make_publication(publication_id=9)
+    service.get_publication.return_value = list_item(publication_id=9)
 
     response = client.get(f"{BASE}/9")
 
     assert response.status_code == 200
+    assert response.json() == {
+        "publication_id": 9,
+        "title": "A New Mobile Application",
+        "publication_year": 2018,
+        "venue": "Hospital Pediatrics",
+        "volume": "8",
+        "pages": None,
+        "doi": "10.1542/hpeds.2018-0073",
+        "citation_text": "Wantanakorn, Pornchanok & ...",
+        "created_at": "2026-10-01T00:00:00Z",
+    }
     service.get_publication.assert_called_once_with(9)
 
 
@@ -174,6 +185,26 @@ def test_get_unknown_publication_is_404(client: TestClient, service: MagicMock) 
     response = client.get(f"{BASE}/9")
 
     assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_get_publication_invalid_id_is_422(client: TestClient, service: MagicMock) -> None:
+    response = client.get(f"{BASE}/abc")
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
+    service.get_publication.assert_not_called()
+
+
+def test_get_publication_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.get_publication.side_effect = ServiceUnavailableError("Database is unreachable")
+
+    response = client.get(f"{BASE}/1")
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_update_publication(client: TestClient, service: MagicMock) -> None:
@@ -278,3 +309,43 @@ def test_list_publications_search_filter_and_pagination(app: FastAPI) -> None:
         "items": [],
         "meta": {"total": 0, "limit": 20, "offset": 0},
     }
+
+
+def test_get_publication_from_database_and_unknown_id(app: FastAPI) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Publication.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Publication(
+                publication_id=1,
+                title="A New Mobile Application",
+                publication_year=2018,
+                venue="Hospital Pediatrics",
+                volume="8",
+                pages=None,
+                doi="10.1542/hpeds.2018-0073",
+                citation_text="Wantanakorn, Pornchanok & ...",
+                created_at=datetime(2026, 10, 1, tzinfo=UTC),
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        existing_response = client.get(f"{BASE}/1")
+        unknown_response = client.get(f"{BASE}/999999")
+
+    assert existing_response.status_code == 200
+    assert existing_response.json()["publication_id"] == 1
+    assert existing_response.json()["pages"] is None
+    assert "lecturer_ids" not in existing_response.json()
+    assert unknown_response.status_code == 404
