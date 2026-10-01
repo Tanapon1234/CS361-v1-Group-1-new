@@ -48,3 +48,7 @@ class PublicationListItemResponse(ResponseDTO):
 
 class PublicationResponse(PublicationListItemResponse):
     lecturer_ids: list[UUID] = Field(default_factory=list)
+
+
+class LecturerPublicationResponse(PublicationListItemResponse):
+    author_order: int | None

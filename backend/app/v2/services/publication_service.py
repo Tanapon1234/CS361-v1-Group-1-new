@@ -7,6 +7,7 @@ from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.publication_dto import (
+    LecturerPublicationResponse,
     PublicationCreateRequest,
     PublicationListItemResponse,
     PublicationListQuery,
@@ -66,5 +67,29 @@ class PublicationService:
 
     def list_lecturer_publications(
         self, lecturer_id: UUID, query: PublicationListQuery
-    ) -> PageResponse[PublicationResponse]:
-        raise NotImplementedError  # TODO
+    ) -> PageResponse[LecturerPublicationResponse]:
+        try:
+            if self.lecturer_dao.get_by_id(lecturer_id) is None:
+                raise NotFoundError("Lecturer not found")
+
+            rows, total = self.publication_dao.find_lecturer_page(
+                lecturer_id,
+                q=query.q,
+                publication_year=query.publication_year,
+                limit=query.limit,
+                offset=query.offset,
+            )
+        except OperationalError as exc:
+            raise ServiceUnavailableError("Database is unreachable") from exc
+
+        items = [
+            LecturerPublicationResponse(
+                **PublicationListItemResponse.model_validate(publication).model_dump(),
+                author_order=author_order,
+            )
+            for publication, author_order in rows
+        ]
+        return PageResponse[LecturerPublicationResponse](
+            items=items,
+            meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
+        )

@@ -59,6 +59,54 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
     def add(self, publication: Publication) -> Publication:
         raise NotImplementedError
 
+    def find_lecturer_page(
+        self,
+        lecturer_id: UUID,
+        *,
+        q: str | None,
+        publication_year: int | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[Sequence[tuple[Publication, int | None]], int]:
+        statement = (
+            select(Publication, FacultyPublication.author_order)
+            .join(FacultyPublication)
+            .where(FacultyPublication.lecturer_id == lecturer_id)
+        )
+        count_statement = (
+            select(func.count())
+            .select_from(FacultyPublication)
+            .join(Publication)
+            .where(FacultyPublication.lecturer_id == lecturer_id)
+        )
+
+        if q:
+            pattern = f"%{q}%"
+            search_filter = or_(
+                Publication.title.ilike(pattern),
+                Publication.venue.ilike(pattern),
+                Publication.doi.ilike(pattern),
+            )
+            statement = statement.where(search_filter)
+            count_statement = count_statement.where(search_filter)
+
+        if publication_year is not None:
+            statement = statement.where(Publication.publication_year == publication_year)
+            count_statement = count_statement.where(
+                Publication.publication_year == publication_year
+            )
+
+        total = self.session.exec(count_statement).one()
+        rows = self.session.exec(
+            statement.order_by(
+                FacultyPublication.author_order.asc(),
+                Publication.publication_id.asc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        return rows, total
+
     def update(self, publication: Publication, values: Mapping[str, Any]) -> Publication:
         raise NotImplementedError
 

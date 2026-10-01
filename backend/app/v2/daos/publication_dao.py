@@ -23,6 +23,17 @@ class PublicationDAO(ABC):
         """`lecturer_id` limits results to that lecturer's publications."""
 
     @abstractmethod
+    def find_lecturer_page(
+        self,
+        lecturer_id: UUID,
+        *,
+        q: str | None,
+        publication_year: int | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[Sequence[tuple[Publication, int | None]], int]: ...
+
+    @abstractmethod
     def add(self, publication: Publication) -> Publication: ...
 
     @abstractmethod

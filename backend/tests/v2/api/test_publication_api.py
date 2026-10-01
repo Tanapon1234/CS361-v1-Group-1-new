@@ -15,11 +15,13 @@ from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.v2.dependencies import get_publication_service
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.publication_dto import (
+    LecturerPublicationResponse,
     PublicationListItemResponse,
     PublicationListQuery,
     PublicationResponse,
 )
-from app.v2.models.publication import Publication
+from app.v2.models.lecturer import Lecturer
+from app.v2.models.publication import FacultyPublication, Publication
 from app.v2.services.publication_service import PublicationService
 
 BASE = "/api/v2/publications"
@@ -75,6 +77,22 @@ def publication_page(
     offset: int = 0,
 ) -> PageResponse[PublicationListItemResponse]:
     return PageResponse[PublicationListItemResponse](
+        items=list(items),
+        meta=PageMeta(
+            total=len(items) if total is None else total,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+
+
+def lecturer_publication_page(
+    *items: LecturerPublicationResponse,
+    total: int | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> PageResponse[LecturerPublicationResponse]:
+    return PageResponse[LecturerPublicationResponse](
         items=list(items),
         meta=PageMeta(
             total=len(items) if total is None else total,
@@ -224,14 +242,86 @@ def test_delete_publication(client: TestClient, service: MagicMock) -> None:
 
 def test_list_lecturer_publications(client: TestClient, service: MagicMock) -> None:
     lecturer_id = uuid4()
-    service.list_lecturer_publications.return_value = one_page(make_publication())
+    service.list_lecturer_publications.return_value = lecturer_publication_page(
+        LecturerPublicationResponse(
+            **list_item().model_dump(),
+            author_order=5,
+        ),
+        limit=10,
+    )
 
-    response = client.get(f"/api/v2/lecturers/{lecturer_id}/publications", params={"limit": 10})
+    response = client.get(
+        f"/api/v2/lecturers/{lecturer_id}/publications",
+        params={"q": "mobile", "publication_year": 2018, "limit": 10, "offset": 0},
+    )
 
     assert response.status_code == 200
+    assert response.json()["items"][0]["author_order"] == 5
+    assert response.json()["meta"] == {"total": 1, "limit": 10, "offset": 0}
     service.list_lecturer_publications.assert_called_once_with(
-        lecturer_id, PublicationListQuery(limit=10)
+        lecturer_id,
+        PublicationListQuery(q="mobile", publication_year=2018, limit=10, offset=0),
     )
+
+
+def test_list_lecturer_publications_empty(client: TestClient, service: MagicMock) -> None:
+    lecturer_id = uuid4()
+    service.list_lecturer_publications.return_value = lecturer_publication_page()
+
+    response = client.get(f"/api/v2/lecturers/{lecturer_id}/publications")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "meta": {"total": 0, "limit": 20, "offset": 0},
+    }
+
+
+def test_list_lecturer_publications_invalid_uuid_is_422(
+    client: TestClient, service: MagicMock
+) -> None:
+    response = client.get("/api/v2/lecturers/not-a-uuid/publications")
+
+    assert response.status_code == 422
+    service.list_lecturer_publications.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "params",
+    [{"limit": "101"}, {"offset": "-1"}],
+    ids=["limit-too-large", "negative-offset"],
+)
+def test_list_lecturer_publications_invalid_query_is_422(
+    client: TestClient, service: MagicMock, params: dict[str, str]
+) -> None:
+    response = client.get(f"/api/v2/lecturers/{uuid4()}/publications", params=params)
+
+    assert response.status_code == 422
+    service.list_lecturer_publications.assert_not_called()
+
+
+def test_list_lecturer_publications_unknown_lecturer_is_404(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.list_lecturer_publications.side_effect = NotFoundError("Lecturer not found")
+
+    response = client.get(f"/api/v2/lecturers/{uuid4()}/publications")
+
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_list_lecturer_publications_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.list_lecturer_publications.side_effect = ServiceUnavailableError(
+        "Database is unreachable"
+    )
+
+    response = client.get(f"/api/v2/lecturers/{uuid4()}/publications")
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_list_publications_search_filter_and_pagination(app: FastAPI) -> None:
@@ -348,4 +438,119 @@ def test_get_publication_from_database_and_unknown_id(app: FastAPI) -> None:
     assert existing_response.json()["publication_id"] == 1
     assert existing_response.json()["pages"] is None
     assert "lecturer_ids" not in existing_response.json()
+    assert unknown_response.status_code == 404
+
+
+def test_list_lecturer_publications_filters_scope_and_author_order(
+    app: FastAPI,
+) -> None:
+    lecturer_id = uuid4()
+    other_lecturer_id = uuid4()
+    empty_lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    Publication.__table__.create(engine)
+    FacultyPublication.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="Somchai",
+                    email="somchai@example.ac.th",
+                ),
+                Lecturer(
+                    lecturer_id=other_lecturer_id,
+                    name_th="Somsri",
+                    email="somsri@example.ac.th",
+                ),
+                Lecturer(
+                    lecturer_id=empty_lecturer_id,
+                    name_th="Somsak",
+                    email="somsak@example.ac.th",
+                ),
+                Publication(
+                    publication_id=1,
+                    title="A New Mobile Application",
+                    publication_year=2018,
+                    venue="Hospital Pediatrics",
+                    doi="10.1542/hpeds.2018-0073",
+                ),
+                Publication(
+                    publication_id=2,
+                    title="Pediatric Anxiety Research",
+                    publication_year=2018,
+                    venue="Health Journal",
+                    doi="10.1000/pediatric",
+                ),
+                Publication(
+                    publication_id=3,
+                    title="Computer Vision",
+                    publication_year=2020,
+                    venue="AI Journal",
+                    doi="10.1000/vision",
+                ),
+            ]
+        )
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                FacultyPublication(
+                    lecturer_id=lecturer_id,
+                    publication_id=1,
+                    author_order=5,
+                ),
+                FacultyPublication(
+                    lecturer_id=lecturer_id,
+                    publication_id=2,
+                    author_order=2,
+                ),
+                FacultyPublication(
+                    lecturer_id=other_lecturer_id,
+                    publication_id=3,
+                    author_order=1,
+                ),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_service, None)
+    app.dependency_overrides[get_session] = session_override
+    lecturer_url = f"/api/v2/lecturers/{lecturer_id}/publications"
+
+    with TestClient(app) as client:
+        all_response = client.get(lecturer_url)
+        q_response = client.get(lecturer_url, params={"q": "MOBILE"})
+        year_response = client.get(lecturer_url, params={"publication_year": 2018})
+        combined_response = client.get(
+            lecturer_url,
+            params={"q": "MOBILE", "publication_year": 2018},
+        )
+        paged_response = client.get(
+            lecturer_url,
+            params={"limit": 1, "offset": 1},
+        )
+        empty_response = client.get(f"/api/v2/lecturers/{empty_lecturer_id}/publications")
+        unknown_response = client.get(f"/api/v2/lecturers/{uuid4()}/publications")
+
+    assert all_response.status_code == 200
+    assert [item["publication_id"] for item in all_response.json()["items"]] == [2, 1]
+    assert [item["author_order"] for item in all_response.json()["items"]] == [2, 5]
+    assert all_response.json()["meta"]["total"] == 2
+    assert [item["publication_id"] for item in q_response.json()["items"]] == [1]
+    assert [item["publication_id"] for item in year_response.json()["items"]] == [2, 1]
+    assert [item["publication_id"] for item in combined_response.json()["items"]] == [1]
+    assert [item["publication_id"] for item in paged_response.json()["items"]] == [1]
+    assert paged_response.json()["meta"] == {"total": 2, "limit": 1, "offset": 1}
+    assert empty_response.json() == {
+        "items": [],
+        "meta": {"total": 0, "limit": 20, "offset": 0},
+    }
     assert unknown_response.status_code == 404

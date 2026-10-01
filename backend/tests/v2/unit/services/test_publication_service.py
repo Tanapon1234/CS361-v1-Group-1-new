@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, create_autospec
+from uuid import uuid4
 
 import pytest
 from sqlalchemy.exc import OperationalError
@@ -10,6 +11,7 @@ from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.publication_dto import PublicationListQuery
+from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.services.publication_service import PublicationService
 
@@ -140,3 +142,95 @@ def test_get_publication_database_unavailable(
 
     with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
         service.get_publication(1)
+
+
+def test_list_lecturer_publications_returns_page_with_author_order(
+    service: PublicationService,
+    publication_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="Somchai",
+        email="somchai@example.ac.th",
+    )
+    publication_dao.find_lecturer_page.return_value = (
+        [
+            (
+                Publication(
+                    publication_id=1,
+                    title="A New Mobile Application",
+                    publication_year=2018,
+                    venue="Hospital Pediatrics",
+                    doi="10.1542/hpeds.2018-0073",
+                ),
+                5,
+            )
+        ],
+        1,
+    )
+    query = PublicationListQuery(q="mobile", publication_year=2018, limit=10, offset=20)
+
+    result = service.list_lecturer_publications(lecturer_id, query)
+
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+    publication_dao.find_lecturer_page.assert_called_once_with(
+        lecturer_id,
+        q="mobile",
+        publication_year=2018,
+        limit=10,
+        offset=20,
+    )
+    assert result.items[0].publication_id == 1
+    assert result.items[0].author_order == 5
+    assert result.meta.total == 1
+    assert result.meta.limit == 10
+    assert result.meta.offset == 20
+
+
+def test_list_lecturer_publications_empty(
+    service: PublicationService,
+    publication_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="Somchai",
+        email="somchai@example.ac.th",
+    )
+    publication_dao.find_lecturer_page.return_value = ([], 0)
+
+    result = service.list_lecturer_publications(lecturer_id, PublicationListQuery())
+
+    assert result.items == []
+    assert result.meta.total == 0
+
+
+def test_list_lecturer_publications_unknown_lecturer_does_not_query_publications(
+    service: PublicationService,
+    publication_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.list_lecturer_publications(lecturer_id, PublicationListQuery())
+
+    publication_dao.find_lecturer_page.assert_not_called()
+
+
+def test_list_lecturer_publications_database_unavailable(
+    service: PublicationService,
+    publication_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.side_effect = OperationalError(
+        "SELECT lecturer", {}, Exception("connection refused")
+    )
+
+    with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
+        service.list_lecturer_publications(lecturer_id, PublicationListQuery())
