@@ -7,6 +7,7 @@ from app.v2.dependencies import PublicationServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
+    PublicationCreateResponse,
     PublicationListQuery,
     PublicationResponse,
     PublicationUpdateRequest,
@@ -25,7 +26,7 @@ def list_publications(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_publication(
     data: PublicationCreateRequest, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationCreateResponse:
     return service.create_publication(data)
 
 
