@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 LECTURER_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
+EDUCATION_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 EDUCATION_FIELDS = {
     "degree",
     "field_of_study",
@@ -44,6 +45,15 @@ def validate_lecturer_id(value: Any) -> str:
     if not LECTURER_ID_PATTERN.fullmatch(lecturer_id):
         raise EducationValidationError("lecturerId", "lecturerId must be a valid identifier")
     return lecturer_id
+
+
+def validate_education_id(value: Any) -> str:
+    if not isinstance(value, str):
+        raise EducationValidationError("educationId", "educationId must be a valid identifier")
+    education_id = value.strip()
+    if not EDUCATION_ID_PATTERN.fullmatch(education_id):
+        raise EducationValidationError("educationId", "educationId must be a valid identifier")
+    return education_id
 
 
 def parse_create_education(payload: Any) -> CreateEducationDTO:

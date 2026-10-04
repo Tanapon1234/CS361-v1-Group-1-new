@@ -10,12 +10,15 @@ import os
 import re
 from typing import Any
 
-from .dao import DataApiEducationDao, LecturerNotFoundError
+from .dao import DataApiEducationDao, EducationNotFoundError, LecturerNotFoundError
 from .dto import EducationValidationError
 from .service import LecturerEducationService
 
 LOGGER = logging.getLogger(__name__)
 EDUCATION_PATH_PATTERN = re.compile(r"^/api/v2/lecturers/([^/]+)/educations/?$")
+EDUCATION_DETAIL_PATH_PATTERN = re.compile(
+    r"^/api/v2/lecturers/([^/]+)/educations/([^/]+)/?$"
+)
 
 
 def _json_response(
@@ -55,8 +58,16 @@ def _lecturer_id(event: dict[str, Any], path: str) -> str | None:
     params = event.get("pathParameters") or {}
     if isinstance(params, dict) and params.get("lecturerId") is not None:
         return params["lecturerId"]
-    match = EDUCATION_PATH_PATTERN.fullmatch(path)
+    match = EDUCATION_DETAIL_PATH_PATTERN.fullmatch(path) or EDUCATION_PATH_PATTERN.fullmatch(path)
     return match.group(1) if match else None
+
+
+def _education_id(event: dict[str, Any], path: str) -> str | None:
+    params = event.get("pathParameters") or {}
+    if isinstance(params, dict) and params.get("educationId") is not None:
+        return params["educationId"]
+    match = EDUCATION_DETAIL_PATH_PATTERN.fullmatch(path)
+    return match.group(2) if match else None
 
 
 def _request_body(event: dict[str, Any]) -> Any:
@@ -90,21 +101,32 @@ def handle_request(
 ) -> dict[str, Any]:
     event = event or {}
     path = _path(event)
-    if EDUCATION_PATH_PATTERN.fullmatch(path) is None:
+    detail_route = EDUCATION_DETAIL_PATH_PATTERN.fullmatch(path) is not None
+    collection_route = EDUCATION_PATH_PATTERN.fullmatch(path) is not None
+    if not detail_route and not collection_route:
         return _json_response(404, {"error": {"code": "NOT_FOUND", "message": "Route not found"}})
 
     method = _method(event)
-    if method not in {"GET", "POST"}:
+    allowed_methods = {"GET"} if detail_route else {"GET", "POST"}
+    if method not in allowed_methods:
+        allow_header = "GET" if detail_route else "GET, POST"
         return _json_response(
             405,
             {"error": {"code": "METHOD_NOT_ALLOWED", "message": "Method not allowed"}},
-            {"Allow": "GET, POST"},
+            {"Allow": allow_header},
         )
 
     try:
         lecturer_id = _lecturer_id(event, path)
         active_service = service if service is not None else _default_service()
         if method == "GET":
+            if detail_route:
+                item = active_service.get_for_lecturer(
+                    lecturer_id,
+                    _education_id(event, path),
+                )
+                return _json_response(200, {"data": item})
+
             items = active_service.list_for_lecturer(lecturer_id)
             return _json_response(
                 200,
@@ -132,6 +154,11 @@ def handle_request(
         return _json_response(
             404,
             {"error": {"code": "LECTURER_NOT_FOUND", "message": "Lecturer not found"}},
+        )
+    except EducationNotFoundError:
+        return _json_response(
+            404,
+            {"error": {"code": "EDUCATION_NOT_FOUND", "message": "Education not found"}},
         )
     except Exception:
         LOGGER.exception("Failed to process lecturer education request")

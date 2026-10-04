@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .dao import EducationDao
-from .dto import parse_create_education, validate_lecturer_id
+from .dto import parse_create_education, validate_education_id, validate_lecturer_id
 
 
 class LecturerEducationService:
@@ -18,3 +18,15 @@ class LecturerEducationService:
     def list_for_lecturer(self, lecturer_id: Any) -> list[dict[str, Any]]:
         normalized_lecturer_id = validate_lecturer_id(lecturer_id)
         return self._education_dao.list_for_lecturer(normalized_lecturer_id)
+
+    def get_for_lecturer(
+        self,
+        lecturer_id: Any,
+        education_id: Any,
+    ) -> dict[str, Any]:
+        normalized_lecturer_id = validate_lecturer_id(lecturer_id)
+        normalized_education_id = validate_education_id(education_id)
+        return self._education_dao.get_for_lecturer(
+            normalized_lecturer_id,
+            normalized_education_id,
+        )
