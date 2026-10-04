@@ -14,6 +14,10 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
     def get_by_id(self, publication_id: int) -> Publication | None:
         return self.session.get(Publication, publication_id)
 
+    def get_by_doi(self, doi: str) -> Publication | None:
+        statement = select(Publication).where(Publication.doi == doi)
+        return self.session.exec(statement).first()
+
     def find_page(
         self,
         *,
@@ -57,7 +61,10 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         return publications, total
 
     def add(self, publication: Publication) -> Publication:
-        raise NotImplementedError
+        self.session.add(publication)
+        self.session.flush()
+        self.session.refresh(publication)
+        return publication
 
     def find_lecturer_page(
         self,

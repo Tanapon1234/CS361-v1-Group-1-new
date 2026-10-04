@@ -15,7 +15,6 @@ class PublicationCreateRequest(RequestDTO):
     pages: str | None = Field(default=None, max_length=50)
     doi: str | None = Field(default=None, max_length=255)
     citation_text: str | None = None
-    lecturer_ids: list[UUID] = Field(default_factory=list, description="Authors, in author order")
 
 
 class PublicationUpdateRequest(RequestDTO):

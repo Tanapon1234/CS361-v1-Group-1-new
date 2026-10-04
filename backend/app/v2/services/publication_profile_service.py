@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from app.core.exceptions import NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
-from app.v2.dtos.common import ListResponse
+from app.v2.dtos.common import ListMeta, ListResponse
 from app.v2.dtos.publication_profile_dto import (
     PublicationProfileCreateRequest,
     PublicationProfileResponse,
@@ -20,7 +21,14 @@ class PublicationProfileService:
     def list_publication_profiles(
         self, lecturer_id: UUID
     ) -> ListResponse[PublicationProfileResponse]:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        items = [
+            PublicationProfileResponse.model_validate(item)
+            for item in self.publication_profile_dao.list_by_lecturer(lecturer_id)
+        ]
+        return ListResponse(items=items, meta=ListMeta(count=len(items)))
 
     def create_publication_profile(
         self, lecturer_id: UUID, data: PublicationProfileCreateRequest
