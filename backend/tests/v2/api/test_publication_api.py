@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine, select
 
