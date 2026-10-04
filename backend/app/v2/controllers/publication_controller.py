@@ -7,9 +7,10 @@ from app.v2.dependencies import PublicationServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
+    PublicationListItemResponse,
     PublicationListQuery,
-    PublicationResponse,
     PublicationUpdateRequest,
+    PublicationUpdateResponse,
 )
 
 router = APIRouter(prefix="/publications", tags=["publications"])
@@ -18,28 +19,28 @@ router = APIRouter(prefix="/publications", tags=["publications"])
 @router.get("")
 def list_publications(
     query: Annotated[PublicationListQuery, Query()], service: PublicationServiceDep
-) -> PageResponse[PublicationResponse]:
+) -> PageResponse[PublicationListItemResponse]:
     return service.list_publications(query)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_publication(
     data: PublicationCreateRequest, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationListItemResponse:
     return service.create_publication(data)
 
 
 @router.get("/{publication_id}")
 def get_publication(
     publication_id: PublicationId, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationListItemResponse:
     return service.get_publication(publication_id)
 
 
 @router.patch("/{publication_id}")
 def update_publication(
     publication_id: PublicationId, data: PublicationUpdateRequest, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationUpdateResponse:
     return service.update_publication(publication_id, data)
 
 

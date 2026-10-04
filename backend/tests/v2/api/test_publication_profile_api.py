@@ -45,6 +45,116 @@ def test_list_publication_profiles(client: TestClient, service: MagicMock) -> No
 
     assert response.status_code == 200
     assert response.json()["items"][0]["provider"] == "ORCID"
+    service.list_publication_profiles.assert_called_once_with(lecturer_id)
+
+
+def test_list_publication_profiles_reads_only_requested_lecturer(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    other_lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    PublicationProfile.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="สมชาย",
+                    email="somchai@example.ac.th",
+                    is_active=False,
+                ),
+                Lecturer(
+                    lecturer_id=other_lecturer_id,
+                    name_th="สมหญิง",
+                    email="somying@example.ac.th",
+                ),
+                PublicationProfile(
+                    publication_profile_id=2,
+                    lecturer_id=lecturer_id,
+                    provider="ORCID",
+                    url="https://orcid.org/0000-0002-1825-0097",
+                ),
+                PublicationProfile(
+                    publication_profile_id=1,
+                    lecturer_id=lecturer_id,
+                    provider="Google Scholar",
+                    url="https://scholar.google.com/citations?user=abc",
+                ),
+                PublicationProfile(
+                    publication_profile_id=3,
+                    lecturer_id=other_lecturer_id,
+                    provider="Scopus",
+                    url="https://www.scopus.com/authid/detail.uri?authorId=123",
+                ),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_profile_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        response = client.get(f"/api/v2/lecturers/{lecturer_id}/publication-profiles")
+
+    assert response.status_code == 200
+    assert [item["provider"] for item in response.json()["items"]] == [
+        "Google Scholar",
+        "ORCID",
+    ]
+    assert response.json()["meta"] == {"count": 2}
+
+
+def test_list_publication_profiles_returns_empty_list_for_existing_lecturer(
+    app: FastAPI,
+) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    PublicationProfile.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                email="somchai@example.ac.th",
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_profile_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        empty_response = client.get(f"/api/v2/lecturers/{lecturer_id}/publication-profiles")
+        missing_response = client.get(f"/api/v2/lecturers/{uuid4()}/publication-profiles")
+
+    assert empty_response.status_code == 200
+    assert empty_response.json() == {"items": [], "meta": {"count": 0}}
+    assert missing_response.status_code == 404
+    assert missing_response.json()["detail"] == "Lecturer not found"
+
+
+def test_list_publication_profiles_rejects_invalid_lecturer_id(
+    client: TestClient, service: MagicMock
+) -> None:
+    response = client.get("/api/v2/lecturers/not-a-uuid/publication-profiles")
+
+    assert response.status_code == 422
+    service.list_publication_profiles.assert_not_called()
 
 
 def test_create_publication_profile(client: TestClient, service: MagicMock) -> None:
