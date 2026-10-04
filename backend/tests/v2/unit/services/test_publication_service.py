@@ -427,6 +427,8 @@ def test_delete_database_unavailable_raises_service_unavailable(
 
     with pytest.raises(ServiceUnavailableError, match="Database unavailable"):
         service.delete_publication(7)
+
+
 def test_get_publication_database_unavailable(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:

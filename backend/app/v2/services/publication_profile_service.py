@@ -77,7 +77,36 @@ class PublicationProfileService:
         publication_profile_id: int,
         data: PublicationProfileUpdateRequest,
     ) -> PublicationProfileResponse:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        profile = self.publication_profile_dao.get_by_id(publication_profile_id)
+        if profile is None or profile.lecturer_id != lecturer_id:
+            raise NotFoundError("Publication profile not found")
+
+        values = data.model_dump(exclude_unset=True)
+        if not values:
+            return PublicationProfileResponse.model_validate(profile)
+
+        provider = values.get("provider", profile.provider)
+        url = values.get("url", profile.url)
+        if (provider, url) != (profile.provider, profile.url):
+            duplicate = self.publication_profile_dao.get_by_identity(
+                lecturer_id=lecturer_id,
+                provider=provider,
+                url=url,
+            )
+            if duplicate is not None and duplicate.publication_profile_id != publication_profile_id:
+                raise ConflictError("Publication profile already exists")
+
+        try:
+            updated = self.publication_profile_dao.update(profile, values)
+        except IntegrityError as exc:
+            if _is_unique_violation(exc):
+                raise ConflictError("Publication profile already exists") from exc
+            raise
+
+        return PublicationProfileResponse.model_validate(updated)
 
     def delete_publication_profile(self, lecturer_id: UUID, publication_profile_id: int) -> None:
         raise NotImplementedError  # TODO

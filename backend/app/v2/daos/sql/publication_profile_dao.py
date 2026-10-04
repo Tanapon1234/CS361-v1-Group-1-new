@@ -22,7 +22,7 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         return self.session.exec(statement).all()
 
     def get_by_id(self, publication_profile_id: int) -> PublicationProfile | None:
-        raise NotImplementedError
+        return self.session.get(PublicationProfile, publication_profile_id)
 
     def get_by_identity(
         self, *, lecturer_id: UUID, provider: str, url: str
@@ -41,7 +41,10 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         return profile
 
     def update(self, profile: PublicationProfile, values: Mapping[str, Any]) -> PublicationProfile:
-        raise NotImplementedError
+        profile.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(profile)
+        return profile
 
     def delete(self, profile: PublicationProfile) -> None:
         raise NotImplementedError

@@ -316,6 +316,191 @@ def test_update_publication_profile(client: TestClient, service: MagicMock) -> N
     )
 
     assert response.status_code == 200
+    lecturer_arg, profile_id_arg, data = service.update_publication_profile.call_args.args
+    assert (lecturer_arg, profile_id_arg) == (lecturer_id, 4)
+    assert data.model_dump(exclude_unset=True) == {"provider": "Scopus"}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"provider": None},
+        {"url": None},
+        {"provider": ""},
+        {"provider": "   "},
+        {"provider": "x" * 101},
+        {"url": ""},
+        {"url": "not-a-url"},
+        {"url": "ftp://example.com/profile"},
+        {"url": "javascript:alert(1)"},
+        {"unknown": True},
+    ],
+    ids=[
+        "null-provider",
+        "null-url",
+        "empty-provider",
+        "blank-provider",
+        "provider-too-long",
+        "empty-url",
+        "invalid-url",
+        "ftp-url",
+        "javascript-url",
+        "unknown-field",
+    ],
+)
+def test_update_publication_profile_validates_body(
+    client: TestClient, service: MagicMock, body: dict[str, Any]
+) -> None:
+    response = client.patch(
+        f"/api/v2/lecturers/{uuid4()}/publication-profiles/1",
+        json=body,
+    )
+
+    assert response.status_code == 422
+    assert response.headers["content-type"] == "application/problem+json"
+    service.update_publication_profile.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("lecturer_id", "publication_profile_id"),
+    [
+        ("not-a-uuid", "1"),
+        (str(uuid4()), "abc"),
+        (str(uuid4()), "0"),
+        (str(uuid4()), "32768"),
+    ],
+    ids=["invalid-lecturer-id", "invalid-profile-id", "zero-profile-id", "large-profile-id"],
+)
+def test_update_publication_profile_validates_path_ids(
+    client: TestClient,
+    service: MagicMock,
+    lecturer_id: str,
+    publication_profile_id: str,
+) -> None:
+    response = client.patch(
+        f"/api/v2/lecturers/{lecturer_id}/publication-profiles/{publication_profile_id}",
+        json={"provider": "ORCID"},
+    )
+
+    assert response.status_code == 422
+    service.update_publication_profile.assert_not_called()
+
+
+def test_patch_publication_profile_persists_and_enforces_ownership(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    other_lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE publication_profile (
+                    publication_profile_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lecturer_id CHAR(32) NOT NULL,
+                    provider VARCHAR(100) NOT NULL,
+                    url TEXT NOT NULL,
+                    UNIQUE (lecturer_id, provider, url)
+                )
+                """
+            )
+        )
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="สมชาย",
+                    email="somchai@example.ac.th",
+                ),
+                Lecturer(
+                    lecturer_id=other_lecturer_id,
+                    name_th="สมหญิง",
+                    email="somying@example.ac.th",
+                ),
+                PublicationProfile(
+                    publication_profile_id=1,
+                    lecturer_id=lecturer_id,
+                    provider="ORCID",
+                    url="https://orcid.org/0000-0002-1825-0097",
+                ),
+                PublicationProfile(
+                    publication_profile_id=2,
+                    lecturer_id=lecturer_id,
+                    provider="Scopus",
+                    url="https://www.scopus.com/authid/detail.uri?authorId=123",
+                ),
+                PublicationProfile(
+                    publication_profile_id=3,
+                    lecturer_id=other_lecturer_id,
+                    provider="Google Scholar",
+                    url="https://scholar.google.com/citations?user=xyz",
+                ),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_profile_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        update_response = client.patch(
+            f"/api/v2/lecturers/{lecturer_id}/publication-profiles/1",
+            json={"provider": "OpenAlex"},
+        )
+        empty_response = client.patch(
+            f"/api/v2/lecturers/{lecturer_id}/publication-profiles/1",
+            json={},
+        )
+        duplicate_response = client.patch(
+            f"/api/v2/lecturers/{lecturer_id}/publication-profiles/1",
+            json={
+                "provider": "Scopus",
+                "url": "https://www.scopus.com/authid/detail.uri?authorId=123",
+            },
+        )
+        wrong_owner_response = client.patch(
+            f"/api/v2/lecturers/{lecturer_id}/publication-profiles/3",
+            json={"provider": "Cross-owner update"},
+        )
+        missing_profile_response = client.patch(
+            f"/api/v2/lecturers/{lecturer_id}/publication-profiles/99",
+            json={"provider": "Missing"},
+        )
+        missing_lecturer_response = client.patch(
+            f"/api/v2/lecturers/{uuid4()}/publication-profiles/1",
+            json={"provider": "Missing lecturer"},
+        )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["provider"] == "OpenAlex"
+    assert update_response.json()["url"] == "https://orcid.org/0000-0002-1825-0097"
+    assert empty_response.status_code == 200
+    assert empty_response.json()["provider"] == "OpenAlex"
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json()["detail"] == "Publication profile already exists"
+    assert wrong_owner_response.status_code == 404
+    assert wrong_owner_response.json()["detail"] == "Publication profile not found"
+    assert missing_profile_response.status_code == 404
+    assert missing_profile_response.json()["detail"] == "Publication profile not found"
+    assert missing_lecturer_response.status_code == 404
+    assert missing_lecturer_response.json()["detail"] == "Lecturer not found"
+
+    with Session(engine) as session:
+        updated = session.get(PublicationProfile, 1)
+        other = session.get(PublicationProfile, 3)
+    assert updated is not None
+    assert updated.provider == "OpenAlex"
+    assert updated.url == "https://orcid.org/0000-0002-1825-0097"
+    assert other is not None
+    assert other.provider == "Google Scholar"
 
 
 def test_delete_publication_profile(client: TestClient, service: MagicMock) -> None:
