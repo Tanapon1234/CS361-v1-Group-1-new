@@ -12,7 +12,9 @@ from backend.v2.lecturer_educations.dao import (
 from backend.v2.lecturer_educations.dto import (
     CreateEducationDTO,
     EducationValidationError,
+    PatchEducationDTO,
     parse_create_education,
+    parse_patch_education,
     validate_education_id,
 )
 from backend.v2.lecturer_educations.service import LecturerEducationService
@@ -25,6 +27,7 @@ class FakeEducationDao:
         self.calls = []
         self.list_calls = []
         self.get_calls = []
+        self.update_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -37,6 +40,14 @@ class FakeEducationDao:
     def get_for_lecturer(self, lecturer_id, education_id):
         self.get_calls.append((lecturer_id, education_id))
         return {"id": education_id, "faculty_id": lecturer_id}
+
+    def update_for_lecturer(self, lecturer_id, education_id, education):
+        self.update_calls.append((lecturer_id, education_id, education))
+        return {
+            "id": education_id,
+            "faculty_id": lecturer_id,
+            "degree": education.degree,
+        }
 
 
 class ScriptedDataApiClient:
@@ -96,6 +107,34 @@ class CreateEducationDtoTest(unittest.TestCase):
         for payload in ({}, {"degree": "  "}, {"display_order": 2}):
             with self.subTest(payload=payload), self.assertRaises(EducationValidationError):
                 parse_create_education(payload)
+
+    def test_parse_patch_keeps_only_provided_fields_and_normalizes_values(self):
+        dto = parse_patch_education(
+            {
+                "institution": "  Updated University ",
+                "graduation_year": None,
+            }
+        )
+
+        self.assertIsNone(dto.degree)
+        self.assertEqual(dto.institution, "Updated University")
+        self.assertIsNone(dto.graduation_year)
+        self.assertEqual(dto.provided_fields, frozenset({"institution", "graduation_year"}))
+
+    def test_parse_patch_rejects_empty_unknown_and_invalid_fields(self):
+        invalid_payloads = (
+            {},
+            {"id": "caller-controlled"},
+            {"degree": 42},
+            {"graduation_year": True},
+            {"graduation_year": 0},
+            {"graduation_year": "2560"},
+            {"display_order": None},
+            {"display_order": -1},
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload), self.assertRaises(EducationValidationError):
+                parse_patch_education(payload)
 
     def test_unknown_fields_are_rejected(self):
         with self.assertRaises(EducationValidationError) as error:
@@ -176,6 +215,39 @@ class LecturerEducationServiceTest(unittest.TestCase):
             service.get_for_lecturer("fac_demo", "invalid/id")
 
         self.assertEqual(dao.get_calls, [])
+
+    def test_service_parses_patch_and_delegates_with_validated_ids(self):
+        dao = FakeEducationDao()
+        service = LecturerEducationService(dao)
+
+        result = service.update_for_lecturer(
+            " fac_demo ",
+            " edu_123 ",
+            {"country": "Thailand"},
+        )
+
+        self.assertEqual(result["id"], "edu_123")
+        lecturer_id, education_id, dto = dao.update_calls[0]
+        self.assertEqual((lecturer_id, education_id), ("fac_demo", "edu_123"))
+        self.assertEqual(dto.provided_fields, frozenset({"country"}))
+
+    def test_service_rejects_invalid_patch_ids_without_calling_dao(self):
+        dao = FakeEducationDao()
+        service = LecturerEducationService(dao)
+
+        invalid_ids = (
+            ("fac bad", "edu_123"),
+            ("fac_demo", "edu bad"),
+        )
+        for lecturer_id, education_id in invalid_ids:
+            with self.subTest(lecturer_id=lecturer_id, education_id=education_id):
+                with self.assertRaises(EducationValidationError):
+                    service.update_for_lecturer(
+                        lecturer_id,
+                        education_id,
+                        {"degree": "M.Sc."},
+                    )
+        self.assertEqual(dao.update_calls, [])
 
 
 class DataApiEducationDaoTest(unittest.TestCase):
@@ -309,6 +381,105 @@ class DataApiEducationDaoTest(unittest.TestCase):
 
         execute_calls = [call for call in client.calls if call[0] == "execute"]
         self.assertEqual(len(execute_calls), 2)
+
+    def test_update_changes_only_provided_fields_and_commits(self):
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                data_api_response(
+                    ["id", "faculty_id", "degree", "institution", "updated_at"],
+                    [
+                        "edu_123",
+                        "fac_demo",
+                        "Ph.D.",
+                        "Updated University",
+                        "2026-10-05T00:00:00+00:00",
+                    ],
+                ),
+            ]
+        )
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+        education = parse_patch_education(
+            {
+                "institution": "Updated University",
+                "graduation_year": None,
+            }
+        )
+
+        result = dao.update_for_lecturer("fac_demo", "edu_123", education)
+
+        self.assertEqual(result["institution"], "Updated University")
+        self.assertTrue(client.committed)
+        self.assertFalse(client.rolled_back)
+        execute_calls = [call[1] for call in client.calls if call[0] == "execute"]
+        update_call = execute_calls[1]
+        self.assertEqual(
+            update_call["parameters"],
+            [
+                {"name": "lecturer_id", "value": {"stringValue": "fac_demo"}},
+                {"name": "education_id", "value": {"stringValue": "edu_123"}},
+                {"name": "graduation_year", "value": {"isNull": True}},
+                {"name": "institution", "value": {"stringValue": "Updated University"}},
+            ],
+        )
+        self.assertIn("graduation_year = :graduation_year", update_call["sql"])
+        self.assertIn("institution = :institution", update_call["sql"])
+        self.assertNotIn("degree = :degree", update_call["sql"])
+        self.assertEqual(update_call["transactionId"], "tx_test")
+
+    def test_update_missing_lecturer_rolls_back_without_updating(self):
+        client = ScriptedDataApiClient([{"columnMetadata": [{"name": "id"}], "records": []}])
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaises(LecturerNotFoundError):
+            dao.update_for_lecturer(
+                "missing",
+                "edu_123",
+                parse_patch_education({"degree": "M.Sc."}),
+            )
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
+        self.assertEqual(len([call for call in client.calls if call[0] == "execute"]), 1)
+
+    def test_update_missing_education_rolls_back(self):
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                {"columnMetadata": [{"name": "id"}], "records": []},
+            ]
+        )
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaises(EducationNotFoundError):
+            dao.update_for_lecturer(
+                "fac_demo",
+                "edu_missing",
+                parse_patch_education({"degree": "M.Sc."}),
+            )
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
+
+    def test_update_statement_failure_rolls_back(self):
+        client = ScriptedDataApiClient([data_api_response(["id"], ["fac_demo"])])
+
+        def fail_update(**kwargs):
+            client.calls.append(("execute", kwargs))
+            raise RuntimeError("database unavailable")
+
+        client.execute_statement = fail_update
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaisesRegex(RuntimeError, "database unavailable"):
+            dao.update_for_lecturer(
+                "fac_demo",
+                "edu_123",
+                parse_patch_education({"degree": "M.Sc."}),
+            )
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
 
     def test_create_commits_and_uses_bound_parameters(self):
         client = ScriptedDataApiClient(

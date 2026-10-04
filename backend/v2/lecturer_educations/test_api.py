@@ -18,6 +18,7 @@ class FakeEducationDao:
         self.calls = []
         self.list_calls = []
         self.get_calls = []
+        self.update_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -40,12 +41,21 @@ class FakeEducationDao:
         self.get_calls.append((lecturer_id, education_id))
         if self.error:
             raise self.error
+        return {
+            "id": education_id,
+            "faculty_id": lecturer_id,
+            "degree": "Ph.D.",
+        }
+
+    def update_for_lecturer(self, lecturer_id, education_id, education):
+        self.update_calls.append((lecturer_id, education_id, education))
         if self.error:
             raise self.error
         return {
             "id": education_id,
             "faculty_id": lecturer_id,
-            "degree": "Ph.D.",
+            "degree": education.degree,
+            "institution": education.institution,
         }
 
 
@@ -61,6 +71,92 @@ def api_event(method="POST", lecturer_id="fac_demo", body=None, education_id=Non
 
 
 class LecturerEducationApiTest(unittest.TestCase):
+    def test_patch_detail_returns_updated_education(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(
+                method="PATCH",
+                education_id="edu_123",
+                body={"institution": "Updated University"},
+            ),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            json.loads(response["body"])["data"],
+            {
+                "id": "edu_123",
+                "faculty_id": "fac_demo",
+                "degree": None,
+                "institution": "Updated University",
+            },
+        )
+        self.assertEqual(dao.update_calls[0][:2], ("fac_demo", "edu_123"))
+        self.assertEqual(dao.update_calls[0][2].provided_fields, frozenset({"institution"}))
+
+    def test_patch_detail_unknown_lecturer_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=LecturerNotFoundError()))
+
+        response = handle_request(
+            api_event(method="PATCH", education_id="edu_123", body={"degree": "M.Sc."}),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "LECTURER_NOT_FOUND")
+
+    def test_patch_detail_unknown_education_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=EducationNotFoundError()))
+
+        response = handle_request(
+            api_event(method="PATCH", education_id="edu_missing", body={"degree": "M.Sc."}),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "EDUCATION_NOT_FOUND")
+
+    def test_patch_detail_invalid_payload_returns_validation_error(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="PATCH", education_id="edu_123", body={}),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(
+            json.loads(response["body"])["error"]["details"],
+            {"field": "body"},
+        )
+        self.assertEqual(dao.update_calls, [])
+
+    def test_patch_detail_invalid_id_returns_validation_error(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="PATCH", education_id="edu invalid", body={"degree": "M.Sc."}),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(
+            json.loads(response["body"])["error"]["details"],
+            {"field": "educationId"},
+        )
+        self.assertEqual(dao.update_calls, [])
+
+    def test_detail_route_rejects_post_but_allows_patch(self):
+        response = handle_request(
+            api_event(method="POST", education_id="edu_123", body={"degree": "Ph.D."}),
+            LecturerEducationService(FakeEducationDao()),
+        )
+
+        self.assertEqual(response["statusCode"], 405)
+        self.assertEqual(response["headers"]["Allow"], "GET, PATCH")
+
     def test_get_detail_returns_education(self):
         dao = FakeEducationDao()
 
