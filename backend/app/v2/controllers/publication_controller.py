@@ -11,6 +11,7 @@ from app.v2.dtos.publication_dto import (
     PublicationListQuery,
     PublicationResponse,
     PublicationUpdateRequest,
+    PublicationUpdateResponse,
 )
 
 router = APIRouter(prefix="/publications", tags=["publications"])
@@ -40,7 +41,7 @@ def get_publication(
 @router.patch("/{publication_id}")
 def update_publication(
     publication_id: PublicationId, data: PublicationUpdateRequest, service: PublicationServiceDep
-) -> PublicationResponse:
+) -> PublicationUpdateResponse:
     return service.update_publication(publication_id, data)
 
 

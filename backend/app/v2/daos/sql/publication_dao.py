@@ -115,7 +115,10 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         return rows, total
 
     def update(self, publication: Publication, values: Mapping[str, Any]) -> Publication:
-        raise NotImplementedError
+        publication.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(publication)
+        return publication
 
     def delete(self, publication: Publication) -> None:
         raise NotImplementedError

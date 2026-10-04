@@ -15,6 +15,11 @@ from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailable
 from app.v2.dependencies import get_publication_service
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.publication_dto import (
+    PublicationListQuery,
+    PublicationResponse,
+    PublicationUpdateResponse,
+)
+from app.v2.models.publication import Publication
     LecturerPublicationResponse,
     PublicationListItemResponse,
     PublicationListQuery,
@@ -296,11 +301,98 @@ def test_get_publication_database_unavailable_is_503(
 
 
 def test_update_publication(client: TestClient, service: MagicMock) -> None:
-    service.update_publication.return_value = make_publication(title="Renamed")
+    service.update_publication.return_value = PublicationUpdateResponse(
+        publication_id=1,
+        title="A New Mobile Application",
+        publication_year=2018,
+        venue="Hospital Pediatrics",
+        volume="9",
+        pages="100-110",
+        doi="10.1542/hpeds.2018-0073",
+        citation_text="Wantanakorn, Pornchanok & ...",
+        created_at=datetime(2026, 10, 1, tzinfo=UTC),
+    )
 
-    response = client.patch(f"{BASE}/9", json={"title": "Renamed"})
+    response = client.patch(
+        f"{BASE}/1",
+        json={"volume": "9", "pages": "100-110"},
+    )
 
     assert response.status_code == 200
+    assert response.json() == {
+        "publication_id": 1,
+        "title": "A New Mobile Application",
+        "publication_year": 2018,
+        "venue": "Hospital Pediatrics",
+        "volume": "9",
+        "pages": "100-110",
+        "doi": "10.1542/hpeds.2018-0073",
+        "citation_text": "Wantanakorn, Pornchanok & ...",
+        "created_at": "2026-10-01T00:00:00Z",
+    }
+    publication_id, data = service.update_publication.call_args.args
+    assert publication_id == 1
+    assert data.model_dump(exclude_unset=True) == {
+        "volume": "9",
+        "pages": "100-110",
+    }
+
+
+def test_update_publication_invalid_id_is_422(client: TestClient, service: MagicMock) -> None:
+    response = client.patch(f"{BASE}/abc", json={"volume": "9"})
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
+    service.update_publication.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"title": ""},
+        {"title": None},
+        {"volume": "x" * 51},
+        {"lecturer_ids": []},
+    ],
+    ids=["empty-title", "null-title", "long-volume", "unknown-field"],
+)
+def test_update_publication_invalid_body_is_422(
+    client: TestClient, service: MagicMock, body: dict[str, Any]
+) -> None:
+    response = client.patch(f"{BASE}/1", json=body)
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
+    service.update_publication.assert_not_called()
+
+
+def test_update_unknown_publication_is_404(client: TestClient, service: MagicMock) -> None:
+    service.update_publication.side_effect = NotFoundError("Publication not found")
+
+    response = client.patch(f"{BASE}/999999", json={"volume": "9"})
+
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_update_publication_duplicate_doi_is_409(client: TestClient, service: MagicMock) -> None:
+    service.update_publication.side_effect = ConflictError("Publication DOI already exists")
+
+    response = client.patch(f"{BASE}/1", json={"doi": "10.1000/duplicate"})
+
+    assert response.status_code == 409
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_update_publication_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.update_publication.side_effect = ServiceUnavailableError("Database is unreachable")
+
+    response = client.patch(f"{BASE}/1", json={"volume": "9"})
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_delete_publication(client: TestClient, service: MagicMock) -> None:
@@ -671,6 +763,38 @@ def test_create_publication_database_error_rolls_back(app: FastAPI) -> None:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+
+def test_update_publication_persists_partial_fields_and_rejects_duplicate_doi(
+    app: FastAPI,
+) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Publication.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Publication(
+                    publication_id=1,
+                    title="A New Mobile Application",
+                    publication_year=2018,
+                    venue="Hospital Pediatrics",
+                    volume="8",
+                    pages=None,
+                    doi="10.1542/hpeds.2018-0073",
+                    citation_text="Wantanakorn, Pornchanok & ...",
+                    created_at=datetime(2026, 10, 1, tzinfo=UTC),
+                ),
+                Publication(
+                    publication_id=2,
+                    title="Another publication",
+                    publication_year=2020,
+                    doi="10.1000/duplicate",
+                ),
+            ]
     Publication.__table__.create(engine)
     with engine.begin() as connection:
         connection.exec_driver_sql(
@@ -690,6 +814,34 @@ def test_create_publication_database_error_rolls_back(app: FastAPI) -> None:
     app.dependency_overrides.pop(get_publication_service, None)
     app.dependency_overrides[get_session] = session_override
 
+    with TestClient(app) as client:
+        update_response = client.patch(
+            f"{BASE}/1",
+            json={"volume": "9", "pages": "100-110"},
+        )
+        duplicate_response = client.patch(
+            f"{BASE}/1",
+            json={"doi": "10.1000/duplicate"},
+        )
+        unknown_response = client.patch(
+            f"{BASE}/999999",
+            json={"volume": "9"},
+        )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["volume"] == "9"
+    assert update_response.json()["pages"] == "100-110"
+    assert update_response.json()["title"] == "A New Mobile Application"
+    assert update_response.json()["venue"] == "Hospital Pediatrics"
+    assert "lecturer_ids" not in update_response.json()
+    assert duplicate_response.status_code == 409
+    assert unknown_response.status_code == 404
+
+    with Session(engine) as session:
+        publication = session.exec(select(Publication).where(Publication.publication_id == 1)).one()
+    assert publication.volume == "9"
+    assert publication.pages == "100-110"
+    assert publication.doi == "10.1542/hpeds.2018-0073"
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.post(BASE, json={"title": "Failed publication"})
 
