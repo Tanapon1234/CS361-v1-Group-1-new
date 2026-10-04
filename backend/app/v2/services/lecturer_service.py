@@ -63,7 +63,28 @@ class LecturerService:
         return LecturerResponse.model_validate(lecturer)
 
     def update_lecturer(self, lecturer_id: UUID, data: LecturerUpdateRequest) -> LecturerResponse:
-        raise NotImplementedError  # TODO
+        lecturer = self.lecturer_dao.get_by_id(lecturer_id)
+        if lecturer is None:
+            raise NotFoundError("Lecturer not found")
+
+        values = data.model_dump(exclude_unset=True)
+        if not values:
+            return LecturerResponse.model_validate(lecturer)
+
+        email = values.get("email")
+        if email is not None and email != lecturer.email:
+            duplicate = self.lecturer_dao.get_by_email(email)
+            if duplicate is not None:
+                raise ConflictError("Email already used")
+
+        try:
+            updated = self.lecturer_dao.update(lecturer, values)
+        except IntegrityError as exc:
+            if email is not None and _is_unique_violation(exc):
+                raise ConflictError("Email already used") from exc
+            raise
+
+        return LecturerResponse.model_validate(updated)
 
     def activate_lecturer(self, lecturer_id: UUID) -> LecturerResponse:
         lecturer = self.lecturer_dao.get_by_id(lecturer_id)

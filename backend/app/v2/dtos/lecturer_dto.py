@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import EmailStr, Field
+from pydantic import EmailStr, Field, field_validator
 
 from app.v2.dtos.base import RequestDTO, ResponseDTO
 from app.v2.dtos.common import PageQuery
@@ -27,6 +27,13 @@ class LecturerUpdateRequest(RequestDTO):
     phone: str | None = Field(default=None, max_length=50)
     phone_extension: str | None = Field(default=None, max_length=50)
     email: EmailStr | None = None
+
+    @field_validator("name_th", "email")
+    @classmethod
+    def required_fields_must_not_be_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("field must not be null")
+        return value
 
 
 class LecturerListQuery(PageQuery):

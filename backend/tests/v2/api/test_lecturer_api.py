@@ -368,6 +368,101 @@ def test_update_lecturer_sends_only_given_fields(client: TestClient, service: Ma
 
 
 @pytest.mark.parametrize(
+    "body",
+    [
+        {"name_th": None},
+        {"email": None},
+        {"email": "not-an-email"},
+        {"name_th": ""},
+        {"salary": 1},
+        {"is_active": False},
+    ],
+    ids=[
+        "null-name-th",
+        "null-email",
+        "bad-email",
+        "empty-name-th",
+        "unknown-field",
+        "status-not-patchable",
+    ],
+)
+def test_update_lecturer_validates_body(
+    client: TestClient, service: MagicMock, body: dict[str, Any]
+) -> None:
+    response = client.patch(f"{BASE}/{uuid4()}", json=body)
+
+    assert response.status_code == 422
+    assert response.headers["content-type"] == "application/problem+json"
+    service.update_lecturer.assert_not_called()
+
+
+def test_patch_lecturer_persists_partial_update_and_handles_errors(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    other_lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="สมชาย",
+                    name_en="Somchai Jaidee",
+                    office="SC-101",
+                    email="somchai@example.ac.th",
+                ),
+                Lecturer(
+                    lecturer_id=other_lecturer_id,
+                    name_th="สมหญิง",
+                    email="somying@example.ac.th",
+                ),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        update_response = client.patch(
+            f"{BASE}/{lecturer_id}",
+            json={"name_en": None, "office": "SC-201"},
+        )
+        duplicate_response = client.patch(
+            f"{BASE}/{lecturer_id}",
+            json={"email": "somying@example.ac.th"},
+        )
+        missing_response = client.patch(
+            f"{BASE}/{uuid4()}",
+            json={"office": "SC-301"},
+        )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["name_th"] == "สมชาย"
+    assert update_response.json()["name_en"] is None
+    assert update_response.json()["office"] == "SC-201"
+    assert update_response.json()["email"] == "somchai@example.ac.th"
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json()["detail"] == "Email already used"
+    assert missing_response.status_code == 404
+    assert missing_response.json()["detail"] == "Lecturer not found"
+
+    with Session(engine) as session:
+        lecturer = session.get(Lecturer, lecturer_id)
+    assert lecturer is not None
+    assert lecturer.name_en is None
+    assert lecturer.office == "SC-201"
+    assert lecturer.email == "somchai@example.ac.th"
+
+
+@pytest.mark.parametrize(
     ("action", "method", "is_active"),
     [("activate", "activate_lecturer", True), ("deactivate", "deactivate_lecturer", False)],
 )
