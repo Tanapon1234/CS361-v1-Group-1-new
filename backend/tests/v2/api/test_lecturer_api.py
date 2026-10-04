@@ -1,10 +1,11 @@
-"""Controller tests: routing, validation, status codes and error mapping.
+"""Lecturer API contract tests and focused database integration tests.
 
 The service is a strict mock (`create_autospec`), so these pass before the service exists
 and keep guarding the HTTP contract after it is implemented. Use this file as the example
 when adding tests.
 """
 
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, create_autospec
@@ -13,11 +14,15 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, create_engine, select
 
+from app.core.database import get_session
 from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.dependencies import get_lecturer_service
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.lecturer_dto import LecturerListQuery, LecturerResponse
+from app.v2.models.lecturer import Lecturer
 from app.v2.services.lecturer_service import LecturerService
 
 BASE = "/api/v2/lecturers"
@@ -85,6 +90,113 @@ def test_create_lecturer_conflict_is_409(client: TestClient, service: MagicMock)
     response = client.post(BASE, json={"name_th": "สมชาย", "email": "dup@example.ac.th"})
 
     assert response.status_code == 409
+
+
+def test_post_lecturer_persists_and_rejects_duplicate_email(app: FastAPI) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    payload = {
+        "name_th": "ผศ.ดร.สมชาย ใจดี",
+        "name_en": "Asst. Prof. Somchai Jaidee",
+        "email": "somchai@example.ac.th",
+    }
+    with TestClient(app) as client:
+        create_response = client.post(BASE, json=payload)
+        duplicate_response = client.post(BASE, json=payload)
+
+    assert create_response.status_code == 201
+    assert create_response.json()["name_th"] == payload["name_th"]
+    assert create_response.json()["is_active"] is True
+    assert duplicate_response.status_code == 409
+
+    with Session(engine) as session:
+        lecturers = session.exec(select(Lecturer)).all()
+    assert len(lecturers) == 1
+    assert lecturers[0].email == payload["email"]
+
+
+def test_post_activate_lecturer_persists_status(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                email="somchai@example.ac.th",
+                is_active=False,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        response = client.post(f"{BASE}/{lecturer_id}/activate")
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is True
+    with Session(engine) as session:
+        lecturer = session.get(Lecturer, lecturer_id)
+    assert lecturer is not None
+    assert lecturer.is_active is True
+
+
+def test_post_deactivate_lecturer_persists_status(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                email="somchai@example.ac.th",
+                is_active=True,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        response = client.post(f"{BASE}/{lecturer_id}/deactivate")
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is False
+    with Session(engine) as session:
+        lecturer = session.get(Lecturer, lecturer_id)
+    assert lecturer is not None
+    assert lecturer.is_active is False
 
 
 def test_list_lecturers_passes_query(client: TestClient, service: MagicMock) -> None:

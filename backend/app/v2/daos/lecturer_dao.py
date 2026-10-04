@@ -11,6 +11,9 @@ class LecturerDAO(ABC):
     def get_by_id(self, lecturer_id: UUID) -> Lecturer | None: ...
 
     @abstractmethod
+    def get_by_email(self, email: str) -> Lecturer | None: ...
+
+    @abstractmethod
     def find_page(
         self, *, q: str | None, is_active: bool | None, limit: int, offset: int
     ) -> tuple[Sequence[Lecturer], int]:
