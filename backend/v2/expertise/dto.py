@@ -45,3 +45,19 @@ class CreateExpertiseDTO:
             )
 
         return cls(faculty_id=faculty_id.strip(), value=value.strip())
+
+
+@dataclass(frozen=True)
+class ExpertiseDTO:
+    id: str
+    faculty_id: str
+    value: str
+    visibility: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "id": self.id,
+            "faculty_id": self.faculty_id,
+            "value": self.value,
+            "visibility": self.visibility,
+        }
