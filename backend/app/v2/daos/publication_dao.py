@@ -11,6 +11,9 @@ class PublicationDAO(ABC):
     def get_by_id(self, publication_id: int) -> Publication | None: ...
 
     @abstractmethod
+    def get_by_doi(self, doi: str) -> Publication | None: ...
+
+    @abstractmethod
     def find_page(
         self,
         *,

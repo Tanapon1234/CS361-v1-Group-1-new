@@ -2,6 +2,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
+from sqlmodel import select
+
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.daos.sql.base import SqlDAO
 from app.v2.models.publication import Publication
@@ -10,6 +12,10 @@ from app.v2.models.publication import Publication
 class SqlPublicationDAO(SqlDAO, PublicationDAO):
     def get_by_id(self, publication_id: int) -> Publication | None:
         raise NotImplementedError
+
+    def get_by_doi(self, doi: str) -> Publication | None:
+        statement = select(Publication).where(Publication.doi == doi)
+        return self.session.exec(statement).first()
 
     def find_page(
         self,
@@ -23,7 +29,10 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         raise NotImplementedError
 
     def add(self, publication: Publication) -> Publication:
-        raise NotImplementedError
+        self.session.add(publication)
+        self.session.flush()
+        self.session.refresh(publication)
+        return publication
 
     def update(self, publication: Publication, values: Mapping[str, Any]) -> Publication:
         raise NotImplementedError
