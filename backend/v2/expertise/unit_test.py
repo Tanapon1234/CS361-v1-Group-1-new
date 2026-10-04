@@ -6,7 +6,11 @@ from backend.v2.expertise.dao import (
     DeferredExpertiseDao,
     ExpertisePersistencePendingError,
 )
-from backend.v2.expertise.dto import CreateExpertiseDTO, ExpertiseValidationError
+from backend.v2.expertise.dto import (
+    CreateExpertiseDTO,
+    ExpertiseDTO,
+    ExpertiseValidationError,
+)
 from backend.v2.expertise.service import ExpertiseService
 
 
@@ -40,6 +44,19 @@ class CreateExpertiseDtoTest(unittest.TestCase):
         with self.assertRaises(ExpertiseValidationError):
             CreateExpertiseDTO.from_mapping(["fac_1", "Data Mining"])
 
+    def test_expertise_dto_serializes_list_item(self) -> None:
+        dto = ExpertiseDTO("exp_1", "fac_1", "Data Mining", "PUBLIC")
+
+        self.assertEqual(
+            dto.to_dict(),
+            {
+                "id": "exp_1",
+                "faculty_id": "fac_1",
+                "value": "Data Mining",
+                "visibility": "PUBLIC",
+            },
+        )
+
 
 class ExpertiseServiceTest(unittest.TestCase):
     def test_create_delegates_to_dao(self) -> None:
@@ -71,6 +88,25 @@ class ExpertiseServiceTest(unittest.TestCase):
             DeferredExpertiseDao().create(
                 CreateExpertiseDTO("fac_1", "Data Mining")
             )
+
+    def test_list_all_delegates_to_dao(self) -> None:
+        class FakeDao:
+            def create(self, expertise: CreateExpertiseDTO) -> dict[str, str]:
+                raise AssertionError("create should not be called")
+
+            def list_all(self) -> list[ExpertiseDTO]:
+                return [ExpertiseDTO("exp_1", "fac_1", "Data Mining", "PUBLIC")]
+
+        result = ExpertiseService(FakeDao()).list_all()
+
+        self.assertEqual(
+            result,
+            [ExpertiseDTO("exp_1", "fac_1", "Data Mining", "PUBLIC")],
+        )
+
+    def test_deferred_dao_reports_pending_listing(self) -> None:
+        with self.assertRaises(ExpertisePersistencePendingError):
+            DeferredExpertiseDao().list_all()
 
 
 if __name__ == "__main__":

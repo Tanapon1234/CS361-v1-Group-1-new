@@ -5,7 +5,7 @@ import json
 import unittest
 
 from backend.v2.expertise.controller import handle_request
-from backend.v2.expertise.dto import CreateExpertiseDTO
+from backend.v2.expertise.dto import CreateExpertiseDTO, ExpertiseDTO
 from backend.v2.expertise.service import ExpertiseService
 
 
@@ -37,7 +37,42 @@ class ExpertiseApiTest(unittest.TestCase):
                     "value": expertise.value,
                 }
 
+            def list_all(self) -> list[ExpertiseDTO]:
+                return [
+                    ExpertiseDTO(
+                        id="exp_1",
+                        faculty_id="fac_1",
+                        value="Data Mining",
+                        visibility="PUBLIC",
+                    )
+                ]
+
         self.service = ExpertiseService(FakeDao())
+
+    def test_list_returns_items_and_count(self) -> None:
+        response = handle_request(api_event(method="GET"), self.service)
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            response_body(response),
+            {
+                "items": [
+                    {
+                        "id": "exp_1",
+                        "faculty_id": "fac_1",
+                        "value": "Data Mining",
+                        "visibility": "PUBLIC",
+                    }
+                ],
+                "meta": {"count": 1},
+            },
+        )
+
+    def test_list_without_connected_dao_returns_not_implemented(self) -> None:
+        response = handle_request(api_event(method="GET"))
+
+        self.assertEqual(response["statusCode"], 501)
+        self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
 
     def test_create_returns_created_item(self) -> None:
         response = handle_request(
@@ -91,8 +126,8 @@ class ExpertiseApiTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 400)
         self.assertEqual(response_body(response)["error"]["code"], "INVALID_BODY")
 
-    def test_non_post_method_is_not_allowed(self) -> None:
-        response = handle_request(api_event(method="GET"), self.service)
+    def test_non_get_or_post_method_is_not_allowed(self) -> None:
+        response = handle_request(api_event(method="DELETE"), self.service)
 
         self.assertEqual(response["statusCode"], 405)
         self.assertEqual(response_body(response)["error"]["code"], "METHOD_NOT_ALLOWED")
