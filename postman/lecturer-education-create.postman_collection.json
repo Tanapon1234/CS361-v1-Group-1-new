@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "f52f7674-5627-44d8-9b8f-f7dd16cb9baf",
     "name": "CS361 V2 Lecturer Education API",
-    "description": "GET list/detail and POST lecturer education endpoints. Configure baseUrl, lecturerId and educationId after connecting the HTTP routes.",
+    "description": "GET list/detail, POST and PATCH lecturer education endpoints. Configure baseUrl, lecturerId and educationId after connecting the HTTP routes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,6 +23,48 @@
     }
   ],
   "item": [
+    {
+      "name": "Patch education",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"institution\": \"Updated University\",\n  \"graduation_year\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v2/lecturers/{{lecturerId}}/educations/{{educationId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('returns the updated education', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.data.id).to.eql(pm.collectionVariables.get('educationId'));",
+              "  pm.expect(body.data.faculty_id).to.eql(pm.collectionVariables.get('lecturerId'));",
+              "  pm.expect(body.data.institution).to.eql('Updated University');",
+              "  pm.expect(body.data.graduation_year).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "Get education detail",
       "request": {

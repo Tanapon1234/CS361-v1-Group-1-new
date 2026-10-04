@@ -1,6 +1,6 @@
 # Lecturer Education API
 
-สัญญา API สำหรับเรียกดู เพิ่ม และดูรายละเอียดประวัติการศึกษาของอาจารย์ใน V2
+สัญญา API สำหรับเรียกดู เพิ่ม ดูรายละเอียด และแก้ไขประวัติการศึกษาของอาจารย์ใน V2
 
 > สถานะ: เตรียม handler, validation, service, DAO, automated tests และ Postman collection แล้ว ยังไม่ได้เชื่อม API Gateway หรือ frontend
 
@@ -69,6 +69,27 @@ GET /api/v2/lecturers/{lecturerId}/educations/{educationId}
 
 หากไม่พบ lecturer หรือ lecturer ไม่ active จะคืน `404 LECTURER_NOT_FOUND`; หากไม่พบ education ที่ตรงกับทั้ง `lecturerId` และ `educationId` จะคืน `404 EDUCATION_NOT_FOUND`.
 
+### Patch lecturer education
+
+```http
+PATCH /api/v2/lecturers/{lecturerId}/educations/{educationId}
+Content-Type: application/json
+```
+
+อัปเดตเฉพาะ field ที่ส่งมา โดย field ที่ไม่ส่งจะคงค่าเดิม ส่งค่า `null` เพื่อเคลียร์ `degree`, `field_of_study`, `institution`, `country` หรือ `graduation_year` ได้ ส่วน `display_order` ต้องเป็น integer ตั้งแต่ 0 ขึ้นไปและไม่รับ `null`. ต้องมี field อย่างน้อยหนึ่งรายการใน request body
+
+ตัวอย่าง request:
+
+```json
+{
+  "institution": "Updated University",
+  "graduation_year": null,
+  "display_order": 1
+}
+```
+
+ตัวอย่าง response `200 OK` คืน record ที่อัปเดตแล้วใน `data` โดย record ต้องเป็นของ lecturer ที่ระบุ; หากไม่พบ lecturer จะคืน `404 LECTURER_NOT_FOUND`, หากไม่พบ education ใต้ lecturer คนนั้นจะคืน `404 EDUCATION_NOT_FOUND`.
+
 ### Create lecturer education
 
 ```http
@@ -128,14 +149,15 @@ Content-Type: application/json
 |---:|---|---|
 | 200 | — | GET สำเร็จ; คืนรายการและจำนวน |
 | 200 | — | GET detail สำเร็จ; คืน education ใน `data` |
+| 200 | — | PATCH สำเร็จ; คืน education ที่อัปเดตแล้วใน `data` |
 | 201 | — | POST สร้างรายการสำเร็จ; คืน education ที่สร้างพร้อม `Location` |
 | 400 | `VALIDATION_ERROR` | ID ใน path หรือ request body ไม่ผ่าน validation |
 | 404 | `LECTURER_NOT_FOUND` | ไม่พบ lecturer หรือ lecturer ไม่ได้อยู่ในสถานะ `ACTIVE` |
 | 404 | `EDUCATION_NOT_FOUND` | ไม่พบ education ที่อยู่ภายใต้ lecturer ที่ระบุ |
 | 404 | `NOT_FOUND` | path ไม่ตรงกับ endpoint |
-| 405 | `METHOD_NOT_ALLOWED` | method ไม่รองรับ; collection ส่ง `Allow: GET, POST`, detail ส่ง `Allow: GET` |
+| 405 | `METHOD_NOT_ALLOWED` | method ไม่รองรับ; collection ส่ง `Allow: GET, POST`, detail ส่ง `Allow: GET, PATCH` |
 | 500 | `INTERNAL_ERROR` | เกิดข้อผิดพลาดภายใน โดยไม่ส่งรายละเอียดฐานข้อมูลกลับไปยัง client |
 
 สำหรับ POST, DAO ใช้ RDS Data API transaction: lock แถว lecturer ที่ active, กำหนด `display_order` ถ้าไม่ได้ระบุ, insert ลง `faculty_education`, แล้ว commit; เมื่อเกิดข้อผิดพลาดจะ rollback
 
-Postman collection สำหรับ GET list, GET detail, POST และ validation error อยู่ที่ [`postman/lecturer-education-create.postman_collection.json`](../../postman/lecturer-education-create.postman_collection.json) ตั้งค่า `baseUrl`, `lecturerId` และ `educationId` (ID ที่มีอยู่ของ lecturer นั้น) ก่อนใช้ หลังเชื่อม HTTP route แล้ว
+Postman collection สำหรับ GET list, GET detail, POST, PATCH และ validation error อยู่ที่ [`postman/lecturer-education-create.postman_collection.json`](../../postman/lecturer-education-create.postman_collection.json) ตั้งค่า `baseUrl`, `lecturerId` และ `educationId` (ID ที่มีอยู่ของ lecturer นั้น) ก่อนใช้ หลังเชื่อม HTTP route แล้ว
