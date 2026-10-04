@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "f52f7674-5627-44d8-9b8f-f7dd16cb9baf",
-    "name": "CS361 V2 Lecturer Education POST",
-    "description": "POST /api/v2/lecturers/{lecturerId}/educations. Configure baseUrl and lecturerId after connecting the HTTP route.",
+    "name": "CS361 V2 Lecturer Education API",
+    "description": "GET and POST /api/v2/lecturers/{lecturerId}/educations. Configure baseUrl and lecturerId after connecting the HTTP route.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,6 +18,38 @@
     }
   ],
   "item": [
+    {
+      "name": "List lecturer educations",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v2/lecturers/{{lecturerId}}/educations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('returns education items and count metadata', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.items).to.be.an('array');",
+              "  pm.expect(body.meta.count).to.eql(body.items.length);",
+              "});",
+              "pm.test('each item belongs to the requested lecturer', function () {",
+              "  const lecturerId = pm.collectionVariables.get('lecturerId');",
+              "  pm.response.json().items.forEach(function (item) {",
+              "    pm.expect(item.faculty_id).to.eql(lecturerId);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "Create education",
       "request": {

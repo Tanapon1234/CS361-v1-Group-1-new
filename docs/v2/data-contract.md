@@ -106,7 +106,7 @@ Rules:
 | `graduation_year` | no | ปีที่จบ |
 | `display_order` | yes | ลำดับแสดงผล |
 
-การเพิ่มรายการใหม่ใช้ `POST /api/v2/lecturers/{lecturerId}/educations`; ดู request validation และ response ได้ใน [Lecturer Education POST API](./lecturer-education-api.md)
+ดูรายการประวัติการศึกษาด้วย `GET /api/v2/lecturers/{lecturerId}/educations` และเพิ่มรายการด้วย `POST /api/v2/lecturers/{lecturerId}/educations`; ดู contract และ response ได้ใน [Lecturer Education API](./lecturer-education-api.md)
 
 ### `faculty_interest`
 
