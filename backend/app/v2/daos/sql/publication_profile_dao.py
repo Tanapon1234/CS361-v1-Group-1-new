@@ -47,4 +47,5 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         return profile
 
     def delete(self, profile: PublicationProfile) -> None:
-        raise NotImplementedError
+        self.session.delete(profile)
+        self.session.flush()

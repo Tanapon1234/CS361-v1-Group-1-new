@@ -109,4 +109,11 @@ class PublicationProfileService:
         return PublicationProfileResponse.model_validate(updated)
 
     def delete_publication_profile(self, lecturer_id: UUID, publication_profile_id: int) -> None:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        profile = self.publication_profile_dao.get_by_id(publication_profile_id)
+        if profile is None or profile.lecturer_id != lecturer_id:
+            raise NotFoundError("Publication profile not found")
+
+        self.publication_profile_dao.delete(profile)
