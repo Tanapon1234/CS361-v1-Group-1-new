@@ -7,7 +7,7 @@ import json
 import unittest
 
 from backend.v2.lecturer_educations.controller import handle_request
-from backend.v2.lecturer_educations.dao import LecturerNotFoundError
+from backend.v2.lecturer_educations.dao import EducationNotFoundError, LecturerNotFoundError
 from backend.v2.lecturer_educations.service import LecturerEducationService
 
 
@@ -17,6 +17,7 @@ class FakeEducationDao:
         self.items = items or []
         self.calls = []
         self.list_calls = []
+        self.get_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -35,16 +36,92 @@ class FakeEducationDao:
             raise self.error
         return self.items
 
+    def get_for_lecturer(self, lecturer_id, education_id):
+        self.get_calls.append((lecturer_id, education_id))
+        if self.error:
+            raise self.error
+        if self.error:
+            raise self.error
+        return {
+            "id": education_id,
+            "faculty_id": lecturer_id,
+            "degree": "Ph.D.",
+        }
 
-def api_event(method="POST", lecturer_id="fac_demo", body=None):
+
+def api_event(method="POST", lecturer_id="fac_demo", body=None, education_id=None):
+    path = f"/api/v2/lecturers/{lecturer_id}/educations"
+    if education_id is not None:
+        path += f"/{education_id}"
     return {
-        "rawPath": f"/api/v2/lecturers/{lecturer_id}/educations",
+        "rawPath": path,
         "requestContext": {"http": {"method": method}},
         "body": json.dumps(body) if body is not None else None,
     }
 
 
 class LecturerEducationApiTest(unittest.TestCase):
+    def test_get_detail_returns_education(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="GET", education_id="edu_123"),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            json.loads(response["body"])["data"],
+            {"id": "edu_123", "faculty_id": "fac_demo", "degree": "Ph.D."},
+        )
+        self.assertEqual(dao.get_calls, [("fac_demo", "edu_123")])
+
+    def test_get_detail_unknown_education_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=EducationNotFoundError()))
+
+        response = handle_request(
+            api_event(method="GET", education_id="edu_missing"),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "EDUCATION_NOT_FOUND")
+
+    def test_get_detail_unknown_lecturer_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=LecturerNotFoundError()))
+
+        response = handle_request(
+            api_event(method="GET", education_id="edu_123"),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "LECTURER_NOT_FOUND")
+
+    def test_get_detail_invalid_education_id_returns_validation_error(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="GET", education_id="edu bad/id"),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(
+            json.loads(response["body"])["error"]["details"],
+            {"field": "educationId"},
+        )
+        self.assertEqual(dao.get_calls, [])
+
+    def test_detail_route_rejects_post(self):
+        response = handle_request(
+            api_event(method="POST", education_id="edu_123", body={"degree": "Ph.D."}),
+            LecturerEducationService(FakeEducationDao()),
+        )
+
+        self.assertEqual(response["statusCode"], 405)
+        self.assertEqual(response["headers"]["Allow"], "GET")
+
     def test_get_returns_education_list_and_count(self):
         items = [
             {"id": "edu_123", "faculty_id": "fac_demo", "display_order": 0},
