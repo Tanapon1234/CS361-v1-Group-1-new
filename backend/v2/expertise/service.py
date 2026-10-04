@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .dao import ExpertiseDao
-from .dto import CreateExpertiseDTO, ExpertiseDTO
+from .dto import CreateExpertiseDTO, ExpertiseDTO, PatchExpertiseDTO
 
 
 class ExpertiseService:
@@ -18,3 +18,6 @@ class ExpertiseService:
 
     def get_by_id(self, expertise_id: str) -> ExpertiseDTO:
         return self._dao.get_by_id(expertise_id)
+
+    def update(self, expertise_id: str, expertise: PatchExpertiseDTO) -> ExpertiseDTO:
+        return self._dao.update(expertise_id, expertise)
