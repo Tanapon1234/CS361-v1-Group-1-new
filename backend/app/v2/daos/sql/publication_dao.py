@@ -121,7 +121,8 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         return publication
 
     def delete(self, publication: Publication) -> None:
-        raise NotImplementedError
+        self.session.delete(publication)
+        self.session.flush()
 
     def get_author_ids(self, publication_id: int) -> list[UUID]:
         raise NotImplementedError

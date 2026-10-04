@@ -395,7 +395,86 @@ def test_delete_publication(client: TestClient, service: MagicMock) -> None:
     response = client.delete(f"{BASE}/9")
 
     assert response.status_code == 204
+    assert response.content == b""
     service.delete_publication.assert_called_once_with(9)
+
+
+def test_delete_unknown_publication_is_404(client: TestClient, service: MagicMock) -> None:
+    service.delete_publication.side_effect = NotFoundError("Publication not found")
+
+    response = client.delete(f"{BASE}/999999")
+
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_delete_invalid_publication_id_is_422(client: TestClient, service: MagicMock) -> None:
+    response = client.delete(f"{BASE}/abc")
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/problem+json")
+    service.delete_publication.assert_not_called()
+
+
+def test_delete_publication_database_unavailable_is_503(
+    client: TestClient, service: MagicMock
+) -> None:
+    service.delete_publication.side_effect = ServiceUnavailableError("Database unavailable")
+
+    response = client.delete(f"{BASE}/9")
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
+
+
+def test_delete_publication_cascades_authorship_and_keeps_lecturer(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.begin() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+    Lecturer.__table__.create(engine)
+    Publication.__table__.create(engine)
+    FacultyPublication.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    lecturer_id=lecturer_id,
+                    name_th="Somchai",
+                    email="somchai@example.ac.th",
+                ),
+                Publication(publication_id=1, title="Deleted publication"),
+            ]
+        )
+        session.flush()
+        session.add(
+            FacultyPublication(
+                lecturer_id=lecturer_id,
+                publication_id=1,
+                author_order=1,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        response = client.delete(f"{BASE}/1")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    with Session(engine) as session:
+        assert session.get(Publication, 1) is None
+        assert session.get(Lecturer, lecturer_id) is not None
+        assert session.exec(select(FacultyPublication)).all() == []
 
 
 def test_list_lecturer_publications(client: TestClient, service: MagicMock) -> None:

@@ -391,6 +391,42 @@ def test_get_unknown_publication_raises_not_found(
         service.get_publication(99)
 
 
+def test_delete_existing_publication(
+    service: PublicationService, publication_dao: MagicMock
+) -> None:
+    publication = Publication(publication_id=7, title="A Study of Things")
+    publication_dao.get_by_id.return_value = publication
+
+    result = service.delete_publication(7)
+
+    assert result is None
+    publication_dao.get_by_id.assert_called_once_with(7)
+    publication_dao.delete.assert_called_once_with(publication)
+
+
+def test_delete_unknown_publication_raises_not_found(
+    service: PublicationService, publication_dao: MagicMock
+) -> None:
+    publication_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError, match="Publication not found"):
+        service.delete_publication(99)
+
+    publication_dao.delete.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["get_by_id", "delete"])
+def test_delete_database_unavailable_raises_service_unavailable(
+    service: PublicationService, publication_dao: MagicMock, operation: str
+) -> None:
+    publication = Publication(publication_id=7, title="A Study of Things")
+    publication_dao.get_by_id.return_value = publication
+    getattr(publication_dao, operation).side_effect = OperationalError(
+        "DELETE FROM publication", {}, Exception("database unavailable")
+    )
+
+    with pytest.raises(ServiceUnavailableError, match="Database unavailable"):
+        service.delete_publication(7)
 def test_get_publication_database_unavailable(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:
