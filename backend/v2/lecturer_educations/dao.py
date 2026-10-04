@@ -16,11 +16,22 @@ class LecturerNotFoundError(Exception):
     """The lecturer does not exist or is not active."""
 
 
+class EducationNotFoundError(Exception):
+    """The education record does not exist for the lecturer."""
+
+
 class EducationDao:
     def create(self, lecturer_id: str, education: CreateEducationDTO) -> dict[str, Any]:
         raise NotImplementedError
 
     def list_for_lecturer(self, lecturer_id: str) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    def get_for_lecturer(
+        self,
+        lecturer_id: str,
+        education_id: str,
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -168,6 +179,39 @@ class DataApiEducationDao(EducationDao):
             """,
             {"lecturer_id": lecturer_id},
         )
+
+    def get_for_lecturer(
+        self,
+        lecturer_id: str,
+        education_id: str,
+    ) -> dict[str, Any]:
+        lecturer_rows = self._execute(
+            """
+            SELECT id
+            FROM faculty
+            WHERE id = :lecturer_id AND status = 'ACTIVE'
+            """,
+            {"lecturer_id": lecturer_id},
+        )
+        if not lecturer_rows:
+            raise LecturerNotFoundError(lecturer_id)
+
+        education_rows = self._execute(
+            """
+            SELECT id, faculty_id, degree, field_of_study, institution, country,
+                   graduation_year, display_order,
+                   created_at::text AS created_at, updated_at::text AS updated_at
+            FROM faculty_education
+            WHERE faculty_id = :lecturer_id AND id = :education_id
+            """,
+            {
+                "lecturer_id": lecturer_id,
+                "education_id": education_id,
+            },
+        )
+        if not education_rows:
+            raise EducationNotFoundError(education_id)
+        return education_rows[0]
 
 
 def _data_api_param(name: str, value: Any) -> dict[str, Any]:
