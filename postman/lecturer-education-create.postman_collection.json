@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "f52f7674-5627-44d8-9b8f-f7dd16cb9baf",
     "name": "CS361 V2 Lecturer Education API",
-    "description": "GET list/detail, POST and PATCH lecturer education endpoints. Configure baseUrl, lecturerId and educationId after connecting the HTTP routes.",
+    "description": "GET list/detail, POST, PATCH and DELETE lecturer education endpoints. Configure baseUrl, lecturerId and educationId after connecting the HTTP routes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,6 +23,30 @@
     }
   ],
   "item": [
+    {
+      "name": "Delete education",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/v2/lecturers/{{lecturerId}}/educations/{{educationId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns 204 No Content', function () {",
+              "  pm.response.to.have.status(204);",
+              "});",
+              "pm.test('has no response body', function () {",
+              "  pm.expect(pm.response.text()).to.eql('');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "Patch education",
       "request": {

@@ -1,6 +1,6 @@
 # Lecturer Education API
 
-สัญญา API สำหรับเรียกดู เพิ่ม ดูรายละเอียด และแก้ไขประวัติการศึกษาของอาจารย์ใน V2
+สัญญา API สำหรับเรียกดู เพิ่ม ดูรายละเอียด แก้ไข และลบประวัติการศึกษาของอาจารย์ใน V2
 
 > สถานะ: เตรียม handler, validation, service, DAO, automated tests และ Postman collection แล้ว ยังไม่ได้เชื่อม API Gateway หรือ frontend
 
@@ -90,6 +90,16 @@ Content-Type: application/json
 
 ตัวอย่าง response `200 OK` คืน record ที่อัปเดตแล้วใน `data` โดย record ต้องเป็นของ lecturer ที่ระบุ; หากไม่พบ lecturer จะคืน `404 LECTURER_NOT_FOUND`, หากไม่พบ education ใต้ lecturer คนนั้นจะคืน `404 EDUCATION_NOT_FOUND`.
 
+### Delete lecturer education
+
+```http
+DELETE /api/v2/lecturers/{lecturerId}/educations/{educationId}
+```
+
+ลบ education ที่ตรงกับทั้ง `lecturerId` และ `educationId` จาก `faculty_education`. ก่อนลบ API บันทึกข้อมูล education เดิมลง `audit_event.before_json` ใน transaction เดียวกัน เพื่อเก็บประวัติการเปลี่ยนแปลง; ถ้าลบหรือบันทึก audit ไม่สำเร็จ transaction จะ rollback.
+
+เมื่อลบสำเร็จคืน `204 No Content` โดยไม่มี response body. หากไม่พบ lecturer หรือ lecturer ไม่ active จะคืน `404 LECTURER_NOT_FOUND`; หากไม่พบ education ใต้ lecturer คนนั้นจะคืน `404 EDUCATION_NOT_FOUND`.
+
 ### Create lecturer education
 
 ```http
@@ -151,13 +161,14 @@ Content-Type: application/json
 | 200 | — | GET detail สำเร็จ; คืน education ใน `data` |
 | 200 | — | PATCH สำเร็จ; คืน education ที่อัปเดตแล้วใน `data` |
 | 201 | — | POST สร้างรายการสำเร็จ; คืน education ที่สร้างพร้อม `Location` |
+| 204 | — | DELETE สำเร็จ; ไม่มี response body และเก็บข้อมูลก่อนลบใน audit log |
 | 400 | `VALIDATION_ERROR` | ID ใน path หรือ request body ไม่ผ่าน validation |
 | 404 | `LECTURER_NOT_FOUND` | ไม่พบ lecturer หรือ lecturer ไม่ได้อยู่ในสถานะ `ACTIVE` |
 | 404 | `EDUCATION_NOT_FOUND` | ไม่พบ education ที่อยู่ภายใต้ lecturer ที่ระบุ |
 | 404 | `NOT_FOUND` | path ไม่ตรงกับ endpoint |
-| 405 | `METHOD_NOT_ALLOWED` | method ไม่รองรับ; collection ส่ง `Allow: GET, POST`, detail ส่ง `Allow: GET, PATCH` |
+| 405 | `METHOD_NOT_ALLOWED` | method ไม่รองรับ; collection ส่ง `Allow: GET, POST`, detail ส่ง `Allow: GET, PATCH, DELETE` |
 | 500 | `INTERNAL_ERROR` | เกิดข้อผิดพลาดภายใน โดยไม่ส่งรายละเอียดฐานข้อมูลกลับไปยัง client |
 
 สำหรับ POST, DAO ใช้ RDS Data API transaction: lock แถว lecturer ที่ active, กำหนด `display_order` ถ้าไม่ได้ระบุ, insert ลง `faculty_education`, แล้ว commit; เมื่อเกิดข้อผิดพลาดจะ rollback
 
-Postman collection สำหรับ GET list, GET detail, POST, PATCH และ validation error อยู่ที่ [`postman/lecturer-education-create.postman_collection.json`](../../postman/lecturer-education-create.postman_collection.json) ตั้งค่า `baseUrl`, `lecturerId` และ `educationId` (ID ที่มีอยู่ของ lecturer นั้น) ก่อนใช้ หลังเชื่อม HTTP route แล้ว
+Postman collection สำหรับ GET list, GET detail, POST, PATCH, DELETE และ validation error อยู่ที่ [`postman/lecturer-education-create.postman_collection.json`](../../postman/lecturer-education-create.postman_collection.json) ตั้งค่า `baseUrl`, `lecturerId` และ `educationId` (ID ที่มีอยู่ของ lecturer นั้น) ก่อนใช้ หลังเชื่อม HTTP route แล้ว คำขอ DELETE จะลบ record จริงและควรใช้กับข้อมูลทดสอบเท่านั้น
