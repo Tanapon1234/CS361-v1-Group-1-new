@@ -29,11 +29,11 @@ class PublicationUpdateRequest(RequestDTO):
 
 
 class PublicationListQuery(PageQuery):
-    q: str | None = Field(default=None, max_length=200, description="Search title / venue")
+    q: str | None = Field(default=None, max_length=200, description="Search title / venue / DOI")
     publication_year: int | None = None
 
 
-class PublicationCreateResponse(ResponseDTO):
+class PublicationListItemResponse(ResponseDTO):
     publication_id: int
     title: str
     publication_year: int | None
@@ -45,5 +45,9 @@ class PublicationCreateResponse(ResponseDTO):
     created_at: datetime | None
 
 
-class PublicationResponse(PublicationCreateResponse):
+class PublicationResponse(PublicationListItemResponse):
     lecturer_ids: list[UUID] = Field(default_factory=list)
+
+
+class LecturerPublicationResponse(PublicationListItemResponse):
+    author_order: int | None
