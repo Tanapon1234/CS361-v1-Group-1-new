@@ -1,7 +1,8 @@
-"""RDS Data API persistence for lecturer education creation."""
+"""RDS Data API persistence for lecturer education records."""
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from dataclasses import dataclass
@@ -48,6 +49,9 @@ class EducationDao:
         education_id: str,
         education: PatchEducationDTO,
     ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def delete_for_lecturer(self, lecturer_id: str, education_id: str) -> None:
         raise NotImplementedError
 
 
@@ -301,6 +305,77 @@ class DataApiEducationDao(EducationDao):
                 )
             except Exception:
                 LOGGER.exception("Failed to roll back lecturer education update transaction")
+            raise
+
+    def delete_for_lecturer(self, lecturer_id: str, education_id: str) -> None:
+        transaction_id = self.client.begin_transaction(
+            resourceArn=self.resource_arn,
+            secretArn=self.secret_arn,
+            database=self.database,
+        )["transactionId"]
+        try:
+            lecturer_rows = self._execute(
+                """
+                SELECT id
+                FROM faculty
+                WHERE id = :lecturer_id AND status = 'ACTIVE'
+                FOR UPDATE
+                """,
+                {"lecturer_id": lecturer_id},
+                transaction_id,
+            )
+            if not lecturer_rows:
+                raise LecturerNotFoundError(lecturer_id)
+
+            education_rows = self._execute(
+                """
+                DELETE FROM faculty_education
+                WHERE faculty_id = :lecturer_id AND id = :education_id
+                RETURNING id, faculty_id, degree, field_of_study, institution, country,
+                          graduation_year, display_order,
+                          created_at::text AS created_at, updated_at::text AS updated_at
+                """,
+                {
+                    "lecturer_id": lecturer_id,
+                    "education_id": education_id,
+                },
+                transaction_id,
+            )
+            if not education_rows:
+                raise EducationNotFoundError(education_id)
+
+            self._execute(
+                """
+                INSERT INTO audit_event (
+                    id, action, entity_type, entity_id, before_json
+                )
+                VALUES (
+                    :id, 'DELETE', 'FACULTY_EDUCATION', :entity_id,
+                    CAST(:before_json AS jsonb)
+                )
+                """,
+                {
+                    "id": f"audit_{uuid.uuid4().hex}",
+                    "entity_id": education_id,
+                    "before_json": json.dumps(education_rows[0], ensure_ascii=False),
+                },
+                transaction_id,
+            )
+
+            self.client.commit_transaction(
+                resourceArn=self.resource_arn,
+                secretArn=self.secret_arn,
+                transactionId=transaction_id,
+            )
+        except Exception:
+            try:
+                self.client.rollback_transaction(
+                    resourceArn=self.resource_arn,
+                    secretArn=self.secret_arn,
+                    transactionId=transaction_id,
+                )
+            except Exception:
+                LOGGER.exception("Failed to roll back lecturer education deletion transaction")
             raise
 
 
