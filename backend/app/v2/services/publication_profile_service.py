@@ -1,6 +1,8 @@
 from uuid import UUID
 
-from app.core.exceptions import NotFoundError
+from sqlalchemy.exc import IntegrityError
+
+from app.core.exceptions import ConflictError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
 from app.v2.dtos.common import ListMeta, ListResponse
@@ -9,6 +11,14 @@ from app.v2.dtos.publication_profile_dto import (
     PublicationProfileResponse,
     PublicationProfileUpdateRequest,
 )
+from app.v2.models.publication_profile import PublicationProfile
+
+
+def _is_unique_violation(exc: IntegrityError) -> bool:
+    sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
+    if sqlstate == "23505":
+        return True
+    return "unique constraint failed" in str(exc.orig).lower()
 
 
 class PublicationProfileService:
@@ -33,7 +43,33 @@ class PublicationProfileService:
     def create_publication_profile(
         self, lecturer_id: UUID, data: PublicationProfileCreateRequest
     ) -> PublicationProfileResponse:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        if (
+            self.publication_profile_dao.get_by_identity(
+                lecturer_id=lecturer_id,
+                provider=data.provider,
+                url=data.url,
+            )
+            is not None
+        ):
+            raise ConflictError("Publication profile already exists")
+
+        try:
+            profile = self.publication_profile_dao.add(
+                PublicationProfile(
+                    lecturer_id=lecturer_id,
+                    provider=data.provider,
+                    url=data.url,
+                )
+            )
+        except IntegrityError as exc:
+            if _is_unique_violation(exc):
+                raise ConflictError("Publication profile already exists") from exc
+            raise
+
+        return PublicationProfileResponse.model_validate(profile)
 
     def update_publication_profile(
         self,
