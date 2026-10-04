@@ -15,3 +15,6 @@ class ExpertiseService:
 
     def list_all(self) -> list[ExpertiseDTO]:
         return self._dao.list_all()
+
+    def get_by_id(self, expertise_id: str) -> ExpertiseDTO:
+        return self._dao.get_by_id(expertise_id)
