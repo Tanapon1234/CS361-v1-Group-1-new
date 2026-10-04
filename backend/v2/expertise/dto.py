@@ -61,3 +61,28 @@ class ExpertiseDTO:
             "value": self.value,
             "visibility": self.visibility,
         }
+
+
+@dataclass(frozen=True)
+class PatchExpertiseDTO:
+    value: str
+
+    @classmethod
+    def from_mapping(cls, payload: Any) -> PatchExpertiseDTO:
+        if not isinstance(payload, dict):
+            raise ExpertiseValidationError(None, "Request body must be a JSON object")
+
+        if set(payload) != {"value"}:
+            raise ExpertiseValidationError(
+                None,
+                "Request body must contain only value",
+            )
+
+        value = payload["value"]
+        if not isinstance(value, str) or not value.strip():
+            raise ExpertiseValidationError(
+                "value",
+                "value must be a non-empty string",
+            )
+
+        return cls(value=value.strip())
