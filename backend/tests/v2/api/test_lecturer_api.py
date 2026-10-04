@@ -213,6 +213,123 @@ def test_list_lecturers_passes_query(client: TestClient, service: MagicMock) -> 
     )
 
 
+@pytest.mark.parametrize(
+    "params",
+    [{"limit": 0}, {"limit": 101}, {"offset": -1}],
+    ids=["zero-limit", "limit-too-large", "negative-offset"],
+)
+def test_list_lecturers_validates_pagination(
+    client: TestClient, service: MagicMock, params: dict[str, int]
+) -> None:
+    response = client.get(BASE, params=params)
+
+    assert response.status_code == 422
+    service.list_lecturers.assert_not_called()
+
+
+def test_list_lecturers_searches_filters_and_paginates(app: FastAPI) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add_all(
+            [
+                Lecturer(
+                    name_th="Alpha",
+                    name_en="Alice Smith",
+                    email="alpha@example.ac.th",
+                    is_active=True,
+                ),
+                Lecturer(
+                    name_th="Beta",
+                    name_en="Bob Jones",
+                    email="search-email@example.ac.th",
+                    is_active=False,
+                ),
+                Lecturer(
+                    name_th="Gamma",
+                    email="gamma@example.ac.th",
+                    is_active=True,
+                ),
+                Lecturer(
+                    name_th="สมชาย",
+                    name_en="Somchai Jaidee",
+                    email="somchai@example.ac.th",
+                    is_active=True,
+                ),
+            ]
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        page_response = client.get(BASE, params={"limit": 2, "offset": 1})
+        english_name_response = client.get(BASE, params={"q": "ALICE"})
+        email_response = client.get(BASE, params={"q": "SEARCH-EMAIL"})
+        thai_name_response = client.get(BASE, params={"q": "สม"})
+        inactive_response = client.get(BASE, params={"is_active": "false"})
+        empty_response = client.get(BASE, params={"q": "does-not-exist"})
+
+    assert page_response.status_code == 200
+    assert [item["name_th"] for item in page_response.json()["items"]] == ["Beta", "Gamma"]
+    assert page_response.json()["meta"] == {"total": 4, "limit": 2, "offset": 1}
+
+    assert [item["name_th"] for item in english_name_response.json()["items"]] == ["Alpha"]
+    assert [item["name_th"] for item in email_response.json()["items"]] == ["Beta"]
+    assert [item["name_th"] for item in thai_name_response.json()["items"]] == ["สมชาย"]
+    assert [item["name_th"] for item in inactive_response.json()["items"]] == ["Beta"]
+    assert empty_response.json() == {
+        "items": [],
+        "meta": {"total": 0, "limit": 20, "offset": 0},
+    }
+
+
+def test_get_lecturer_reads_database_and_returns_not_found(app: FastAPI) -> None:
+    lecturer_id = uuid4()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Lecturer.__table__.create(engine)
+    with Session(engine) as session, session.begin():
+        session.add(
+            Lecturer(
+                lecturer_id=lecturer_id,
+                name_th="สมชาย",
+                name_en="Somchai Jaidee",
+                email="somchai@example.ac.th",
+                is_active=False,
+            )
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_lecturer_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app) as client:
+        found_response = client.get(f"{BASE}/{lecturer_id}")
+        missing_response = client.get(f"{BASE}/{uuid4()}")
+
+    assert found_response.status_code == 200
+    assert found_response.json()["lecturer_id"] == str(lecturer_id)
+    assert found_response.json()["name_en"] == "Somchai Jaidee"
+    assert found_response.json()["is_active"] is False
+    assert missing_response.status_code == 404
+    assert missing_response.json()["detail"] == "Lecturer not found"
+
+
 def test_get_lecturer(client: TestClient, service: MagicMock) -> None:
     lecturer = make_lecturer()
     service.get_lecturer.return_value = lecturer
