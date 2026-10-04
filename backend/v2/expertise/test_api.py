@@ -5,6 +5,7 @@ import json
 import unittest
 
 from backend.v2.expertise.controller import handle_request
+from backend.v2.expertise.dao import ExpertiseNotFoundError
 from backend.v2.expertise.dto import CreateExpertiseDTO, ExpertiseDTO
 from backend.v2.expertise.service import ExpertiseService
 
@@ -47,6 +48,16 @@ class ExpertiseApiTest(unittest.TestCase):
                     )
                 ]
 
+            def get_by_id(self, expertise_id: str) -> ExpertiseDTO:
+                if expertise_id != "exp_1":
+                    raise ExpertiseNotFoundError(expertise_id)
+                return ExpertiseDTO(
+                    id="exp_1",
+                    faculty_id="fac_1",
+                    value="Data Mining",
+                    visibility="PUBLIC",
+                )
+
         self.service = ExpertiseService(FakeDao())
 
     def test_list_returns_items_and_count(self) -> None:
@@ -70,6 +81,45 @@ class ExpertiseApiTest(unittest.TestCase):
 
     def test_list_without_connected_dao_returns_not_implemented(self) -> None:
         response = handle_request(api_event(method="GET"))
+
+        self.assertEqual(response["statusCode"], 501)
+        self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
+
+    def test_get_detail_returns_requested_item(self) -> None:
+        response = handle_request(
+            api_event(method="GET", path="/api/v2/expertise/exp_1"),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            response_body(response),
+            {
+                "item": {
+                    "id": "exp_1",
+                    "faculty_id": "fac_1",
+                    "value": "Data Mining",
+                    "visibility": "PUBLIC",
+                }
+            },
+        )
+
+    def test_get_detail_returns_not_found_for_unknown_id(self) -> None:
+        response = handle_request(
+            api_event(method="GET", path="/api/v2/expertise/missing"),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(
+            response_body(response)["error"]["code"],
+            "EXPERTISE_NOT_FOUND",
+        )
+
+    def test_get_detail_without_connected_dao_returns_not_implemented(self) -> None:
+        response = handle_request(
+            api_event(method="GET", path="/api/v2/expertise/exp_1")
+        )
 
         self.assertEqual(response["statusCode"], 501)
         self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
