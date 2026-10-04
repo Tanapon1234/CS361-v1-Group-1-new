@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "f52f7674-5627-44d8-9b8f-f7dd16cb9baf",
     "name": "CS361 V2 Lecturer Education API",
-    "description": "GET and POST /api/v2/lecturers/{lecturerId}/educations. Configure baseUrl and lecturerId after connecting the HTTP route.",
+    "description": "GET list/detail and POST lecturer education endpoints. Configure baseUrl, lecturerId and educationId after connecting the HTTP routes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,9 +15,41 @@
       "key": "lecturerId",
       "value": "fac_prapaporn-rattanatamrong",
       "type": "string"
+    },
+    {
+      "key": "educationId",
+      "value": "edu_replace_with_existing_id",
+      "type": "string"
     }
   ],
   "item": [
+    {
+      "name": "Get education detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v2/lecturers/{{lecturerId}}/educations/{{educationId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('returns the requested education owned by the lecturer', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.data).to.be.an('object');",
+              "  pm.expect(body.data.id).to.eql(pm.collectionVariables.get('educationId'));",
+              "  pm.expect(body.data.faculty_id).to.eql(pm.collectionVariables.get('lecturerId'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
     {
       "name": "List lecturer educations",
       "request": {
