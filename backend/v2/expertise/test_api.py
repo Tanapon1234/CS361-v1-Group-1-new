@@ -6,7 +6,11 @@ import unittest
 
 from backend.v2.expertise.controller import handle_request
 from backend.v2.expertise.dao import ExpertiseNotFoundError
-from backend.v2.expertise.dto import CreateExpertiseDTO, ExpertiseDTO
+from backend.v2.expertise.dto import (
+    CreateExpertiseDTO,
+    ExpertiseDTO,
+    PatchExpertiseDTO,
+)
 from backend.v2.expertise.service import ExpertiseService
 
 
@@ -55,6 +59,20 @@ class ExpertiseApiTest(unittest.TestCase):
                     id="exp_1",
                     faculty_id="fac_1",
                     value="Data Mining",
+                    visibility="PUBLIC",
+                )
+
+            def update(
+                self,
+                expertise_id: str,
+                expertise: PatchExpertiseDTO,
+            ) -> ExpertiseDTO:
+                if expertise_id != "exp_1":
+                    raise ExpertiseNotFoundError(expertise_id)
+                return ExpertiseDTO(
+                    id=expertise_id,
+                    faculty_id="fac_1",
+                    value=expertise.value,
                     visibility="PUBLIC",
                 )
 
@@ -124,6 +142,78 @@ class ExpertiseApiTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 501)
         self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
 
+    def test_patch_detail_updates_value(self) -> None:
+        response = handle_request(
+            api_event(
+                method="PATCH",
+                path="/api/v2/expertise/exp_1",
+                body=json.dumps({"value": "  Machine Learning "}),
+            ),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            response_body(response)["item"],
+            {
+                "id": "exp_1",
+                "faculty_id": "fac_1",
+                "value": "Machine Learning",
+                "visibility": "PUBLIC",
+            },
+        )
+
+    def test_patch_detail_returns_not_found_for_unknown_id(self) -> None:
+        response = handle_request(
+            api_event(
+                method="PATCH",
+                path="/api/v2/expertise/missing",
+                body=json.dumps({"value": "Machine Learning"}),
+            ),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(
+            response_body(response)["error"]["code"],
+            "EXPERTISE_NOT_FOUND",
+        )
+
+    def test_patch_detail_rejects_invalid_body(self) -> None:
+        for body in (
+            "{invalid",
+            json.dumps({}),
+            json.dumps({"value": " "}),
+            json.dumps({"value": "Machine Learning", "faculty_id": "fac_2"}),
+        ):
+            with self.subTest(body=body):
+                response = handle_request(
+                    api_event(
+                        method="PATCH",
+                        path="/api/v2/expertise/exp_1",
+                        body=body,
+                    ),
+                    self.service,
+                )
+
+                self.assertEqual(response["statusCode"], 400)
+                self.assertEqual(
+                    response_body(response)["error"]["code"],
+                    "INVALID_BODY",
+                )
+
+    def test_patch_detail_without_connected_dao_returns_not_implemented(self) -> None:
+        response = handle_request(
+            api_event(
+                method="PATCH",
+                path="/api/v2/expertise/exp_1",
+                body=json.dumps({"value": "Machine Learning"}),
+            )
+        )
+
+        self.assertEqual(response["statusCode"], 501)
+        self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
+
     def test_create_returns_created_item(self) -> None:
         response = handle_request(
             api_event(
@@ -176,7 +266,7 @@ class ExpertiseApiTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 400)
         self.assertEqual(response_body(response)["error"]["code"], "INVALID_BODY")
 
-    def test_non_get_or_post_method_is_not_allowed(self) -> None:
+    def test_unsupported_method_is_not_allowed(self) -> None:
         response = handle_request(api_event(method="DELETE"), self.service)
 
         self.assertEqual(response["statusCode"], 405)
