@@ -86,7 +86,11 @@ class ResearchInterestService:
         return ResearchInterestResponse.model_validate(updated)
 
     def delete_research_interest(self, research_interest_id: int) -> None:
-        raise NotImplementedError  # TODO
+        research_interest = self.research_interest_dao.get_by_id(research_interest_id)
+        if research_interest is None:
+            raise NotFoundError("Research interest not found")
+
+        self.research_interest_dao.delete(research_interest)
 
     # --- per lecturer ------------------------------------------------------------------
 
@@ -127,4 +131,12 @@ class ResearchInterestService:
     def remove_lecturer_research_interest(
         self, lecturer_id: UUID, research_interest_id: int
     ) -> None:
-        raise NotImplementedError  # TODO
+        if self.lecturer_dao.get_by_id(lecturer_id) is None:
+            raise NotFoundError("Lecturer not found")
+
+        if self.research_interest_dao.get_by_id(research_interest_id) is None:
+            raise NotFoundError("Research interest not found")
+
+        removed = self.research_interest_dao.remove_from_lecturer(lecturer_id, research_interest_id)
+        if not removed:
+            raise NotFoundError("Research interest relationship not found")
