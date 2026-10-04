@@ -1,0 +1,162 @@
+"""RDS Data API persistence for lecturer education creation."""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from dataclasses import dataclass
+from typing import Any
+
+from .dto import CreateEducationDTO
+
+LOGGER = logging.getLogger(__name__)
+
+
+class LecturerNotFoundError(Exception):
+    """The lecturer does not exist or is not active."""
+
+
+class EducationDao:
+    def create(self, lecturer_id: str, education: CreateEducationDTO) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+@dataclass
+class DataApiEducationDao(EducationDao):
+    resource_arn: str
+    secret_arn: str
+    database: str
+    client: Any | None = None
+
+    def __post_init__(self) -> None:
+        if self.client is None:
+            import boto3
+
+            self.client = boto3.client("rds-data")
+
+    def _execute(
+        self,
+        sql: str,
+        params: dict[str, Any],
+        transaction_id: str,
+    ) -> list[dict[str, Any]]:
+        response = self.client.execute_statement(
+            resourceArn=self.resource_arn,
+            secretArn=self.secret_arn,
+            database=self.database,
+            transactionId=transaction_id,
+            sql=sql,
+            parameters=[_data_api_param(name, value) for name, value in params.items()],
+            includeResultMetadata=True,
+        )
+        columns = [
+            column.get("label") or column.get("name")
+            for column in response.get("columnMetadata", [])
+        ]
+        return [
+            {str(column): _field_value(value) for column, value in zip(columns, record)}
+            for record in response.get("records", [])
+        ]
+
+    def create(self, lecturer_id: str, education: CreateEducationDTO) -> dict[str, Any]:
+        transaction_id = self.client.begin_transaction(
+            resourceArn=self.resource_arn,
+            secretArn=self.secret_arn,
+            database=self.database,
+        )["transactionId"]
+        try:
+            lecturer_rows = self._execute(
+                """
+                SELECT id
+                FROM faculty
+                WHERE id = :lecturer_id AND status = 'ACTIVE'
+                FOR UPDATE
+                """,
+                {"lecturer_id": lecturer_id},
+                transaction_id,
+            )
+            if not lecturer_rows:
+                raise LecturerNotFoundError(lecturer_id)
+
+            display_order = education.display_order
+            if display_order is None:
+                order_rows = self._execute(
+                    """
+                    SELECT COALESCE(MAX(display_order) + 1, 0) AS display_order
+                    FROM faculty_education
+                    WHERE faculty_id = :lecturer_id
+                    """,
+                    {"lecturer_id": lecturer_id},
+                    transaction_id,
+                )
+                display_order = order_rows[0]["display_order"]
+
+            education_id = f"edu_{uuid.uuid4().hex}"
+            rows = self._execute(
+                """
+                INSERT INTO faculty_education (
+                    id, faculty_id, degree, field_of_study, institution, country,
+                    graduation_year, display_order
+                )
+                VALUES (
+                    :id, :lecturer_id, :degree, :field_of_study, :institution, :country,
+                    :graduation_year, :display_order
+                )
+                RETURNING id, faculty_id, degree, field_of_study, institution, country,
+                          graduation_year, display_order,
+                          created_at::text AS created_at, updated_at::text AS updated_at
+                """,
+                {
+                    "id": education_id,
+                    "lecturer_id": lecturer_id,
+                    "degree": education.degree,
+                    "field_of_study": education.field_of_study,
+                    "institution": education.institution,
+                    "country": education.country,
+                    "graduation_year": education.graduation_year,
+                    "display_order": display_order,
+                },
+                transaction_id,
+            )
+            if not rows:
+                raise RuntimeError("Education insert returned no record")
+
+            self.client.commit_transaction(
+                resourceArn=self.resource_arn,
+                secretArn=self.secret_arn,
+                transactionId=transaction_id,
+            )
+            return rows[0]
+        except Exception:
+            try:
+                self.client.rollback_transaction(
+                    resourceArn=self.resource_arn,
+                    secretArn=self.secret_arn,
+                    transactionId=transaction_id,
+                )
+            except Exception:
+                LOGGER.exception("Failed to roll back lecturer education transaction")
+            raise
+
+
+def _data_api_param(name: str, value: Any) -> dict[str, Any]:
+    if value is None:
+        data_value = {"isNull": True}
+    elif isinstance(value, bool):
+        data_value = {"booleanValue": value}
+    elif isinstance(value, int):
+        data_value = {"longValue": value}
+    elif isinstance(value, float):
+        data_value = {"doubleValue": value}
+    else:
+        data_value = {"stringValue": str(value)}
+    return {"name": name, "value": data_value}
+
+
+def _field_value(field: dict[str, Any]) -> Any:
+    if field.get("isNull"):
+        return None
+    for key in ("stringValue", "longValue", "doubleValue", "booleanValue"):
+        if key in field:
+            return field[key]
+    return None
