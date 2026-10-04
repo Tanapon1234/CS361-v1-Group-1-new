@@ -107,9 +107,9 @@ def handle_request(
         return _json_response(404, {"error": {"code": "NOT_FOUND", "message": "Route not found"}})
 
     method = _method(event)
-    allowed_methods = {"GET"} if detail_route else {"GET", "POST"}
+    allowed_methods = {"GET", "PATCH"} if detail_route else {"GET", "POST"}
     if method not in allowed_methods:
-        allow_header = "GET" if detail_route else "GET, POST"
+        allow_header = "GET, PATCH" if detail_route else "GET, POST"
         return _json_response(
             405,
             {"error": {"code": "METHOD_NOT_ALLOWED", "message": "Method not allowed"}},
@@ -119,6 +119,14 @@ def handle_request(
     try:
         lecturer_id = _lecturer_id(event, path)
         active_service = service if service is not None else _default_service()
+        if method == "PATCH" and detail_route:
+            result = active_service.update_for_lecturer(
+                lecturer_id,
+                _education_id(event, path),
+                _request_body(event),
+            )
+            return _json_response(200, {"data": result})
+
         if method == "GET":
             if detail_route:
                 item = active_service.get_for_lecturer(
