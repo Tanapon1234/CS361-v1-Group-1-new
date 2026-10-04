@@ -1,4 +1,4 @@
-"""HTTP controller for POST /api/v2/lecturers/{lecturerId}/educations."""
+"""HTTP controller for lecturer education collection endpoints."""
 
 from __future__ import annotations
 
@@ -93,16 +93,24 @@ def handle_request(
     if EDUCATION_PATH_PATTERN.fullmatch(path) is None:
         return _json_response(404, {"error": {"code": "NOT_FOUND", "message": "Route not found"}})
 
-    if _method(event) != "POST":
+    method = _method(event)
+    if method not in {"GET", "POST"}:
         return _json_response(
             405,
             {"error": {"code": "METHOD_NOT_ALLOWED", "message": "Method not allowed"}},
-            {"Allow": "POST"},
+            {"Allow": "GET, POST"},
         )
 
     try:
         lecturer_id = _lecturer_id(event, path)
         active_service = service if service is not None else _default_service()
+        if method == "GET":
+            items = active_service.list_for_lecturer(lecturer_id)
+            return _json_response(
+                200,
+                {"items": items, "meta": {"count": len(items)}},
+            )
+
         result = active_service.create(lecturer_id, _request_body(event))
         return _json_response(
             201,
@@ -126,7 +134,7 @@ def handle_request(
             {"error": {"code": "LECTURER_NOT_FOUND", "message": "Lecturer not found"}},
         )
     except Exception:
-        LOGGER.exception("Failed to create lecturer education")
+        LOGGER.exception("Failed to process lecturer education request")
         return _json_response(
             500,
             {"error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}},
