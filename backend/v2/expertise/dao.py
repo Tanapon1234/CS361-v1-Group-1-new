@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from .dto import CreateExpertiseDTO, ExpertiseDTO
+from .dto import CreateExpertiseDTO, ExpertiseDTO, PatchExpertiseDTO
 
 
 class ExpertisePersistencePendingError(Exception):
@@ -25,6 +25,9 @@ class ExpertiseDao(Protocol):
     def get_by_id(self, expertise_id: str) -> ExpertiseDTO:
         """Return one expertise record by its identifier."""
 
+    def update(self, expertise_id: str, expertise: PatchExpertiseDTO) -> ExpertiseDTO:
+        """Update an expertise record by its identifier."""
+
 
 class DeferredExpertiseDao:
     """Placeholder persistence implementation for the unconnected endpoint."""
@@ -44,4 +47,10 @@ class DeferredExpertiseDao:
         del expertise_id
         raise ExpertisePersistencePendingError(
             "Expertise detail lookup is not connected yet"
+        )
+
+    def update(self, expertise_id: str, expertise: PatchExpertiseDTO) -> ExpertiseDTO:
+        del expertise_id, expertise
+        raise ExpertisePersistencePendingError(
+            "Expertise updates are not connected yet"
         )
