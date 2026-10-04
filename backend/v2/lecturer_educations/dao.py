@@ -20,6 +20,9 @@ class EducationDao:
     def create(self, lecturer_id: str, education: CreateEducationDTO) -> dict[str, Any]:
         raise NotImplementedError
 
+    def list_for_lecturer(self, lecturer_id: str) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
 
 @dataclass
 class DataApiEducationDao(EducationDao):
@@ -38,16 +41,20 @@ class DataApiEducationDao(EducationDao):
         self,
         sql: str,
         params: dict[str, Any],
-        transaction_id: str,
+        transaction_id: str | None = None,
     ) -> list[dict[str, Any]]:
+        request = {
+            "resourceArn": self.resource_arn,
+            "secretArn": self.secret_arn,
+            "database": self.database,
+            "sql": sql,
+            "parameters": [_data_api_param(name, value) for name, value in params.items()],
+            "includeResultMetadata": True,
+        }
+        if transaction_id is not None:
+            request["transactionId"] = transaction_id
         response = self.client.execute_statement(
-            resourceArn=self.resource_arn,
-            secretArn=self.secret_arn,
-            database=self.database,
-            transactionId=transaction_id,
-            sql=sql,
-            parameters=[_data_api_param(name, value) for name, value in params.items()],
-            includeResultMetadata=True,
+            **request,
         )
         columns = [
             column.get("label") or column.get("name")
@@ -137,6 +144,30 @@ class DataApiEducationDao(EducationDao):
             except Exception:
                 LOGGER.exception("Failed to roll back lecturer education transaction")
             raise
+
+    def list_for_lecturer(self, lecturer_id: str) -> list[dict[str, Any]]:
+        lecturer_rows = self._execute(
+            """
+            SELECT id
+            FROM faculty
+            WHERE id = :lecturer_id AND status = 'ACTIVE'
+            """,
+            {"lecturer_id": lecturer_id},
+        )
+        if not lecturer_rows:
+            raise LecturerNotFoundError(lecturer_id)
+
+        return self._execute(
+            """
+            SELECT id, faculty_id, degree, field_of_study, institution, country,
+                   graduation_year, display_order,
+                   created_at::text AS created_at, updated_at::text AS updated_at
+            FROM faculty_education
+            WHERE faculty_id = :lecturer_id
+            ORDER BY display_order ASC, created_at ASC, id ASC
+            """,
+            {"lecturer_id": lecturer_id},
+        )
 
 
 def _data_api_param(name: str, value: Any) -> dict[str, Any]:
