@@ -9,7 +9,6 @@ from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
     PublicationListItemResponse,
     PublicationListQuery,
-    PublicationResponse,
     PublicationUpdateRequest,
     PublicationUpdateResponse,
 )

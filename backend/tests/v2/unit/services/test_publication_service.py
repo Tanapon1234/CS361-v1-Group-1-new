@@ -10,8 +10,11 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
-from app.v2.dtos.publication_dto import PublicationUpdateRequest
-from app.v2.dtos.publication_dto import PublicationCreateRequest, PublicationListQuery
+from app.v2.dtos.publication_dto import (
+    PublicationCreateRequest,
+    PublicationListQuery,
+    PublicationUpdateRequest,
+)
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.services.publication_service import PublicationService
@@ -155,6 +158,15 @@ def test_update_publication_database_unavailable(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:
     publication_dao.get_by_id.side_effect = OperationalError(
+        "SELECT publication", {}, Exception("connection refused")
+    )
+
+    with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
+        service.update_publication(1, PublicationUpdateRequest(volume="9"))
+
+    publication_dao.update.assert_not_called()
+
+
 def test_list_publications_returns_page_and_maps_models(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:
@@ -360,10 +372,6 @@ def test_create_publication_database_unavailable_raises_service_unavailable(
     )
 
     with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
-        service.update_publication(1, PublicationUpdateRequest(volume="9"))
-
-
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement get publication")
         service.create_publication(
             PublicationCreateRequest(
                 title="Unavailable publication",

@@ -15,15 +15,11 @@ from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailable
 from app.v2.dependencies import get_publication_service
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.publication_dto import (
-    PublicationListQuery,
-    PublicationResponse,
-    PublicationUpdateResponse,
-)
-from app.v2.models.publication import Publication
     LecturerPublicationResponse,
     PublicationListItemResponse,
     PublicationListQuery,
     PublicationResponse,
+    PublicationUpdateResponse,
 )
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import FacultyPublication, Publication
@@ -763,6 +759,32 @@ def test_create_publication_database_error_rolls_back(app: FastAPI) -> None:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    Publication.__table__.create(engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            """
+            CREATE TRIGGER fail_publication_insert
+            BEFORE INSERT ON publication
+            BEGIN
+                SELECT RAISE(ABORT, 'forced insert failure');
+            END
+            """
+        )
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_service, None)
+    app.dependency_overrides[get_session] = session_override
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(BASE, json={"title": "Failed publication"})
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/problem+json")
+    with Session(engine) as session:
+        assert session.exec(select(Publication)).all() == []
 
 
 def test_update_publication_persists_partial_fields_and_rejects_duplicate_doi(
@@ -795,16 +817,6 @@ def test_update_publication_persists_partial_fields_and_rejects_duplicate_doi(
                     doi="10.1000/duplicate",
                 ),
             ]
-    Publication.__table__.create(engine)
-    with engine.begin() as connection:
-        connection.exec_driver_sql(
-            """
-            CREATE TRIGGER fail_publication_insert
-            BEFORE INSERT ON publication
-            BEGIN
-                SELECT RAISE(ABORT, 'forced insert failure');
-            END
-            """
         )
 
     def session_override() -> Iterator[Session]:
@@ -842,10 +854,3 @@ def test_update_publication_persists_partial_fields_and_rejects_duplicate_doi(
     assert publication.volume == "9"
     assert publication.pages == "100-110"
     assert publication.doi == "10.1542/hpeds.2018-0073"
-    with TestClient(app, raise_server_exceptions=False) as client:
-        response = client.post(BASE, json={"title": "Failed publication"})
-
-    assert response.status_code == 500
-    assert response.headers["content-type"].startswith("application/problem+json")
-    with Session(engine) as session:
-        assert session.exec(select(Publication)).all() == []

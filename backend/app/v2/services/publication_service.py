@@ -11,18 +11,10 @@ from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
     PublicationListItemResponse,
     PublicationListQuery,
-    PublicationResponse,
     PublicationUpdateRequest,
     PublicationUpdateResponse,
 )
 from app.v2.models.publication import Publication
-
-
-def _is_unique_violation(exc: IntegrityError) -> bool:
-    sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
-    if sqlstate == "23505":
-        return True
-    return "unique constraint failed" in str(exc.orig).lower()
 
 
 def _is_unique_violation(exc: IntegrityError) -> bool:

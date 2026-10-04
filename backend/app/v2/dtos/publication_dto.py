@@ -65,5 +65,7 @@ class PublicationUpdateResponse(ResponseDTO):
     doi: str | None
     citation_text: str | None
     created_at: datetime | None
+
+
 class LecturerPublicationResponse(PublicationListItemResponse):
     author_order: int | None
