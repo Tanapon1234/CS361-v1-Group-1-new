@@ -50,3 +50,11 @@ class LecturerEducationService:
             normalized_education_id,
             education,
         )
+
+    def delete_for_lecturer(self, lecturer_id: Any, education_id: Any) -> None:
+        normalized_lecturer_id = validate_lecturer_id(lecturer_id)
+        normalized_education_id = validate_education_id(education_id)
+        self._education_dao.delete_for_lecturer(
+            normalized_lecturer_id,
+            normalized_education_id,
+        )
