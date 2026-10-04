@@ -106,6 +106,8 @@ Rules:
 | `graduation_year` | no | ปีที่จบ |
 | `display_order` | yes | ลำดับแสดงผล |
 
+การเพิ่มรายการใหม่ใช้ `POST /api/v2/lecturers/{lecturerId}/educations`; ดู request validation และ response ได้ใน [Lecturer Education POST API](./lecturer-education-api.md)
+
 ### `faculty_interest`
 
 ความเชี่ยวชาญ, research interest หรือ keyword
