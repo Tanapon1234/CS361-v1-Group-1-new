@@ -19,6 +19,7 @@ class FakeEducationDao:
         self.list_calls = []
         self.get_calls = []
         self.update_calls = []
+        self.delete_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -58,6 +59,11 @@ class FakeEducationDao:
             "institution": education.institution,
         }
 
+    def delete_for_lecturer(self, lecturer_id, education_id):
+        self.delete_calls.append((lecturer_id, education_id))
+        if self.error:
+            raise self.error
+
 
 def api_event(method="POST", lecturer_id="fac_demo", body=None, education_id=None):
     path = f"/api/v2/lecturers/{lecturer_id}/educations"
@@ -71,6 +77,64 @@ def api_event(method="POST", lecturer_id="fac_demo", body=None, education_id=Non
 
 
 class LecturerEducationApiTest(unittest.TestCase):
+    def test_delete_detail_returns_no_content(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="DELETE", education_id="edu_123"),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 204)
+        self.assertEqual(response["body"], "")
+        self.assertEqual(dao.delete_calls, [("fac_demo", "edu_123")])
+
+    def test_delete_detail_unknown_lecturer_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=LecturerNotFoundError()))
+
+        response = handle_request(
+            api_event(method="DELETE", education_id="edu_123"),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "LECTURER_NOT_FOUND")
+
+    def test_delete_detail_unknown_education_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=EducationNotFoundError()))
+
+        response = handle_request(
+            api_event(method="DELETE", education_id="edu_missing"),
+            service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "EDUCATION_NOT_FOUND")
+
+    def test_delete_detail_invalid_id_returns_validation_error(self):
+        dao = FakeEducationDao()
+
+        response = handle_request(
+            api_event(method="DELETE", education_id="edu bad/id"),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(
+            json.loads(response["body"])["error"]["details"],
+            {"field": "educationId"},
+        )
+        self.assertEqual(dao.delete_calls, [])
+
+    def test_detail_route_rejects_post_and_allows_delete(self):
+        response = handle_request(
+            api_event(method="POST", education_id="edu_123", body={"degree": "Ph.D."}),
+            LecturerEducationService(FakeEducationDao()),
+        )
+
+        self.assertEqual(response["statusCode"], 405)
+        self.assertEqual(response["headers"]["Allow"], "GET, PATCH, DELETE")
+
     def test_patch_detail_returns_updated_education(self):
         dao = FakeEducationDao()
 

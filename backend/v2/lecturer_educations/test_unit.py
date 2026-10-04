@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import unittest
 
 from backend.v2.lecturer_educations.dao import (
@@ -28,6 +29,7 @@ class FakeEducationDao:
         self.list_calls = []
         self.get_calls = []
         self.update_calls = []
+        self.delete_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -48,6 +50,9 @@ class FakeEducationDao:
             "faculty_id": lecturer_id,
             "degree": education.degree,
         }
+
+    def delete_for_lecturer(self, lecturer_id, education_id):
+        self.delete_calls.append((lecturer_id, education_id))
 
 
 class ScriptedDataApiClient:
@@ -248,6 +253,24 @@ class LecturerEducationServiceTest(unittest.TestCase):
                         {"degree": "M.Sc."},
                     )
         self.assertEqual(dao.update_calls, [])
+
+    def test_service_deletes_using_validated_ids(self):
+        dao = FakeEducationDao()
+        service = LecturerEducationService(dao)
+
+        result = service.delete_for_lecturer(" fac_demo ", " edu_123 ")
+
+        self.assertIsNone(result)
+        self.assertEqual(dao.delete_calls, [("fac_demo", "edu_123")])
+
+    def test_service_rejects_invalid_delete_ids_without_calling_dao(self):
+        dao = FakeEducationDao()
+        service = LecturerEducationService(dao)
+
+        with self.assertRaises(EducationValidationError):
+            service.delete_for_lecturer("fac_demo", "edu bad/id")
+
+        self.assertEqual(dao.delete_calls, [])
 
 
 class DataApiEducationDaoTest(unittest.TestCase):
@@ -477,6 +500,114 @@ class DataApiEducationDaoTest(unittest.TestCase):
                 "edu_123",
                 parse_patch_education({"degree": "M.Sc."}),
             )
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
+
+    def test_delete_records_before_image_and_commits_transaction(self):
+        education = {
+            "id": "edu_123",
+            "faculty_id": "fac_demo",
+            "degree": "Ph.D.",
+            "field_of_study": "Computer Science",
+            "institution": "Example University",
+            "country": "Thailand",
+            "graduation_year": 2560,
+            "display_order": 0,
+            "created_at": "2026-10-05T00:00:00+00:00",
+            "updated_at": "2026-10-05T00:00:00+00:00",
+        }
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                {
+                    "columnMetadata": [
+                        {"name": column} for column in education
+                    ],
+                    "records": [[_data_value(value) for value in education.values()]],
+                },
+                {"columnMetadata": [], "records": []},
+            ]
+        )
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        result = dao.delete_for_lecturer("fac_demo", "edu_123")
+
+        self.assertIsNone(result)
+        self.assertTrue(client.committed)
+        self.assertFalse(client.rolled_back)
+        execute_calls = [call[1] for call in client.calls if call[0] == "execute"]
+        self.assertEqual(len(execute_calls), 3)
+        delete_call = execute_calls[1]
+        self.assertIn(
+            "WHERE faculty_id = :lecturer_id AND id = :education_id",
+            delete_call["sql"],
+        )
+        self.assertEqual(
+            delete_call["parameters"],
+            [
+                {"name": "lecturer_id", "value": {"stringValue": "fac_demo"}},
+                {"name": "education_id", "value": {"stringValue": "edu_123"}},
+            ],
+        )
+        audit_call = execute_calls[2]
+        self.assertIn("INSERT INTO audit_event", audit_call["sql"])
+        audit_params = {param["name"]: param["value"] for param in audit_call["parameters"]}
+        self.assertEqual(audit_params["entity_id"], {"stringValue": "edu_123"})
+        self.assertEqual(audit_params["action"], {"stringValue": "DELETE"})
+        self.assertEqual(
+            json.loads(audit_params["before_json"]["stringValue"]),
+            education,
+        )
+        self.assertEqual(audit_call["transactionId"], "tx_test")
+
+    def test_delete_missing_lecturer_rolls_back_without_deleting(self):
+        client = ScriptedDataApiClient([{"columnMetadata": [{"name": "id"}], "records": []}])
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaises(LecturerNotFoundError):
+            dao.delete_for_lecturer("missing", "edu_123")
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
+        self.assertEqual(len([call for call in client.calls if call[0] == "execute"]), 1)
+
+    def test_delete_missing_education_rolls_back_without_audit(self):
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                {"columnMetadata": [{"name": "id"}], "records": []},
+            ]
+        )
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaises(EducationNotFoundError):
+            dao.delete_for_lecturer("fac_demo", "edu_missing")
+
+        self.assertTrue(client.rolled_back)
+        self.assertFalse(client.committed)
+        self.assertEqual(len([call for call in client.calls if call[0] == "execute"]), 2)
+
+    def test_delete_audit_failure_rolls_back_deletion(self):
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                data_api_response(
+                    ["id", "faculty_id"],
+                    ["edu_123", "fac_demo"],
+                ),
+            ]
+        )
+
+        def fail_audit(**kwargs):
+            client.calls.append(("execute", kwargs))
+            raise RuntimeError("audit insert failed")
+
+        client.execute_statement = fail_audit
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaisesRegex(RuntimeError, "audit insert failed"):
+            dao.delete_for_lecturer("fac_demo", "edu_123")
 
         self.assertTrue(client.rolled_back)
         self.assertFalse(client.committed)

@@ -36,7 +36,11 @@ def _json_response(
     return {
         "statusCode": status,
         "headers": response_headers,
-        "body": json.dumps(body, ensure_ascii=False, separators=(",", ":")),
+        "body": (
+            ""
+            if status == 204
+            else json.dumps(body, ensure_ascii=False, separators=(",", ":"))
+        ),
         "isBase64Encoded": False,
     }
 
