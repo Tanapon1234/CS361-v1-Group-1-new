@@ -17,13 +17,19 @@ from backend.v2.lecturer_educations.service import LecturerEducationService
 
 
 class FakeEducationDao:
-    def __init__(self, result=None):
+    def __init__(self, result=None, items=None):
         self.result = result or {"id": "edu_test", "faculty_id": "fac_demo"}
+        self.items = items or []
         self.calls = []
+        self.list_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
         return self.result
+
+    def list_for_lecturer(self, lecturer_id):
+        self.list_calls.append(lecturer_id)
+        return self.items
 
 
 class ScriptedDataApiClient:
@@ -125,8 +131,93 @@ class LecturerEducationServiceTest(unittest.TestCase):
         with self.assertRaises(EducationValidationError):
             service.create("fac_demo'; DROP TABLE faculty;--", {"degree": "M.Sc."})
 
+    def test_service_lists_educations_for_validated_lecturer(self):
+        dao = FakeEducationDao(items=[{"id": "edu_test"}])
+        service = LecturerEducationService(dao)
+
+        result = service.list_for_lecturer(" fac_demo ")
+
+        self.assertEqual(result, [{"id": "edu_test"}])
+        self.assertEqual(dao.list_calls, ["fac_demo"])
+
+    def test_service_rejects_invalid_lecturer_id_for_list(self):
+        service = LecturerEducationService(FakeEducationDao())
+
+        with self.assertRaises(EducationValidationError):
+            service.list_for_lecturer("fac_demo'; DROP TABLE faculty;--")
+
 
 class DataApiEducationDaoTest(unittest.TestCase):
+    def test_list_returns_ordered_records_and_checks_active_lecturer(self):
+        expected = [
+            {
+                "id": "edu_first",
+                "faculty_id": "fac_demo",
+                "degree": "Ph.D.",
+                "display_order": 0,
+            },
+            {
+                "id": "edu_second",
+                "faculty_id": "fac_demo",
+                "degree": "M.Sc.",
+                "display_order": 1,
+            },
+        ]
+        client = ScriptedDataApiClient(
+            [
+                data_api_response(["id"], ["fac_demo"]),
+                {
+                    "columnMetadata": [
+                        {"name": "id"},
+                        {"name": "faculty_id"},
+                        {"name": "degree"},
+                        {"name": "display_order"},
+                    ],
+                    "records": [
+                        [
+                            _data_value("edu_first"),
+                            _data_value("fac_demo"),
+                            _data_value("Ph.D."),
+                            _data_value(0),
+                        ],
+                        [
+                            _data_value("edu_second"),
+                            _data_value("fac_demo"),
+                            _data_value("M.Sc."),
+                            _data_value(1),
+                        ],
+                    ],
+                },
+            ]
+        )
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        result = dao.list_for_lecturer("fac_demo")
+
+        self.assertEqual(result, expected)
+        execute_calls = [call[1] for call in client.calls if call[0] == "execute"]
+        self.assertEqual(len(execute_calls), 2)
+        self.assertNotIn("transactionId", execute_calls[0])
+        self.assertNotIn("transactionId", execute_calls[1])
+        self.assertIn(
+            {"name": "lecturer_id", "value": {"stringValue": "fac_demo"}},
+            execute_calls[1]["parameters"],
+        )
+        self.assertIn(
+            "ORDER BY display_order ASC, created_at ASC, id ASC",
+            execute_calls[1]["sql"],
+        )
+
+    def test_list_missing_lecturer_returns_not_found_without_querying_education(self):
+        client = ScriptedDataApiClient([{"columnMetadata": [{"name": "id"}], "records": []}])
+        dao = DataApiEducationDao("cluster", "secret", "database", client)
+
+        with self.assertRaises(LecturerNotFoundError):
+            dao.list_for_lecturer("missing")
+
+        execute_calls = [call for call in client.calls if call[0] == "execute"]
+        self.assertEqual(len(execute_calls), 1)
+
     def test_create_commits_and_uses_bound_parameters(self):
         client = ScriptedDataApiClient(
             [

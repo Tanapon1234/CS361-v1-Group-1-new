@@ -12,9 +12,11 @@ from backend.v2.lecturer_educations.service import LecturerEducationService
 
 
 class FakeEducationDao:
-    def __init__(self, error=None):
+    def __init__(self, error=None, items=None):
         self.error = error
+        self.items = items or []
         self.calls = []
+        self.list_calls = []
 
     def create(self, lecturer_id, education):
         self.calls.append((lecturer_id, education))
@@ -27,6 +29,12 @@ class FakeEducationDao:
             "display_order": education.display_order or 0,
         }
 
+    def list_for_lecturer(self, lecturer_id):
+        self.list_calls.append(lecturer_id)
+        if self.error:
+            raise self.error
+        return self.items
+
 
 def api_event(method="POST", lecturer_id="fac_demo", body=None):
     return {
@@ -37,6 +45,43 @@ def api_event(method="POST", lecturer_id="fac_demo", body=None):
 
 
 class LecturerEducationApiTest(unittest.TestCase):
+    def test_get_returns_education_list_and_count(self):
+        items = [
+            {"id": "edu_123", "faculty_id": "fac_demo", "display_order": 0},
+            {"id": "edu_456", "faculty_id": "fac_demo", "display_order": 1},
+        ]
+        dao = FakeEducationDao(items=items)
+
+        response = handle_request(
+            api_event(method="GET"),
+            LecturerEducationService(dao),
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(json.loads(response["body"]), {"items": items, "meta": {"count": 2}})
+        self.assertEqual(dao.list_calls, ["fac_demo"])
+        self.assertEqual(dao.calls, [])
+
+    def test_get_returns_empty_list_for_lecturer_without_education(self):
+        response = handle_request(
+            api_event(method="GET"),
+            LecturerEducationService(FakeEducationDao()),
+        )
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            json.loads(response["body"]),
+            {"items": [], "meta": {"count": 0}},
+        )
+
+    def test_get_unknown_or_inactive_lecturer_returns_not_found(self):
+        service = LecturerEducationService(FakeEducationDao(error=LecturerNotFoundError()))
+
+        response = handle_request(api_event(method="GET"), service)
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "LECTURER_NOT_FOUND")
+
     def test_create_returns_created_education_and_location(self):
         dao = FakeEducationDao()
         service = LecturerEducationService(dao)
@@ -114,14 +159,14 @@ class LecturerEducationApiTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 404)
         self.assertEqual(json.loads(response["body"])["error"]["code"], "LECTURER_NOT_FOUND")
 
-    def test_non_post_method_is_rejected(self):
+    def test_unsupported_method_is_rejected(self):
         response = handle_request(
-            api_event(method="GET"),
+            api_event(method="PATCH"),
             LecturerEducationService(FakeEducationDao()),
         )
 
         self.assertEqual(response["statusCode"], 405)
-        self.assertEqual(response["headers"]["Allow"], "POST")
+        self.assertEqual(response["headers"]["Allow"], "GET, POST")
 
     def test_unmatched_route_is_not_found(self):
         event = api_event(body={"degree": "Ph.D."})
