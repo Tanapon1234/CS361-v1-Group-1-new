@@ -8,10 +8,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, create_engine, select
 
 from app.core.database import get_session
-from app.core.exceptions import NotFoundError, ServiceUnavailableError
+from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 from app.v2.dependencies import get_publication_service
 from app.v2.dtos.common import PageMeta, PageResponse
 from app.v2.dtos.publication_dto import (
@@ -22,18 +22,6 @@ from app.v2.dtos.publication_dto import (
 )
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import FacultyPublication, Publication
-from sqlmodel import Session, create_engine, select
-
-from app.core.database import get_session
-from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
-from app.v2.dependencies import get_publication_service
-from app.v2.dtos.common import PageMeta, PageResponse
-from app.v2.dtos.publication_dto import (
-    PublicationCreateResponse,
-    PublicationListQuery,
-    PublicationResponse,
-)
-from app.v2.models.publication import Publication
 from app.v2.services.publication_service import PublicationService
 
 BASE = "/api/v2/publications"
@@ -176,7 +164,7 @@ def test_list_publications_database_unavailable_is_503(
 
 def test_create_publication(client: TestClient, service: MagicMock) -> None:
     created_at = datetime(2026, 10, 1, tzinfo=UTC)
-    service.create_publication.return_value = PublicationCreateResponse(
+    service.create_publication.return_value = PublicationListItemResponse(
         publication_id=1,
         title="A Study of Things",
         publication_year=2018,
@@ -599,15 +587,6 @@ def test_list_lecturer_publications_filters_scope_and_author_order(
             ]
         )
 
-
-def test_create_publication_persists_and_rejects_duplicate_doi(app: FastAPI) -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Publication.__table__.create(engine)
-
     def session_override() -> Iterator[Session]:
         with Session(engine) as session, session.begin():
             yield session
@@ -645,6 +624,22 @@ def test_create_publication_persists_and_rejects_duplicate_doi(app: FastAPI) -> 
         "meta": {"total": 0, "limit": 20, "offset": 0},
     }
     assert unknown_response.status_code == 404
+
+
+def test_create_publication_persists_and_rejects_duplicate_doi(app: FastAPI) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Publication.__table__.create(engine)
+
+    def session_override() -> Iterator[Session]:
+        with Session(engine) as session, session.begin():
+            yield session
+
+    app.dependency_overrides.pop(get_publication_service, None)
+    app.dependency_overrides[get_session] = session_override
     body = {
         "title": "A New Mobile Application",
         "publication_year": 2018,

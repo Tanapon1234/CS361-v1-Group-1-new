@@ -26,7 +26,7 @@ def list_publications(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_publication(
     data: PublicationCreateRequest, service: PublicationServiceDep
-) -> PublicationCreateResponse:
+) -> PublicationListItemResponse:
     return service.create_publication(data)
 
 

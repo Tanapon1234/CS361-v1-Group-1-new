@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from app.core.exceptions import ConflictError, ServiceUnavailableError,NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.common import PageMeta, PageResponse
@@ -51,7 +51,7 @@ class PublicationService:
             meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
         )
 
-    def create_publication(self, data: PublicationCreateRequest) -> PublicationCreateResponse:
+    def create_publication(self, data: PublicationCreateRequest) -> PublicationListItemResponse:
         try:
             if data.doi is not None and self.publication_dao.get_by_doi(data.doi) is not None:
                 raise ConflictError("Publication DOI already exists")
@@ -64,7 +64,7 @@ class PublicationService:
         except OperationalError as exc:
             raise ServiceUnavailableError("Database is unreachable") from exc
 
-        return PublicationCreateResponse.model_validate(publication)
+        return PublicationListItemResponse.model_validate(publication)
 
     def get_publication(self, publication_id: int) -> PublicationListItemResponse:
         try:

@@ -5,19 +5,13 @@ from unittest.mock import MagicMock, create_autospec
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.exc import OperationalError
-
-from app.core.exceptions import NotFoundError, ServiceUnavailableError
-from app.v2.daos.lecturer_dao import LecturerDAO
-from app.v2.daos.publication_dao import PublicationDAO
-from app.v2.dtos.publication_dto import PublicationListQuery
-from app.v2.models.lecturer import Lecturer
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
-from app.v2.dtos.publication_dto import PublicationCreateRequest
+from app.v2.dtos.publication_dto import PublicationCreateRequest, PublicationListQuery
+from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.services.publication_service import PublicationService
 
@@ -252,7 +246,6 @@ def test_create_publication_database_unavailable_raises_service_unavailable(
     publication_dao.add.assert_not_called()
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: implement get publication")
 def test_get_unknown_publication_raises_not_found(
     service: PublicationService, publication_dao: MagicMock
 ) -> None:
