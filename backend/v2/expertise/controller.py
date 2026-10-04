@@ -66,10 +66,45 @@ def handle_request(
             {"error": {"code": "NOT_FOUND", "message": "Expertise route not found"}},
         )
 
-    if _method(event) != "POST":
+    method = _method(event)
+    if method not in {"GET", "POST"}:
         return _response(
             405,
-            {"error": {"code": "METHOD_NOT_ALLOWED", "message": "Only POST is supported"}},
+            {
+                "error": {
+                    "code": "METHOD_NOT_ALLOWED",
+                    "message": "Only GET and POST are supported",
+                }
+            },
+        )
+
+    active_service = service or ExpertiseService(DeferredExpertiseDao())
+
+    if method == "GET":
+        try:
+            items = active_service.list_all()
+        except ExpertisePersistencePendingError as error:
+            return _response(
+                501,
+                {"error": {"code": "NOT_IMPLEMENTED", "message": str(error)}},
+            )
+        except Exception:
+            LOGGER.exception("Unhandled expertise listing error")
+            return _response(
+                500,
+                {
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Unable to list expertise",
+                    }
+                },
+            )
+        return _response(
+            200,
+            {
+                "items": [item.to_dict() for item in items],
+                "meta": {"count": len(items)},
+            },
         )
 
     try:
@@ -83,7 +118,6 @@ def handle_request(
             error_body["details"] = {"field": error.field}
         return _response(400, {"error": error_body})
 
-    active_service = service or ExpertiseService(DeferredExpertiseDao())
     try:
         item = active_service.create(expertise)
     except ExpertisePersistencePendingError as error:
