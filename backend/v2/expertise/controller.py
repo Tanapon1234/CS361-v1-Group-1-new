@@ -8,7 +8,11 @@ import json
 import logging
 from typing import Any
 
-from .dao import DeferredExpertiseDao, ExpertisePersistencePendingError
+from .dao import (
+    DeferredExpertiseDao,
+    ExpertiseNotFoundError,
+    ExpertisePersistencePendingError,
+)
 from .dto import CreateExpertiseDTO, ExpertiseValidationError
 from .service import ExpertiseService
 
@@ -38,6 +42,16 @@ def _path(event: dict[str, Any]) -> str:
     return str(raw_path).rstrip("/") or "/"
 
 
+def _expertise_id(path: str) -> str | None:
+    prefix = f"{EXPERTISE_PATH}/"
+    if not path.startswith(prefix):
+        return None
+    expertise_id = path[len(prefix) :]
+    if not expertise_id or "/" in expertise_id:
+        return None
+    return expertise_id
+
+
 def _request_dto(event: dict[str, Any]) -> CreateExpertiseDTO:
     raw_body = event.get("body")
     if not isinstance(raw_body, str):
@@ -60,7 +74,9 @@ def handle_request(
     event: dict[str, Any],
     service: ExpertiseService | None = None,
 ) -> dict[str, Any]:
-    if _path(event) != EXPERTISE_PATH:
+    path = _path(event)
+    expertise_id = _expertise_id(path)
+    if path != EXPERTISE_PATH and expertise_id is None:
         return _response(
             404,
             {"error": {"code": "NOT_FOUND", "message": "Expertise route not found"}},
@@ -78,11 +94,30 @@ def handle_request(
             },
         )
 
+    if expertise_id is not None and method != "GET":
+        return _response(
+            405,
+            {
+                "error": {
+                    "code": "METHOD_NOT_ALLOWED",
+                    "message": "Only GET is supported for expertise details",
+                }
+            },
+        )
+
     active_service = service or ExpertiseService(DeferredExpertiseDao())
 
     if method == "GET":
         try:
+            if expertise_id is not None:
+                item = active_service.get_by_id(expertise_id)
+                return _response(200, {"item": item.to_dict()})
             items = active_service.list_all()
+        except ExpertiseNotFoundError as error:
+            return _response(
+                404,
+                {"error": {"code": "EXPERTISE_NOT_FOUND", "message": str(error)}},
+            )
         except ExpertisePersistencePendingError as error:
             return _response(
                 501,
