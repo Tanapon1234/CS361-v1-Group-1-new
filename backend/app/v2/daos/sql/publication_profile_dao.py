@@ -11,7 +11,15 @@ from app.v2.models.publication_profile import PublicationProfile
 
 class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
     def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[PublicationProfile]:
-        raise NotImplementedError
+        statement = (
+            select(PublicationProfile)
+            .where(PublicationProfile.lecturer_id == lecturer_id)
+            .order_by(
+                PublicationProfile.provider.asc(),
+                PublicationProfile.publication_profile_id.asc(),
+            )
+        )
+        return self.session.exec(statement).all()
 
     def get_by_id(self, publication_profile_id: int) -> PublicationProfile | None:
         return self.session.get(PublicationProfile, publication_profile_id)
@@ -27,7 +35,10 @@ class SqlPublicationProfileDAO(SqlDAO, PublicationProfileDAO):
         return self.session.exec(statement).first()
 
     def add(self, profile: PublicationProfile) -> PublicationProfile:
-        raise NotImplementedError
+        self.session.add(profile)
+        self.session.flush()
+        self.session.refresh(profile)
+        return profile
 
     def update(self, profile: PublicationProfile, values: Mapping[str, Any]) -> PublicationProfile:
         profile.sqlmodel_update(values)
