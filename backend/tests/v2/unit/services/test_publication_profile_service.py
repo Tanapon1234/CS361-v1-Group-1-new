@@ -1,5 +1,3 @@
-"""See test_lecturer_service.py for how these xfail tests work."""
-
 from unittest.mock import MagicMock, create_autospec
 from uuid import uuid4
 
@@ -8,11 +6,9 @@ import pytest
 from app.core.exceptions import NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
+from app.v2.models.lecturer import Lecturer
+from app.v2.models.publication_profile import PublicationProfile
 from app.v2.services.publication_profile_service import PublicationProfileService
-
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, reason="TODO: implement PublicationProfileService"
-)
 
 
 @pytest.fixture
@@ -32,10 +28,84 @@ def service(
     return PublicationProfileService(publication_profile_dao, lecturer_dao)
 
 
+def test_list_publication_profiles_success(
+    service: PublicationProfileService,
+    publication_profile_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+    )
+    publication_profile_dao.list_by_lecturer.return_value = [
+        PublicationProfile(
+            publication_profile_id=1,
+            lecturer_id=lecturer_id,
+            provider="Google Scholar",
+            url="https://scholar.google.com/citations?user=abc",
+        ),
+        PublicationProfile(
+            publication_profile_id=2,
+            lecturer_id=lecturer_id,
+            provider="ORCID",
+            url="https://orcid.org/0000-0002-1825-0097",
+        ),
+    ]
+
+    result = service.list_publication_profiles(lecturer_id)
+
+    assert [item.provider for item in result.items] == ["Google Scholar", "ORCID"]
+    assert result.meta.count == 2
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+    publication_profile_dao.list_by_lecturer.assert_called_once_with(lecturer_id)
+
+
+def test_list_publication_profiles_returns_empty_list(
+    service: PublicationProfileService,
+    publication_profile_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+    )
+    publication_profile_dao.list_by_lecturer.return_value = []
+
+    result = service.list_publication_profiles(lecturer_id)
+
+    assert result.items == []
+    assert result.meta.count == 0
+
+
 def test_list_for_unknown_lecturer_raises_not_found(
     service: PublicationProfileService, lecturer_dao: MagicMock
 ) -> None:
     lecturer_dao.get_by_id.return_value = None
 
-    with pytest.raises(NotFoundError):
-        service.list_publication_profiles(uuid4())
+    lecturer_id = uuid4()
+    with pytest.raises(NotFoundError, match="Lecturer not found"):
+        service.list_publication_profiles(lecturer_id)
+
+    lecturer_dao.get_by_id.assert_called_once_with(lecturer_id)
+    service.publication_profile_dao.list_by_lecturer.assert_not_called()
+
+
+def test_list_publication_profiles_propagates_query_error(
+    service: PublicationProfileService,
+    publication_profile_dao: MagicMock,
+    lecturer_dao: MagicMock,
+) -> None:
+    lecturer_id = uuid4()
+    lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=lecturer_id,
+        name_th="สมชาย",
+        email="somchai@example.ac.th",
+    )
+    publication_profile_dao.list_by_lecturer.side_effect = RuntimeError("query failed")
+
+    with pytest.raises(RuntimeError, match="query failed"):
+        service.list_publication_profiles(lecturer_id)

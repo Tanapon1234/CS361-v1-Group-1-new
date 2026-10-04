@@ -50,11 +50,10 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
         return research_interest
 
     def delete(self, research_interest: ResearchInterest) -> None:
-        raise NotImplementedError
+        self.session.delete(research_interest)
+        self.session.flush()
 
-    def list_by_lecturer(
-        self, lecturer_id: UUID
-    ) -> Sequence[ResearchInterest]:
+    def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[ResearchInterest]:
         statement = (
             select(ResearchInterest)
             .join(
@@ -82,4 +81,13 @@ class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
         self.session.flush()
 
     def remove_from_lecturer(self, lecturer_id: UUID, research_interest_id: int) -> bool:
-        raise NotImplementedError
+        relationship = self.session.get(
+            FacultyResearchInterest,
+            (lecturer_id, research_interest_id),
+        )
+        if relationship is None:
+            return False
+
+        self.session.delete(relationship)
+        self.session.flush()
+        return True

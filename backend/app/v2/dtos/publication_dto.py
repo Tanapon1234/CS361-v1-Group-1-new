@@ -15,7 +15,6 @@ class PublicationCreateRequest(RequestDTO):
     pages: str | None = Field(default=None, max_length=50)
     doi: str | None = Field(default=None, max_length=255)
     citation_text: str | None = None
-    lecturer_ids: list[UUID] = Field(default_factory=list, description="Authors, in author order")
 
 
 class PublicationUpdateRequest(RequestDTO):
@@ -36,11 +35,11 @@ class PublicationUpdateRequest(RequestDTO):
 
 
 class PublicationListQuery(PageQuery):
-    q: str | None = Field(default=None, max_length=200, description="Search title / venue")
+    q: str | None = Field(default=None, max_length=200, description="Search title / venue / DOI")
     publication_year: int | None = None
 
 
-class PublicationResponse(ResponseDTO):
+class PublicationListItemResponse(ResponseDTO):
     publication_id: int
     title: str
     publication_year: int | None
@@ -50,6 +49,9 @@ class PublicationResponse(ResponseDTO):
     doi: str | None
     citation_text: str | None
     created_at: datetime | None
+
+
+class PublicationResponse(PublicationListItemResponse):
     lecturer_ids: list[UUID] = Field(default_factory=list)
 
 
@@ -63,3 +65,5 @@ class PublicationUpdateResponse(ResponseDTO):
     doi: str | None
     citation_text: str | None
     created_at: datetime | None
+class LecturerPublicationResponse(PublicationListItemResponse):
+    author_order: int | None

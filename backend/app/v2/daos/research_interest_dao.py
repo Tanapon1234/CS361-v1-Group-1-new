@@ -34,9 +34,7 @@ class ResearchInterestDAO(ABC):
     # --- per lecturer (faculty_research_interest) ------------------------------------
 
     @abstractmethod
-    def list_by_lecturer(
-        self, lecturer_id: UUID
-    ) -> Sequence[ResearchInterest]: ...
+    def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[ResearchInterest]: ...
 
     @abstractmethod
     def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
