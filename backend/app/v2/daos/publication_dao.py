@@ -11,6 +11,9 @@ class PublicationDAO(ABC):
     def get_by_id(self, publication_id: int) -> Publication | None: ...
 
     @abstractmethod
+    def get_by_doi(self, doi: str) -> Publication | None: ...
+
+    @abstractmethod
     def find_page(
         self,
         *,
@@ -21,6 +24,17 @@ class PublicationDAO(ABC):
         offset: int,
     ) -> tuple[Sequence[Publication], int]:
         """`lecturer_id` limits results to that lecturer's publications."""
+
+    @abstractmethod
+    def find_lecturer_page(
+        self,
+        lecturer_id: UUID,
+        *,
+        q: str | None,
+        publication_year: int | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[Sequence[tuple[Publication, int | None]], int]: ...
 
     @abstractmethod
     def add(self, publication: Publication) -> Publication: ...
