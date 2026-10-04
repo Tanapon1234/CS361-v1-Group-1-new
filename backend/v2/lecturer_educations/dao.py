@@ -7,9 +7,17 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from .dto import CreateEducationDTO
+from .dto import CreateEducationDTO, PatchEducationDTO
 
 LOGGER = logging.getLogger(__name__)
+PATCHABLE_EDUCATION_COLUMNS = {
+    "country": "country",
+    "degree": "degree",
+    "display_order": "display_order",
+    "field_of_study": "field_of_study",
+    "graduation_year": "graduation_year",
+    "institution": "institution",
+}
 
 
 class LecturerNotFoundError(Exception):
@@ -31,6 +39,14 @@ class EducationDao:
         self,
         lecturer_id: str,
         education_id: str,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def update_for_lecturer(
+        self,
+        lecturer_id: str,
+        education_id: str,
+        education: PatchEducationDTO,
     ) -> dict[str, Any]:
         raise NotImplementedError
 
@@ -212,6 +228,80 @@ class DataApiEducationDao(EducationDao):
         if not education_rows:
             raise EducationNotFoundError(education_id)
         return education_rows[0]
+
+    def update_for_lecturer(
+        self,
+        lecturer_id: str,
+        education_id: str,
+        education: PatchEducationDTO,
+    ) -> dict[str, Any]:
+        transaction_id = self.client.begin_transaction(
+            resourceArn=self.resource_arn,
+            secretArn=self.secret_arn,
+            database=self.database,
+        )["transactionId"]
+        try:
+            lecturer_rows = self._execute(
+                """
+                SELECT id
+                FROM faculty
+                WHERE id = :lecturer_id AND status = 'ACTIVE'
+                FOR UPDATE
+                """,
+                {"lecturer_id": lecturer_id},
+                transaction_id,
+            )
+            if not lecturer_rows:
+                raise LecturerNotFoundError(lecturer_id)
+
+            values = {
+                "degree": education.degree,
+                "field_of_study": education.field_of_study,
+                "institution": education.institution,
+                "country": education.country,
+                "graduation_year": education.graduation_year,
+                "display_order": education.display_order,
+            }
+            fields = sorted(education.provided_fields)
+            assignments = ", ".join(
+                f"{PATCHABLE_EDUCATION_COLUMNS[field]} = :{field}" for field in fields
+            )
+            params = {
+                "lecturer_id": lecturer_id,
+                "education_id": education_id,
+                **{field: values[field] for field in fields},
+            }
+            rows = self._execute(
+                f"""
+                UPDATE faculty_education
+                SET {assignments}, updated_at = now()
+                WHERE faculty_id = :lecturer_id AND id = :education_id
+                RETURNING id, faculty_id, degree, field_of_study, institution, country,
+                          graduation_year, display_order,
+                          created_at::text AS created_at, updated_at::text AS updated_at
+                """,
+                params,
+                transaction_id,
+            )
+            if not rows:
+                raise EducationNotFoundError(education_id)
+
+            self.client.commit_transaction(
+                resourceArn=self.resource_arn,
+                secretArn=self.secret_arn,
+                transactionId=transaction_id,
+            )
+            return rows[0]
+        except Exception:
+            try:
+                self.client.rollback_transaction(
+                    resourceArn=self.resource_arn,
+                    secretArn=self.secret_arn,
+                    transactionId=transaction_id,
+                )
+            except Exception:
+                LOGGER.exception("Failed to roll back lecturer education update transaction")
+            raise
 
 
 def _data_api_param(name: str, value: Any) -> dict[str, Any]:

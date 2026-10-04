@@ -38,6 +38,17 @@ class CreateEducationDTO:
     display_order: int | None
 
 
+@dataclass(frozen=True)
+class PatchEducationDTO:
+    degree: str | None
+    field_of_study: str | None
+    institution: str | None
+    country: str | None
+    graduation_year: int | None
+    display_order: int | None
+    provided_fields: frozenset[str]
+
+
 def validate_lecturer_id(value: Any) -> str:
     if not isinstance(value, str):
         raise EducationValidationError("lecturerId", "lecturerId must be a valid identifier")
@@ -101,3 +112,58 @@ def parse_create_education(payload: Any) -> CreateEducationDTO:
         )
 
     return CreateEducationDTO(**values)
+
+
+def parse_patch_education(payload: Any) -> PatchEducationDTO:
+    if not isinstance(payload, dict):
+        raise EducationValidationError("body", "request body must be a JSON object")
+    if not payload:
+        raise EducationValidationError("body", "at least one field must be provided")
+
+    unknown_fields = set(payload) - EDUCATION_FIELDS
+    if unknown_fields:
+        field = sorted(unknown_fields)[0]
+        raise EducationValidationError(field, f"unknown field: {field}")
+
+    values: dict[str, Any] = {}
+    for field in TEXT_FIELDS:
+        if field not in payload:
+            continue
+        value = payload[field]
+        if value is not None and not isinstance(value, str):
+            raise EducationValidationError(field, f"{field} must be a string or null")
+        values[field] = value.strip() or None if isinstance(value, str) else None
+
+    if "graduation_year" in payload:
+        graduation_year = payload["graduation_year"]
+        if graduation_year is not None and (
+            isinstance(graduation_year, bool)
+            or not isinstance(graduation_year, int)
+            or not 1 <= graduation_year <= 9999
+        ):
+            raise EducationValidationError(
+                "graduation_year", "graduation_year must be an integer from 1 to 9999 or null"
+            )
+        values["graduation_year"] = graduation_year
+
+    if "display_order" in payload:
+        display_order = payload["display_order"]
+        if (
+            isinstance(display_order, bool)
+            or not isinstance(display_order, int)
+            or display_order < 0
+        ):
+            raise EducationValidationError(
+                "display_order", "display_order must be a non-negative integer"
+            )
+        values["display_order"] = display_order
+
+    return PatchEducationDTO(
+        degree=values.get("degree"),
+        field_of_study=values.get("field_of_study"),
+        institution=values.get("institution"),
+        country=values.get("country"),
+        graduation_year=values.get("graduation_year"),
+        display_order=values.get("display_order"),
+        provided_fields=frozenset(payload),
+    )
