@@ -120,6 +120,7 @@ Rules:
 Rules:
 
 - unique `(faculty_id, interest_type, value)`
+- expertise mapping API ใช้แถวที่ `interest_type = 'EXPERTISE'`; route contract อยู่ใน [lecturer-expertise-api.md](./lecturer-expertise-api.md)
 
 ### `app_user`
 
