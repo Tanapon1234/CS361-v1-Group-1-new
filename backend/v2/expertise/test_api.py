@@ -76,6 +76,10 @@ class ExpertiseApiTest(unittest.TestCase):
                     visibility="PUBLIC",
                 )
 
+            def delete(self, expertise_id: str) -> None:
+                if expertise_id != "exp_1":
+                    raise ExpertiseNotFoundError(expertise_id)
+
         self.service = ExpertiseService(FakeDao())
 
     def test_list_returns_items_and_count(self) -> None:
@@ -213,6 +217,44 @@ class ExpertiseApiTest(unittest.TestCase):
 
         self.assertEqual(response["statusCode"], 501)
         self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
+
+    def test_delete_detail_returns_empty_204(self) -> None:
+        response = handle_request(
+            api_event(method="DELETE", path="/api/v2/expertise/exp_1"),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 204)
+        self.assertEqual(response["body"], "")
+
+    def test_delete_detail_returns_not_found_for_unknown_id(self) -> None:
+        response = handle_request(
+            api_event(method="DELETE", path="/api/v2/expertise/missing"),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(
+            response_body(response)["error"]["code"],
+            "EXPERTISE_NOT_FOUND",
+        )
+
+    def test_delete_detail_without_connected_dao_returns_not_implemented(self) -> None:
+        response = handle_request(
+            api_event(method="DELETE", path="/api/v2/expertise/exp_1")
+        )
+
+        self.assertEqual(response["statusCode"], 501)
+        self.assertEqual(response_body(response)["error"]["code"], "NOT_IMPLEMENTED")
+
+    def test_delete_collection_route_is_not_allowed(self) -> None:
+        response = handle_request(
+            api_event(method="DELETE", path="/api/v2/expertise"),
+            self.service,
+        )
+
+        self.assertEqual(response["statusCode"], 405)
+        self.assertEqual(response_body(response)["error"]["code"], "METHOD_NOT_ALLOWED")
 
     def test_create_returns_created_item(self) -> None:
         response = handle_request(

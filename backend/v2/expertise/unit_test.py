@@ -173,6 +173,36 @@ class ExpertiseServiceTest(unittest.TestCase):
             ExpertiseDTO("exp_1", "fac_1", "Machine Learning", "PUBLIC"),
         )
 
+    def test_delete_delegates_id_to_dao(self) -> None:
+        class FakeDao:
+            def create(self, expertise: CreateExpertiseDTO) -> dict[str, str]:
+                raise AssertionError("create should not be called")
+
+            def list_all(self) -> list[ExpertiseDTO]:
+                raise AssertionError("list_all should not be called")
+
+            def get_by_id(self, expertise_id: str) -> ExpertiseDTO:
+                raise AssertionError("get_by_id should not be called")
+
+            def update(
+                self,
+                expertise_id: str,
+                expertise: PatchExpertiseDTO,
+            ) -> ExpertiseDTO:
+                raise AssertionError("update should not be called")
+
+            def delete(self, expertise_id: str) -> None:
+                self.deleted_id = expertise_id
+
+        dao = FakeDao()
+        ExpertiseService(dao).delete("exp_1")
+
+        self.assertEqual(dao.deleted_id, "exp_1")
+
+    def test_deferred_dao_reports_pending_deletion(self) -> None:
+        with self.assertRaises(ExpertisePersistencePendingError):
+            DeferredExpertiseDao().delete("exp_1")
+
     def test_deferred_dao_reports_pending_listing(self) -> None:
         with self.assertRaises(ExpertisePersistencePendingError):
             DeferredExpertiseDao().list_all()
@@ -180,6 +210,7 @@ class ExpertiseServiceTest(unittest.TestCase):
     def test_deferred_dao_reports_pending_detail_lookup(self) -> None:
         with self.assertRaises(ExpertisePersistencePendingError):
             DeferredExpertiseDao().get_by_id("exp_1")
+
 
 if __name__ == "__main__":
     unittest.main()
