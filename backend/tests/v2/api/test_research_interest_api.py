@@ -16,6 +16,7 @@ from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailable
 from app.v2.dependencies import get_research_interest_service
 from app.v2.dtos.common import ListMeta, ListResponse, PageMeta, PageResponse
 from app.v2.dtos.research_interest_dto import ResearchInterestResponse
+from app.v2.models.department import Department
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.research_interest import FacultyResearchInterest, ResearchInterest
 from app.v2.services.research_interest_service import ResearchInterestService
@@ -542,6 +543,7 @@ def test_put_lecturer_research_interests_replaces_and_clears_relationships(
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    Department.__table__.create(engine)  # lecturer.department_id references it
     Lecturer.__table__.create(engine)
     ResearchInterest.__table__.create(engine)
     FacultyResearchInterest.__table__.create(engine)
@@ -605,6 +607,7 @@ def test_delete_research_interest_removes_record_and_cascades_relationship(
     )
     with engine.begin() as connection:
         connection.execute(text("PRAGMA foreign_keys=ON"))
+    Department.__table__.create(engine)  # lecturer.department_id references it
     Lecturer.__table__.create(engine)
     ResearchInterest.__table__.create(engine)
     FacultyResearchInterest.__table__.create(engine)
@@ -664,6 +667,7 @@ def test_remove_lecturer_research_interest_only_removes_requested_relationship(
     )
     with engine.begin() as connection:
         connection.execute(text("PRAGMA foreign_keys=ON"))
+    Department.__table__.create(engine)  # lecturer.department_id references it
     Lecturer.__table__.create(engine)
     ResearchInterest.__table__.create(engine)
     FacultyResearchInterest.__table__.create(engine)

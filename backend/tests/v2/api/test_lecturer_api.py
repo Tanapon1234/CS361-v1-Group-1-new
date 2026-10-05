@@ -42,6 +42,7 @@ def make_lecturer(**overrides: Any) -> LecturerResponse:
         "name_th": "ผศ.ดร.สมชาย ใจดี",
         "name_en": "Asst. Prof. Somchai Jaidee",
         "rank": "Assistant Professor",
+        "department_id": 1,
         "profile_image_url": None,
         "office": None,
         "phone": None,

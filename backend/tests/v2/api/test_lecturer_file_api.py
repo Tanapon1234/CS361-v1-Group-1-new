@@ -37,6 +37,7 @@ def lecturer() -> LecturerResponse:
         name_th="สมชาย",
         name_en=None,
         rank=None,
+        department_id=None,
         profile_image_url="https://bucket.s3.amazonaws.com/lecturers/x/file",
         office=None,
         phone=None,

@@ -11,6 +11,7 @@ class LecturerCreateRequest(RequestDTO):
     name_th: str = Field(min_length=1, max_length=255)
     name_en: str | None = Field(default=None, max_length=255)
     rank: str | None = Field(default=None, max_length=100)
+    department_id: int | None = Field(default=None, ge=1)
     office: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     phone_extension: str | None = Field(default=None, max_length=50)
@@ -23,6 +24,7 @@ class LecturerUpdateRequest(RequestDTO):
     name_th: str | None = Field(default=None, min_length=1, max_length=255)
     name_en: str | None = Field(default=None, max_length=255)
     rank: str | None = Field(default=None, max_length=100)
+    department_id: int | None = Field(default=None, ge=1)
     office: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     phone_extension: str | None = Field(default=None, max_length=50)
@@ -43,10 +45,12 @@ class LecturerListQuery(PageQuery):
 
 class LecturerResponse(ResponseDTO):
     # cv_url is not exposed here; clients use GET /lecturers/{lecturer_id}/cv
+    # cognito_sub is internal (auth mapping), never returned
     lecturer_id: UUID
     name_th: str
     name_en: str | None
     rank: str | None
+    department_id: int | None
     profile_image_url: str | None
     office: str | None
     phone: str | None
