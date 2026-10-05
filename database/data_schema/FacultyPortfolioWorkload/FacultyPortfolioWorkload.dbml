@@ -5,8 +5,9 @@
 //
 // Target: PostgreSQL 15+ | Auth: AWS Cognito | Files: S3
 //
-// เป็น design แยกไว้ต่างหาก (ยังไม่ทับไฟล์เดิม) รอทีมรีวิวก่อนย้ายไปเป็น
-// migration จริงใน database/migrations/ และ sync เข้า backend/app/v2/models
+// ทีมรีวิวแล้ว: ย้ายเป็น migration จริงที่ database/migrations/003_faculty_workload.sql
+// (รันต่อจาก 002_lecturer_profile.sql) และ sync เข้า backend/app/v2/models แล้ว
+// ถ้าแก้ design นี้ ต้องแก้ migration (ไฟล์ใหม่ต่อจาก 003) และ model ให้ตรงกันด้วย
 // =====================================================================
 
 Project faculty_portfolio_workload {
@@ -449,7 +450,7 @@ Ref: faculty_publication.publication_id > publication.publication_id [delete: ca
 Ref: publication_profile.lecturer_id > lecturer.lecturer_id [delete: cascade]
 
 // =====================================================================
-// DDL เสริมที่ dbdiagram วาดไม่ได้ ใส่ตอนเขียน migration จริง
+// DDL เสริมที่ dbdiagram วาดไม่ได้ (ใส่ไว้ใน 003_faculty_workload.sql แล้ว)
 // =====================================================================
 // CHECK participation_pct > 0 AND participation_pct <= 100
 // CHECK quantity > 0 AND score >= 0

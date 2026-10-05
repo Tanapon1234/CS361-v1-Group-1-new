@@ -22,6 +22,7 @@ from app.v2.dtos.publication_dto import (
     PublicationResponse,
     PublicationUpdateResponse,
 )
+from app.v2.models.department import Department
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import FacultyPublication, Publication
 from app.v2.services.publication_service import PublicationService
@@ -437,6 +438,7 @@ def test_delete_publication_cascades_authorship_and_keeps_lecturer(app: FastAPI)
     )
     with engine.begin() as connection:
         connection.execute(text("PRAGMA foreign_keys=ON"))
+    Department.__table__.create(engine)  # lecturer.department_id references it
     Lecturer.__table__.create(engine)
     Publication.__table__.create(engine)
     FacultyPublication.__table__.create(engine)
@@ -690,6 +692,7 @@ def test_list_lecturer_publications_filters_scope_and_author_order(
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    Department.__table__.create(engine)  # lecturer.department_id references it
     Lecturer.__table__.create(engine)
     Publication.__table__.create(engine)
     FacultyPublication.__table__.create(engine)

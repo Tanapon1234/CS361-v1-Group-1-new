@@ -32,13 +32,17 @@ fastapi dev
 
 ## Database
 
-Schema อยู่ที่ [database/migrations/002_lecturer_profile.sql](../database/migrations/002_lecturer_profile.sql) **ไฟล์นี้คือ source of truth** ส่วน model ใน `app/v2/models/` ต้องตรงกับไฟล์นี้เสมอ
+Schema อยู่ใน 2 ไฟล์ **ทั้งสองไฟล์คือ source of truth** ส่วน model ใน `app/v2/models/` ต้องตรงกับไฟล์เหล่านี้เสมอ
+
+- [002_lecturer_profile.sql](../database/migrations/002_lecturer_profile.sql): ข้อมูลอาจารย์และผลงานวิชาการ (Academic Portfolio)
+- [003_faculty_workload.sql](../database/migrations/003_faculty_workload.sql): ภาระงานประจำภาค (SemesterReport) ทำตาม design รวม [FacultyPortfolioWorkload.dbml](../database/data_schema/FacultyPortfolioWorkload/FacultyPortfolioWorkload.dbml) และเพิ่ม `cognito_sub` กับ `department_id` ให้ `lecturer`
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
 ```bash
 createdb cs361v2
 psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
+psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้องรันหลัง 002
 ```
 
 | ตาราง | Primary key | หมายเหตุ |
@@ -49,8 +53,18 @@ psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
 | `expertise` + `faculty_expertise` | `expertise_id` smallint | master list + ตารางเชื่อมกับอาจารย์ |
 | `publication` + `faculty_publication` | `publication_id` int | ตารางเชื่อมมี `author_order` |
 | `publication_profile` | `publication_profile_id` smallint | `provider` เป็น text อิสระ เช่น "Google Scholar" |
+| `department` | `id` smallint | master สาขาวิชา `lecturer.department_id` ชี้มาที่นี่ (ตอนนี้ยัง NULL ได้) |
+| `member_position` | `id` uuid | ตำแหน่งบริหารของอาจารย์ (`end_date` NULL = ยังดำรงตำแหน่ง) |
+| `rubric_version` → `rubric_category` → `rubric_section` → `rubric_item` | `id` smallint | เกณฑ์ภาระงานแบบมีหลายฉบับ |
+| `evaluation_round` | `id` smallint | รอบประเมิน ผูกกับฉบับเกณฑ์ |
+| `submission` + `submission_entry` | `id` uuid | ใบภาระงานของอาจารย์ 1 คนต่อ 1 รอบ และรายการในใบ |
+| `entry_assessment`, `entry_evidence` | `id` uuid | ค่าที่ผู้ประเมินให้ และไฟล์หลักฐานใน S3 ของแต่ละรายการ |
+| `submission_category_total`, `submission_approval` | | ยอดรายหมวดที่ freeze ตอนส่ง และประวัติส่ง/ตีกลับ/อนุมัติ |
 
-- FK ทุกตัวเป็น `ON DELETE CASCADE` ถ้าลบอาจารย์หรือลบ master จะลบแถวในตารางเชื่อมไปด้วย
+- FK ใน 002 เป็น `ON DELETE CASCADE` ทุกตัว ถ้าลบอาจารย์หรือลบ master จะลบแถวในตารางเชื่อมไปด้วย
+- FK ใน 003 **ไม่ cascade** ยกเว้น entry ที่ตามใบ (`submission_entry`) และ assessment/evidence ที่ตาม entry เพราะฉะนั้นอาจารย์ที่มีใบภาระงานหรือตำแหน่งแล้วจะลบไม่ได้ (ใช้ deactivate แทน)
+- enum ของ PostgreSQL (เช่น `position_code`, `submission_status`) อยู่ใน `app/v2/models/enums.py`
+- 003 มี trigger ที่ไม่ให้เพิ่ม แก้ หรือลบ `submission_entry` เมื่อใบไม่ได้อยู่ในสถานะ `draft` (DB จะตอบ error `check_violation`) และมี view `v_section_total` ที่คิดยอดรายข้อย่อยหลังตัดเพดานแล้ว
 - ถ้าจะแก้ schema: แก้ไฟล์ SQL และ model ให้ตรงกัน เทสต์ `tests/v2/unit/test_models.py` จะ fail ถ้าชื่อตารางหรือ column ไม่ตรงกัน
 
 ## รันเทสต์และ lint
@@ -88,7 +102,7 @@ backend/
 │   └── v2/                     ทุกอย่างของ API v2 (URL: /api/v2/...)
 │       ├── router.py           รวม controller ทั้งหมดไว้ใต้ /api/v2
 │       ├── dependencies.py     ประกอบ Session -> DAO -> Service (composition root)
-│       ├── models/             [M] ตารางใน database ตรงกับ 002_lecturer_profile.sql
+│       ├── models/             [M] ตารางใน database ตรงกับ migration 002 + 003
 │       ├── dtos/               [V] รูปร่าง request/response ของ API (Pydantic)
 │       ├── controllers/        [C] path operations (APIRouter) บางที่สุด  (เสร็จแล้ว)
 │       ├── services/           business logic  (TODO)
@@ -220,4 +234,4 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 1. **ยังไม่มี authentication**: endpoint ที่แก้ข้อมูล (POST/PATCH/PUT/DELETE) ควรจำกัดให้ admin ผ่าน Cognito JWT เพิ่มเป็น dependency ระดับ router ได้
 2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (`backend/v2/`) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
 3. **DAO integration test** กับ PostgreSQL จริงยังไม่มี ควรเพิ่มเมื่อเริ่ม implement DAO (ใช้ database แยกสำหรับเทสต์ ห้ามใช้ dev DB)
-4. **Migration `002_lecturer_profile.sql` ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
+4. **Migration `002_lecturer_profile.sql` และ `003_faculty_workload.sql` ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
