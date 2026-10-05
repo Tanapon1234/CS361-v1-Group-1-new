@@ -21,3 +21,6 @@ class ExpertiseService:
 
     def update(self, expertise_id: str, expertise: PatchExpertiseDTO) -> ExpertiseDTO:
         return self._dao.update(expertise_id, expertise)
+
+    def delete(self, expertise_id: str) -> None:
+        self._dao.delete(expertise_id)
