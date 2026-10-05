@@ -2,6 +2,10 @@
 
 import unittest
 
+from backend.v2.lecturer_expertise.dao import (
+    DeferredLecturerExpertiseDao,
+    LecturerExpertisePersistencePendingError,
+)
 from backend.v2.lecturer_expertise.dto import (
     LecturerExpertiseValidationError,
     ReplaceLecturerExpertiseDTO,
@@ -50,6 +54,23 @@ class ReplaceLecturerExpertiseDtoTest(unittest.TestCase):
             ReplaceLecturerExpertiseDTO.from_mapping(
                 {"expertiseIds": ["exp_1", " exp_1 "]}
             )
+
+
+class DeferredLecturerExpertiseDaoTest(unittest.TestCase):
+    def test_listing_reports_pending_persistence(self) -> None:
+        with self.assertRaises(LecturerExpertisePersistencePendingError):
+            DeferredLecturerExpertiseDao().list_for_lecturer("fac_1")
+
+    def test_replacement_reports_pending_persistence(self) -> None:
+        with self.assertRaises(LecturerExpertisePersistencePendingError):
+            DeferredLecturerExpertiseDao().replace_for_lecturer(
+                "fac_1",
+                ReplaceLecturerExpertiseDTO(("exp_1",)),
+            )
+
+    def test_removal_reports_pending_persistence(self) -> None:
+        with self.assertRaises(LecturerExpertisePersistencePendingError):
+            DeferredLecturerExpertiseDao().remove_for_lecturer("fac_1", "exp_1")
 
 
 if __name__ == "__main__":
