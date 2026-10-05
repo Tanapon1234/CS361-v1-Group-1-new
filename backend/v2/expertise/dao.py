@@ -28,6 +28,9 @@ class ExpertiseDao(Protocol):
     def update(self, expertise_id: str, expertise: PatchExpertiseDTO) -> ExpertiseDTO:
         """Update an expertise record by its identifier."""
 
+    def delete(self, expertise_id: str) -> None:
+        """Delete an expertise record by its identifier."""
+
 
 class DeferredExpertiseDao:
     """Placeholder persistence implementation for the unconnected endpoint."""
@@ -53,4 +56,10 @@ class DeferredExpertiseDao:
         del expertise_id, expertise
         raise ExpertisePersistencePendingError(
             "Expertise updates are not connected yet"
+        )
+
+    def delete(self, expertise_id: str) -> None:
+        del expertise_id
+        raise ExpertisePersistencePendingError(
+            "Expertise deletion is not connected yet"
         )
