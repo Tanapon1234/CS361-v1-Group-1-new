@@ -86,40 +86,70 @@ def handle_request(
         )
 
     method = _method(event)
-    if method not in {"GET", "POST", "PATCH"}:
+    if method not in {"GET", "POST", "PATCH", "DELETE"}:
         return _response(
             405,
             {
                 "error": {
                     "code": "METHOD_NOT_ALLOWED",
-                    "message": "Only GET, POST, and PATCH are supported",
+                    "message": "Only GET, POST, PATCH, and DELETE are supported",
                 }
             },
         )
 
-    if expertise_id is not None and method not in {"GET", "PATCH"}:
+    if expertise_id is not None and method not in {"GET", "PATCH", "DELETE"}:
         return _response(
             405,
             {
                 "error": {
                     "code": "METHOD_NOT_ALLOWED",
-                    "message": "Only GET and PATCH are supported for expertise details",
+                    "message": "Only GET, PATCH, and DELETE are supported for expertise details",
                 }
             },
         )
 
-    if method == "PATCH" and expertise_id is None:
+    if method in {"PATCH", "DELETE"} and expertise_id is None:
         return _response(
             405,
             {
                 "error": {
                     "code": "METHOD_NOT_ALLOWED",
-                    "message": "PATCH requires an expertise ID",
+                    "message": f"{method} requires an expertise ID",
                 }
             },
         )
 
     active_service = service or ExpertiseService(DeferredExpertiseDao())
+
+    if method == "DELETE":
+        try:
+            active_service.delete(expertise_id)
+        except ExpertiseNotFoundError as error:
+            return _response(
+                404,
+                {"error": {"code": "EXPERTISE_NOT_FOUND", "message": str(error)}},
+            )
+        except ExpertisePersistencePendingError as error:
+            return _response(
+                501,
+                {"error": {"code": "NOT_IMPLEMENTED", "message": str(error)}},
+            )
+        except Exception:
+            LOGGER.exception("Unhandled expertise deletion error")
+            return _response(
+                500,
+                {
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Unable to delete expertise",
+                    }
+                },
+            )
+        return {
+            "statusCode": 204,
+            "headers": JSON_HEADERS,
+            "body": "",
+        }
 
     if method == "PATCH":
         try:
