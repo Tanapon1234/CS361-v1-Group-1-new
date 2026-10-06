@@ -1,3 +1,15 @@
+-- Lecturer profile schema for the Lecturer API v2 (backend/app/v2)
+-- Target: Aurora PostgreSQL compatible SQL (gen_random_uuid() is built in since PG 13)
+--
+-- Same tables as the design in database/data_schema/Academic_Portfolio.dbml (.sql is its
+-- export). When the design changes, re-export it and update this file to match.
+-- Note: a uuid key must use `default: gen_random_uuid()`, not `increment`
+-- (dbml exports `uuid [increment]` as SERIAL, an integer).
+--
+-- This file is the source of truth; backend/app/v2/models mirrors it.
+
+BEGIN;
+
 CREATE TABLE "lecturer" (
   "lecturer_id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
   "name_th" varchar(255) NOT NULL,
@@ -89,3 +101,5 @@ ALTER TABLE "faculty_publication" ADD FOREIGN KEY ("lecturer_id") REFERENCES "le
 ALTER TABLE "faculty_publication" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("publication_id") ON DELETE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "publication_profile" ADD FOREIGN KEY ("lecturer_id") REFERENCES "lecturer" ("lecturer_id") ON DELETE CASCADE DEFERRABLE INITIALLY IMMEDIATE;
+
+COMMIT;

@@ -1,5 +1,5 @@
 Table lecturer {
-  lecturer_id uuid [pk, increment]
+  lecturer_id uuid [pk, default: `gen_random_uuid()`]
 
   name_th varchar(255) [not null]
   name_en varchar(255)
