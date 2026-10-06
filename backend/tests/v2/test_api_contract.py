@@ -60,6 +60,68 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("PUT", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/expertise/{expertise_id}"),
+    # --- workload (database/data_schema/SemesterReport/api-reference.md) ---
+    # me
+    ("GET", "/api/v2/me"),
+    # department
+    ("GET", "/api/v2/departments"),
+    ("POST", "/api/v2/departments"),
+    ("PATCH", "/api/v2/departments/{department_id}"),
+    # position (the reference's /faculty-members/{id}/positions, under /lecturers)
+    ("GET", "/api/v2/lecturers/{lecturer_id}/positions"),
+    ("POST", "/api/v2/lecturers/{lecturer_id}/positions"),
+    ("PATCH", "/api/v2/lecturers/{lecturer_id}/positions/{position_id}"),
+    ("DELETE", "/api/v2/lecturers/{lecturer_id}/positions/{position_id}"),
+    # rubric
+    ("GET", "/api/v2/rubric-versions"),
+    ("POST", "/api/v2/rubric-versions"),
+    ("GET", "/api/v2/rubric-versions/{version_id}"),
+    ("PATCH", "/api/v2/rubric-versions/{version_id}"),
+    ("GET", "/api/v2/rubric-versions/{version_id}/form"),
+    ("GET", "/api/v2/rubric-versions/{version_id}/categories"),
+    ("POST", "/api/v2/rubric-versions/{version_id}/categories"),
+    ("GET", "/api/v2/rubric-categories/{category_id}/sections"),
+    ("POST", "/api/v2/rubric-categories/{category_id}/sections"),
+    ("PATCH", "/api/v2/rubric-sections/{section_id}"),
+    ("DELETE", "/api/v2/rubric-sections/{section_id}"),
+    ("GET", "/api/v2/rubric-sections/{section_id}/items"),
+    ("POST", "/api/v2/rubric-sections/{section_id}/items"),
+    ("PATCH", "/api/v2/rubric-items/{item_id}"),
+    ("DELETE", "/api/v2/rubric-items/{item_id}"),
+    # round
+    ("GET", "/api/v2/rounds"),
+    ("POST", "/api/v2/rounds"),
+    ("GET", "/api/v2/rounds/{round_id}"),
+    ("PATCH", "/api/v2/rounds/{round_id}"),
+    ("GET", "/api/v2/rounds/{round_id}/submissions"),
+    ("GET", "/api/v2/rounds/{round_id}/report"),
+    # submission
+    ("GET", "/api/v2/submissions"),
+    ("POST", "/api/v2/submissions"),
+    ("GET", "/api/v2/submissions/{submission_id}"),
+    ("DELETE", "/api/v2/submissions/{submission_id}"),
+    ("GET", "/api/v2/submissions/{submission_id}/summary"),
+    ("GET", "/api/v2/submissions/{submission_id}/totals"),
+    ("GET", "/api/v2/submissions/{submission_id}/pdf"),
+    ("GET", "/api/v2/submissions/{submission_id}/approvals"),
+    ("POST", "/api/v2/submissions/{submission_id}/approvals"),
+    # entry
+    ("GET", "/api/v2/submissions/{submission_id}/entries"),
+    ("POST", "/api/v2/submissions/{submission_id}/entries"),
+    ("GET", "/api/v2/entries/{entry_id}"),
+    ("PATCH", "/api/v2/entries/{entry_id}"),
+    ("DELETE", "/api/v2/entries/{entry_id}"),
+    # assessment
+    ("GET", "/api/v2/assessments"),
+    ("GET", "/api/v2/entries/{entry_id}/assessments"),
+    ("PUT", "/api/v2/entries/{entry_id}/assessments/me"),
+    ("DELETE", "/api/v2/entries/{entry_id}/assessments/me"),
+    # evidence
+    ("GET", "/api/v2/entries/{entry_id}/evidence"),
+    ("POST", "/api/v2/entries/{entry_id}/evidence"),
+    ("PATCH", "/api/v2/evidence/{evidence_id}"),
+    ("GET", "/api/v2/evidence/{evidence_id}/content"),
+    ("DELETE", "/api/v2/evidence/{evidence_id}"),
 }
 
 

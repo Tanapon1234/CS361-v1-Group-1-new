@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import ConflictError, NotFoundError
+from app.v2.daos.department_dao import DepartmentDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.dtos.lecturer_dto import (
     LecturerCreateRequest,
@@ -28,7 +29,7 @@ def lecturer_dao() -> MagicMock:
 
 @pytest.fixture
 def service(lecturer_dao: MagicMock) -> LecturerService:
-    return LecturerService(lecturer_dao)
+    return LecturerService(lecturer_dao, create_autospec(DepartmentDAO, instance=True))
 
 
 def test_create_lecturer_success(service: LecturerService, lecturer_dao: MagicMock) -> None:
@@ -105,7 +106,9 @@ def test_list_lecturers_success(service: LecturerService, lecturer_dao: MagicMoc
 
     assert [item.name_th for item in result.items] == ["Alpha", "Beta"]
     assert result.meta.model_dump() == {"total": 5, "limit": 2, "offset": 1}
-    lecturer_dao.find_page.assert_called_once_with(q="a", is_active=True, limit=2, offset=1)
+    lecturer_dao.find_page.assert_called_once_with(
+        q="a", is_active=True, limit=2, offset=1, department_id=None
+    )
 
 
 def test_list_lecturers_propagates_query_error(

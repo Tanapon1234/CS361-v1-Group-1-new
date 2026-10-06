@@ -13,9 +13,30 @@ which commits or rolls back for you. Inside a DAO:
 Never call `self.session.commit()` here.
 """
 
-from sqlmodel import Session
+from collections.abc import Mapping
+from typing import Any
+
+from sqlmodel import Session, SQLModel
 
 
 class SqlDAO:
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    # Shared add / update / delete; DAOs expose them under their own method names.
+
+    def _add[T: SQLModel](self, entity: T) -> T:
+        self.session.add(entity)
+        self.session.flush()
+        self.session.refresh(entity)
+        return entity
+
+    def _update[T: SQLModel](self, entity: T, values: Mapping[str, Any]) -> T:
+        entity.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(entity)
+        return entity
+
+    def _delete(self, entity: SQLModel) -> None:
+        self.session.delete(entity)
+        self.session.flush()

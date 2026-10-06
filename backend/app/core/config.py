@@ -47,6 +47,16 @@ class Settings(BaseSettings):
     s3_presign_expires_seconds: int = Field(default=900, ge=60, le=3600)
     profile_image_max_bytes: int = Field(default=5 * 1024 * 1024, gt=0)
     cv_max_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
+    evidence_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
+    evidence_allowed_mime_types: list[str] = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+    ]
+
+    # Auth. Cognito is not wired yet: until it is, the caller is taken from the
+    # `X-Lecturer-Id` header (see app/v2/dependencies.py). Always off in prod.
+    dev_auth_header_enabled: bool = True
 
     @model_validator(mode="after")
     def _require_real_secrets_outside_local(self) -> Self:
@@ -60,6 +70,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment is Environment.PROD
+
+    @property
+    def allows_dev_auth_header(self) -> bool:
+        return self.dev_auth_header_enabled and not self.is_production
 
     @property
     def database_url(self) -> URL:
