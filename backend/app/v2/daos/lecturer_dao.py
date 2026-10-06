@@ -14,8 +14,17 @@ class LecturerDAO(ABC):
     def get_by_email(self, email: str) -> Lecturer | None: ...
 
     @abstractmethod
+    def get_by_cognito_sub(self, cognito_sub: str) -> Lecturer | None: ...
+
+    @abstractmethod
     def find_page(
-        self, *, q: str | None, is_active: bool | None, limit: int, offset: int
+        self,
+        *,
+        q: str | None,
+        is_active: bool | None,
+        limit: int,
+        offset: int,
+        department_id: int | None = None,
     ) -> tuple[Sequence[Lecturer], int]:
         """Return one page of lecturers and the total number of matches."""
 

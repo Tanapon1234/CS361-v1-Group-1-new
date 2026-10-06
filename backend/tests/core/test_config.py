@@ -39,3 +39,9 @@ def test_docs_are_disabled_in_production(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert client.get("/docs").status_code == 404
     assert client.get("/openapi.json").status_code == 404
+
+
+def test_dev_auth_header_is_never_allowed_in_production() -> None:
+    assert make_settings(environment=Environment.LOCAL).allows_dev_auth_header is True
+    prod = make_settings(environment=Environment.PROD, db_password="real-secret")
+    assert prod.allows_dev_auth_header is False

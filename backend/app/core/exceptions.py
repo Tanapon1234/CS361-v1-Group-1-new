@@ -23,6 +23,22 @@ class BadRequestError(AppError):
     problem_type = "bad-request"
 
 
+class UnauthorizedError(AppError):
+    """No (valid) caller identity on the request."""
+
+    status_code = 401
+    title = "Unauthorized"
+    problem_type = "unauthorized"
+
+
+class ForbiddenError(AppError):
+    """The caller is known but may not do this (e.g. does not hold the assessor position)."""
+
+    status_code = 403
+    title = "Forbidden"
+    problem_type = "forbidden"
+
+
 class NotFoundError(AppError):
     status_code = 404
     title = "Resource Not Found"
@@ -35,6 +51,14 @@ class ConflictError(AppError):
     status_code = 409
     title = "Conflict"
     problem_type = "conflict"
+
+
+class PreconditionFailedError(AppError):
+    """`If-Match` does not match the current ETag: someone else changed the resource first."""
+
+    status_code = 412
+    title = "Precondition Failed"
+    problem_type = "precondition-failed"
 
 
 class ServiceUnavailableError(AppError):

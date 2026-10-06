@@ -18,8 +18,18 @@ class SqlLecturerDAO(SqlDAO, LecturerDAO):
         statement = select(Lecturer).where(Lecturer.email == email)
         return self.session.exec(statement).first()
 
+    def get_by_cognito_sub(self, cognito_sub: str) -> Lecturer | None:
+        statement = select(Lecturer).where(Lecturer.cognito_sub == cognito_sub)
+        return self.session.exec(statement).first()
+
     def find_page(
-        self, *, q: str | None, is_active: bool | None, limit: int, offset: int
+        self,
+        *,
+        q: str | None,
+        is_active: bool | None,
+        limit: int,
+        offset: int,
+        department_id: int | None = None,
     ) -> tuple[Sequence[Lecturer], int]:
         statement = select(Lecturer)
         count_statement = select(func.count()).select_from(Lecturer)
@@ -37,6 +47,10 @@ class SqlLecturerDAO(SqlDAO, LecturerDAO):
         if is_active is not None:
             statement = statement.where(Lecturer.is_active == is_active)
             count_statement = count_statement.where(Lecturer.is_active == is_active)
+
+        if department_id is not None:
+            statement = statement.where(Lecturer.department_id == department_id)
+            count_statement = count_statement.where(Lecturer.department_id == department_id)
 
         total = self.session.exec(count_statement).one()
         items = self.session.exec(

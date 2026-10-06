@@ -1,11 +1,12 @@
 # CS361 Backend (FastAPI): Lecturer API v2
 
-โครง backend สำหรับ API อาจารย์ (lecturer, education, research interest, expertise, publication, publication profile, profile image, CV)
+backend สำหรับ API อาจารย์ (lecturer, education, research interest, expertise, publication, publication profile, profile image, CV) และ API ภาระงานประจำภาค (workload / SemesterReport)
 
-**สถานะตอนนี้: เป็นโครงหลวม ๆ ให้ทีมเขียน logic ต่อเอง**
+**สถานะตอนนี้**
 
 - **พร้อมใช้แล้ว**: database schema, model, controller ทุก endpoint, validation, error format, transaction, config
-- **ยังเป็น stub** (`raise NotImplementedError  # TODO`): service และ DAO มี method ละ 1 ตัวต่อ endpoint โดยยังไม่ได้กำหนด business rule ไว้ ทุก endpoint ใน `/api/v2` จึงตอบ **501 Not Implemented** จนกว่าจะเขียน logic
+- **Workload API ทำงานจริงแล้ว** (ดู [Workload API](#workload-api-semesterreport)) ยกเว้น `GET /submissions/{id}/pdf` ที่ยังตอบ 501
+- **ฝั่ง Lecturer API บางส่วนยังเป็น stub** (`raise NotImplementedError  # TODO`) เช่น education, expertise, profile image, CV จะตอบ **501 Not Implemented** จนกว่าจะเขียน logic
 - method ของ DAO เป็นแค่จุดเริ่มต้น เพิ่ม ลบ หรือเปลี่ยนชื่อได้ตามที่ service ต้องใช้
 
 ---
@@ -32,10 +33,11 @@ fastapi dev
 
 ## Database
 
-Schema อยู่ใน 2 ไฟล์ **ทั้งสองไฟล์คือ source of truth** ส่วน model ใน `app/v2/models/` ต้องตรงกับไฟล์เหล่านี้เสมอ
+Schema อยู่ใน migration ตามลำดับ **ไฟล์เหล่านี้คือ source of truth** ส่วน model ใน `app/v2/models/` ต้องตรงกับไฟล์เหล่านี้เสมอ
 
 - [002_lecturer_profile.sql](../database/migrations/002_lecturer_profile.sql): ข้อมูลอาจารย์และผลงานวิชาการ (Academic Portfolio)
 - [003_faculty_workload.sql](../database/migrations/003_faculty_workload.sql): ภาระงานประจำภาค (SemesterReport) ทำตาม design รวม [FacultyPortfolioWorkload.dbml](../database/data_schema/FacultyPortfolioWorkload/FacultyPortfolioWorkload.dbml) และเพิ่ม `cognito_sub` กับ `department_id` ให้ `lecturer`
+- [004_workload_entry_lock.sql](../database/migrations/004_workload_entry_lock.sql): ปรับ trigger ของ 003 ให้แก้ entry ได้ตอนใบถูกตีกลับ (`returned`) และให้ผู้ประเมินอัปเดตคะแนนได้ตอน `assessing`
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
@@ -43,6 +45,7 @@ Schema อยู่ใน 2 ไฟล์ **ทั้งสองไฟล์ค�
 createdb cs361v2
 psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
 psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้องรันหลัง 002
+psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 ```
 
 | ตาราง | Primary key | หมายเหตุ |
@@ -64,7 +67,7 @@ psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้อ
 - FK ใน 002 เป็น `ON DELETE CASCADE` ทุกตัว ถ้าลบอาจารย์หรือลบ master จะลบแถวในตารางเชื่อมไปด้วย
 - FK ใน 003 **ไม่ cascade** ยกเว้น entry ที่ตามใบ (`submission_entry`) และ assessment/evidence ที่ตาม entry เพราะฉะนั้นอาจารย์ที่มีใบภาระงานหรือตำแหน่งแล้วจะลบไม่ได้ (ใช้ deactivate แทน)
 - enum ของ PostgreSQL (เช่น `position_code`, `submission_status`) อยู่ใน `app/v2/models/enums.py`
-- 003 มี trigger ที่ไม่ให้เพิ่ม แก้ หรือลบ `submission_entry` เมื่อใบไม่ได้อยู่ในสถานะ `draft` (DB จะตอบ error `check_violation`) และมี view `v_section_total` ที่คิดยอดรายข้อย่อยหลังตัดเพดานแล้ว
+- trigger (003 + 004) ไม่ให้เพิ่ม แก้ หรือลบ `submission_entry` เมื่อใบไม่ได้อยู่ในสถานะ `draft` หรือ `returned` (DB จะตอบ error `check_violation`) ยกเว้นการอัปเดตแค่ `score` / `weight_applied` และมี view `v_section_total` ที่คิดยอดรายข้อย่อยหลังตัดเพดานแล้ว
 - ถ้าจะแก้ schema: แก้ไฟล์ SQL และ model ให้ตรงกัน เทสต์ `tests/v2/unit/test_models.py` จะ fail ถ้าชื่อตารางหรือ column ไม่ตรงกัน
 
 ## รันเทสต์และ lint
@@ -74,9 +77,16 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
 
-เทสต์ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` + `xfailed`
+เทสต์ส่วนใหญ่ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` + `xfailed` (+ `skipped` 1 ตัวถ้าไม่ได้ตั้ง `TEST_DATABASE_URL`)
 
-- **passed**: เทสต์ controller (routing, validation, status code), error handler, config, transaction และความตรงกันของ model กับ SQL
+- **passed**: เทสต์ controller (routing, validation, status code), service, สูตรคะแนน, error handler, config, transaction และความตรงกันของ model กับ SQL
+- **integration** (`tests/v2/integration/`): ทดสอบ workflow ภาระงานทั้งเส้นผ่าน HTTP กับ PostgreSQL จริง รันเฉพาะเมื่อตั้ง `TEST_DATABASE_URL` เทสต์จะ **ลบ schema `public` ทิ้งแล้วสร้างใหม่ทุกครั้ง** ห้ามชี้ไป dev/prod DB
+
+  ```bash
+  createdb cs361_test
+  TEST_DATABASE_URL=postgresql+psycopg://postgres@localhost:5432/cs361_test uv run pytest
+  ```
+
 - **xfailed**: service ละ 1 เทสต์ตัวอย่างใน `tests/v2/unit/services/` ใช้เป็นแบบเวลาเขียนเทสต์ของตัวเอง
   - ตอน service ยัง `raise NotImplementedError` จะนับเป็น XFAIL (ถือว่าผ่าน)
   - พอ implement แล้วเทสต์ผ่าน จะขึ้นเป็น **XPASS แล้ว fail ทันที** เพื่อเตือนให้ลบบรรทัด `pytestmark = pytest.mark.xfail(...)` ออก
@@ -105,7 +115,7 @@ backend/
 │       ├── models/             [M] ตารางใน database ตรงกับ migration 002 + 003
 │       ├── dtos/               [V] รูปร่าง request/response ของ API (Pydantic)
 │       ├── controllers/        [C] path operations (APIRouter) บางที่สุด  (เสร็จแล้ว)
-│       ├── services/           business logic  (TODO)
+│       ├── services/           business logic (workload ทำแล้ว; scoring.py = สูตรคะแนน, workflow.py = ลำดับสถานะ)
 │       ├── daos/               DAO interface (ABC)  (เพิ่ม/แก้ method ได้)
 │       │   └── sql/            DAO implementation ด้วย SQLModel  (TODO)
 │       └── storage/            ObjectStorage interface + S3 implementation  (TODO)
@@ -115,6 +125,7 @@ backend/
 │   └── v2/
 │       ├── test_api_contract.py  รายการ endpoint ของ v2 ที่ตกลงกันไว้ (ห้ามเกิน ห้ามขาด)
 │       ├── api/                เทสต์ controller (mock service); test_lecturer_api.py เป็นตัวอย่างที่ละเอียดสุด
+│       ├── integration/        workflow ภาระงานทั้งเส้นกับ PostgreSQL จริง (ต้องตั้ง TEST_DATABASE_URL)
 │       └── unit/
 │           ├── services/       เทสต์ service (mock DAO) มีตัวอย่างไว้ 1 ตัวต่อไฟล์
 │           └── test_models.py  model กับ SQL ต้องตรงกัน
@@ -208,13 +219,71 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 | `type` | Status | ใช้เมื่อ |
 |---|---|---|
 | `urn:cs361:problem:bad-request` | 400 | `raise BadRequestError(...)` ข้อมูลผิดกฎที่ทีมกำหนด |
+| `urn:cs361:problem:unauthorized` | 401 | `raise UnauthorizedError(...)` ไม่รู้ว่าใครเรียก |
+| `urn:cs361:problem:forbidden` | 403 | `raise ForbiddenError(...)` รู้ว่าใครเรียก แต่ไม่มีสิทธิ์ |
 | `urn:cs361:problem:not-found` | 404 | `raise NotFoundError(...)` หรือ URL ไม่มีอยู่จริง |
 | `urn:cs361:problem:method-not-allowed` | 405 | ใช้ HTTP method ผิด |
-| `urn:cs361:problem:conflict` | 409 | `raise ConflictError(...)` เช่น ข้อมูลซ้ำ |
+| `urn:cs361:problem:conflict` | 409 | `raise ConflictError(...)` เช่น ข้อมูลซ้ำ หรือใบถูกล็อกแล้ว |
+| `urn:cs361:problem:precondition-failed` | 412 | `raise PreconditionFailedError(...)` `If-Match` ไม่ตรงกับ ETag ปัจจุบัน |
 | `urn:cs361:problem:validation-error` | 422 | request field ไม่ถูกต้อง (ดูรายละเอียดใน `errors[]`) |
 | `urn:cs361:problem:internal-error` | 500 | error ที่ไม่ได้คาดไว้ (ดูรายละเอียดใน log) |
 | `urn:cs361:problem:not-implemented` | 501 | endpoint ยังไม่ได้ implement |
 | `urn:cs361:problem:service-unavailable` | 503 | ต่อ database ไม่ได้ |
+
+---
+
+## Workload API (SemesterReport)
+
+ทำตาม [api-reference.md](../database/data_schema/SemesterReport/api-reference.md) แต่ใช้ข้อตกลงของ backend นี้:
+
+- prefix `/api/v2` (ไม่ใช่ `/v1`), error เป็น problem+json และใช้ offset pagination (`limit`/`offset`) แทน cursor
+- `/faculty-members` ของ reference รวมเข้ากับ `/lecturers` เพราะเป็นตารางเดียวกัน
+  - `GET /lecturers?department_id=` ใช้กรองตามสาขา
+  - `POST`/`PATCH /lecturers` รับ `department_id` และ `cognito_sub` (`cognito_sub` เขียนได้อย่างเดียว ไม่ส่งกลับใน response)
+  - ตำแหน่งบริหารอยู่ที่ `/lecturers/{lecturer_id}/positions` (PATCH/DELETE ก็อยู่ใต้ path นี้)
+- ข้อมูลผิดกฎ (field_schema, ช่วงจำนวนนักศึกษา, ค่าเกินช่วงของ item) ตอบ **400** ตาม README นี้ ส่วน 422 ใช้กับ request ที่รูปแบบผิดเท่านั้น
+- เพิ่ม `POST /rubric-versions/{version_id}/categories` ที่ reference ไม่มี เพราะถ้าไม่มีเส้นนี้ ฉบับเกณฑ์ใหม่จะไม่มีทางเพิ่มหมวดได้
+- ยังไม่ได้ทำ: `GET /submissions/{id}/pdf` (ตอบ 501 เพราะยังไม่มีแบบฟอร์มกระดาษกับฟอนต์ไทยใน repo) และ `/course-offerings` (reference ระบุว่าเป็นงานอนาคต)
+
+### คนเรียก (ชั่วคราว จนกว่าจะต่อ Cognito)
+
+endpoint ที่ต้องรู้ว่าใครเรียก (`/me`, สร้างใบ, แก้ entry, อนุมัติ, ประเมิน, แนบหลักฐาน) อ่าน lecturer_id จาก header `X-Lecturer-Id` ผ่าน `CurrentLecturerIdDep` ใน `app/v2/dependencies.py`
+
+- ถ้าไม่มี header จะได้ 401 และ header นี้ **ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod`**
+- การเช็คสิทธิ์ (เช่น ต้องเป็นเจ้าของใบ หรือต้องเป็นหัวหน้าสาขานั้น) ยังไม่ได้ทำ ค้นคำว่า `TODO(auth)` จะเจอทุกจุดที่ต้องเพิ่ม
+- ข้อยกเว้นคือการประเมิน ระบบเช็คแล้วว่าผู้ให้ค่าถือตำแหน่งตาม `assessor_position` ของ item และไม่ใช่เจ้าของใบ เพราะต้องบันทึก `position_used` ลงตาราง
+
+### ลำดับสถานะของใบ
+
+`role` ของคนเซ็นมาจากสถานะปัจจุบันของใบ ไม่รับจาก body (แก้ตารางนี้ได้ที่ `app/v2/services/workflow.py`)
+
+| สถานะตอนนี้ | ใครเซ็น (`role`) | approved ไปที่ | ตีกลับได้ไหม |
+|---|---|---|---|
+| `draft`, `returned` | `performer` (เจ้าของใบ) | `submitted` | ไม่ได้ |
+| `submitted` | `receiver` | `assessing` | ได้ |
+| `assessing` | `dept_chair` (ต้องประเมินครบทุก entry ก่อน) | `dept_review` | ได้ |
+| `dept_review` | `dept_committee` | `dept_approved` | ได้ |
+| `dept_approved` | `receiver` | `sent_to_faculty` | ได้ |
+
+- ตีกลับ (`returned`) ต้องมี `comment` แล้วเจ้าของจะแก้ entry และหลักฐานได้อีกครั้งก่อนส่งใหม่
+- entry และหลักฐานแก้ได้เฉพาะตอน `draft` / `returned` ส่วนการประเมินทำได้เฉพาะตอน `assessing`
+- ลบใบได้เฉพาะ `draft`
+
+### คะแนน
+
+- สูตรอยู่ใน `app/v2/services/scoring.py` (pure function มีเทสต์จากตัวอย่างใน schema-reference): `(quantity / unit_divisor) × weight × base_points × participation_pct / 100`
+- server เป็นคนคิด `score` / `weight_applied` เสมอ client ส่ง `score` มาจะได้ 422
+- item แบบ `ranged` ได้ 0 คะแนนจนกว่าจะมีผู้ประเมินให้ค่า (`single` ใช้ค่าเดียว, `average` ใช้ค่าเฉลี่ย, ถ้า `range_basis = points` ค่าที่ให้คือคะแนนเลย)
+- ตัดเพดานตามลำดับ: ข้อย่อย (`rubric_section.cap` รวมข้อย่อยลูก) → หมวด (`rubric_category.cap`) → ทั้งใบ (`overall_cap`)
+- `raw_total` / `capped_total` / `teaching_credits` ของ `submission` อัปเดตทุกครั้งที่ entry หรือค่าประเมินเปลี่ยน
+- `submission_category_total` (ที่ `/totals` อ่าน) เขียนตอนส่งใบ และเขียนใหม่ทุกครั้งที่ผู้ประเมินให้ค่า เพราะคะแนนหมวด 3 มาหลังส่ง ส่วน `/summary` คำนวณสดจาก entry
+- ฉบับเกณฑ์ที่มีรอบประเมินใช้แล้วจะถูกล็อก แก้ได้แค่เปิด/ปิด item (`is_active`) ถ้าจะแก้ต้องสร้างฉบับใหม่ด้วย `source_version_id`
+
+### อื่น ๆ
+
+- `GET /entries/{id}` และ `PATCH` ส่ง `ETag` กลับมา ถ้าส่ง `If-Match` มาแล้วไม่ตรงกับค่าปัจจุบัน (มีคนแก้ไปก่อน) จะได้ 412 (`PATCH /evidence/{id}` ทำแบบเดียวกัน)
+- หลักฐาน: `POST /entries/{id}/evidence` ได้ presigned POST ของ S3 → client อัปโหลดเอง → `PATCH /evidence/{id}` `{"status": "uploaded"}` ให้ server เช็คว่าไฟล์อยู่ใน S3 จริง → `GET /evidence/{id}/content` redirect 302 ไป URL ดาวน์โหลด ชนิดไฟล์และขนาดตั้งได้ใน `.env` (`EVIDENCE_*`)
+- `S3ObjectStorage` ใช้งานได้จริงแล้ว (ใช้ร่วมกับ profile image / CV ได้)
 
 ---
 
@@ -231,7 +300,8 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 
 ## เรื่องที่ยังค้างอยู่
 
-1. **ยังไม่มี authentication**: endpoint ที่แก้ข้อมูล (POST/PATCH/PUT/DELETE) ควรจำกัดให้ admin ผ่าน Cognito JWT เพิ่มเป็น dependency ระดับ router ได้
+1. **ยังไม่มี authentication**: endpoint ที่แก้ข้อมูล (POST/PATCH/PUT/DELETE) ควรจำกัดให้ admin ผ่าน Cognito JWT เพิ่มเป็น dependency ระดับ router ได้ ฝั่ง workload ให้เปลี่ยน `get_current_lecturer_id` ไปอ่าน JWT แล้วเติมจุด `TODO(auth)`
 2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (`backend/v2/`) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
-3. **DAO integration test** กับ PostgreSQL จริงยังไม่มี ควรเพิ่มเมื่อเริ่ม implement DAO (ใช้ database แยกสำหรับเทสต์ ห้ามใช้ dev DB)
-4. **Migration `002_lecturer_profile.sql` และ `003_faculty_workload.sql` ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
+3. **DAO integration test** มีแล้วสำหรับ workload (`tests/v2/integration/`) ฝั่ง lecturer profile ยังไม่มี
+4. **Migration 002-004 ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
+5. **Workload ที่ยังไม่ได้ทำ**: PDF ของใบ, `/course-offerings` (ทะเบียน), job ลบหลักฐานที่ค้าง `pending` เกิน 24 ชม., `receiver` ยังไม่มีตำแหน่งใน schema (ตอนนี้ใครก็เซ็นเป็น receiver ได้)
