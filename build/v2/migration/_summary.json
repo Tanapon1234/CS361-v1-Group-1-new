@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-09-18T10:32:11.410840+00:00",
+  "input_faculty_count": 22,
+  "counts": {
+    "import_batch": 1,
+    "faculty": 22,
+    "faculty_education": 65,
+    "faculty_interest": 95,
+    "work_item": 6,
+    "publication_detail": 6,
+    "faculty_work_item": 6,
+    "source_record": 231
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "warning": "publication_linked_to_pre_existing_work_item",
+      "faculty": "prapaporn-rattanatamrong",
+      "title": "Multi-Container Application Migration with Load Balanced and Adaptive Parallel TCP",
+      "work_item_id": "wi-pub-2019-multi-container"
+    },
+    {
+      "warning": "faculty_work_item_link_already_exists",
+      "faculty": "prapaporn-rattanatamrong",
+      "work_item_id": "wi-pub-2019-multi-container"
+    }
+  ]
+}

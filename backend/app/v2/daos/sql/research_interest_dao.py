@@ -1,0 +1,93 @@
+from collections.abc import Mapping, Sequence
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy import delete, func
+from sqlmodel import select
+
+from app.v2.daos.research_interest_dao import ResearchInterestDAO
+from app.v2.daos.sql.base import SqlDAO
+from app.v2.models.research_interest import FacultyResearchInterest, ResearchInterest
+
+
+class SqlResearchInterestDAO(SqlDAO, ResearchInterestDAO):
+    def get_by_id(self, research_interest_id: int) -> ResearchInterest | None:
+        return self.session.get(ResearchInterest, research_interest_id)
+
+    def get_by_name(self, name: str) -> ResearchInterest | None:
+        statement = select(ResearchInterest).where(ResearchInterest.name == name)
+        return self.session.exec(statement).first()
+
+    def find_page(
+        self, *, q: str | None, limit: int, offset: int
+    ) -> tuple[Sequence[ResearchInterest], int]:
+        statement = select(ResearchInterest)
+        count_statement = select(func.count()).select_from(ResearchInterest)
+
+        if q:
+            pattern = f"%{q}%"
+            statement = statement.where(ResearchInterest.name.ilike(pattern))
+            count_statement = count_statement.where(ResearchInterest.name.ilike(pattern))
+
+        total = self.session.exec(count_statement).one()
+        items = self.session.exec(
+            statement.order_by(ResearchInterest.name.asc()).offset(offset).limit(limit)
+        ).all()
+        return items, total
+
+    def add(self, research_interest: ResearchInterest) -> ResearchInterest:
+        self.session.add(research_interest)
+        self.session.flush()
+        self.session.refresh(research_interest)
+        return research_interest
+
+    def update(
+        self, research_interest: ResearchInterest, values: Mapping[str, Any]
+    ) -> ResearchInterest:
+        research_interest.sqlmodel_update(values)
+        self.session.flush()
+        self.session.refresh(research_interest)
+        return research_interest
+
+    def delete(self, research_interest: ResearchInterest) -> None:
+        self.session.delete(research_interest)
+        self.session.flush()
+
+    def list_by_lecturer(self, lecturer_id: UUID) -> Sequence[ResearchInterest]:
+        statement = (
+            select(ResearchInterest)
+            .join(
+                FacultyResearchInterest,
+                FacultyResearchInterest.research_interest_id
+                == ResearchInterest.research_interest_id,
+            )
+            .where(FacultyResearchInterest.lecturer_id == lecturer_id)
+        )
+
+        return self.session.exec(statement.order_by(ResearchInterest.name.asc())).all()
+
+    def replace_for_lecturer(self, lecturer_id: UUID, research_interest_ids: Sequence[int]) -> None:
+        statement = delete(FacultyResearchInterest).where(
+            FacultyResearchInterest.lecturer_id == lecturer_id
+        )
+        self.session.exec(statement)
+        self.session.add_all(
+            FacultyResearchInterest(
+                lecturer_id=lecturer_id,
+                research_interest_id=research_interest_id,
+            )
+            for research_interest_id in research_interest_ids
+        )
+        self.session.flush()
+
+    def remove_from_lecturer(self, lecturer_id: UUID, research_interest_id: int) -> bool:
+        relationship = self.session.get(
+            FacultyResearchInterest,
+            (lecturer_id, research_interest_id),
+        )
+        if relationship is None:
+            return False
+
+        self.session.delete(relationship)
+        self.session.flush()
+        return True

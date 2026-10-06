@@ -1,0 +1,19 @@
+[
+  {
+    "id": "imp_v1_public_faculty_full",
+    "source_system": "V1_PUBLIC_FACULTY",
+    "source_name": "build/v1/serving/faculties/{id}.json",
+    "source_version": "v1-full-faculty-snapshot-2026-08-29",
+    "source_type": "JSON",
+    "source_s3_key": "serving/faculties",
+    "source_hash": "sha256:2060fecd45a3a342806ba28cfe314429b112c00904913c735ccc3d48b1cfcc48",
+    "status": "SUCCEEDED",
+    "record_count": 22,
+    "valid_count": 22,
+    "warning_count": 2,
+    "error_count": 0,
+    "started_at": "2026-09-18T10:32:11.410840+00:00",
+    "completed_at": "2026-09-18T10:32:11.410840+00:00",
+    "created_by": "SYSTEM"
+  }
+]
