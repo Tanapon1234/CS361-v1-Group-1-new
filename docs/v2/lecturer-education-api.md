@@ -1,0 +1,174 @@
+# Lecturer Education API
+
+สัญญา API สำหรับเรียกดู เพิ่ม ดูรายละเอียด แก้ไข และลบประวัติการศึกษาของอาจารย์ใน V2
+
+> สถานะ: เตรียม handler, validation, service, DAO, automated tests และ Postman collection แล้ว ยังไม่ได้เชื่อม API Gateway หรือ frontend
+
+## Endpoint
+
+### List lecturer educations
+
+```http
+GET /api/v2/lecturers/{lecturerId}/educations
+```
+
+คืนรายการประวัติการศึกษาของ lecturer ที่มีสถานะ `ACTIVE` เรียงตาม `display_order` จากน้อยไปมาก; กรณีลำดับเท่ากันจะเรียงตาม `created_at` และ `id` เพื่อให้ผลลัพธ์คงที่ ไม่มี pagination
+
+ตัวอย่าง response `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "edu_...",
+      "faculty_id": "fac_prapaporn-rattanatamrong",
+      "degree": "Ph.D.",
+      "field_of_study": "Computer Science",
+      "institution": "Example University",
+      "country": "Thailand",
+      "graduation_year": 2560,
+      "display_order": 0,
+      "created_at": "2026-10-05 00:00:00+00",
+      "updated_at": "2026-10-05 00:00:00+00"
+    }
+  ],
+  "meta": {
+    "count": 1
+  }
+}
+```
+
+หาก lecturer ยังไม่มีประวัติ จะคืน `200 OK` พร้อม `items: []` และ `meta.count: 0`
+
+### Get lecturer education detail
+
+```http
+GET /api/v2/lecturers/{lecturerId}/educations/{educationId}
+```
+
+คืนรายการ education รายการเดียว โดยต้องเป็นของ lecturer ที่ระบุและ lecturer ต้องมีสถานะ `ACTIVE`. `educationId` ใช้ค่า `faculty_education.id`.
+
+ตัวอย่าง response `200 OK`:
+
+```json
+{
+  "data": {
+    "id": "edu_...",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Example University",
+    "country": "Thailand",
+    "graduation_year": 2560,
+    "display_order": 0,
+    "created_at": "2026-10-05 00:00:00+00",
+    "updated_at": "2026-10-05 00:00:00+00"
+  }
+}
+```
+
+หากไม่พบ lecturer หรือ lecturer ไม่ active จะคืน `404 LECTURER_NOT_FOUND`; หากไม่พบ education ที่ตรงกับทั้ง `lecturerId` และ `educationId` จะคืน `404 EDUCATION_NOT_FOUND`.
+
+### Patch lecturer education
+
+```http
+PATCH /api/v2/lecturers/{lecturerId}/educations/{educationId}
+Content-Type: application/json
+```
+
+อัปเดตเฉพาะ field ที่ส่งมา โดย field ที่ไม่ส่งจะคงค่าเดิม ส่งค่า `null` เพื่อเคลียร์ `degree`, `field_of_study`, `institution`, `country` หรือ `graduation_year` ได้ ส่วน `display_order` ต้องเป็น integer ตั้งแต่ 0 ขึ้นไปและไม่รับ `null`. ต้องมี field อย่างน้อยหนึ่งรายการใน request body
+
+ตัวอย่าง request:
+
+```json
+{
+  "institution": "Updated University",
+  "graduation_year": null,
+  "display_order": 1
+}
+```
+
+ตัวอย่าง response `200 OK` คืน record ที่อัปเดตแล้วใน `data` โดย record ต้องเป็นของ lecturer ที่ระบุ; หากไม่พบ lecturer จะคืน `404 LECTURER_NOT_FOUND`, หากไม่พบ education ใต้ lecturer คนนั้นจะคืน `404 EDUCATION_NOT_FOUND`.
+
+### Delete lecturer education
+
+```http
+DELETE /api/v2/lecturers/{lecturerId}/educations/{educationId}
+```
+
+ลบ education ที่ตรงกับทั้ง `lecturerId` และ `educationId` จาก `faculty_education`. ก่อนลบ API บันทึกข้อมูล education เดิมลง `audit_event.before_json` ใน transaction เดียวกัน เพื่อเก็บประวัติการเปลี่ยนแปลง; ถ้าลบหรือบันทึก audit ไม่สำเร็จ transaction จะ rollback.
+
+เมื่อลบสำเร็จคืน `204 No Content` โดยไม่มี response body. หากไม่พบ lecturer หรือ lecturer ไม่ active จะคืน `404 LECTURER_NOT_FOUND`; หากไม่พบ education ใต้ lecturer คนนั้นจะคืน `404 EDUCATION_NOT_FOUND`.
+
+### Create lecturer education
+
+```http
+POST /api/v2/lecturers/{lecturerId}/educations
+Content-Type: application/json
+```
+
+`lecturerId` ใช้ค่า `faculty.id` จากฐานข้อมูล V2 เช่น `fac_prapaporn-rattanatamrong` และจะบันทึกลง `faculty_education.faculty_id`
+
+## Request
+
+ส่งข้อมูลการศึกษาอย่างน้อยหนึ่ง field:
+
+```json
+{
+  "degree": "Ph.D.",
+  "field_of_study": "Computer Science",
+  "institution": "Example University",
+  "country": "Thailand",
+  "graduation_year": 2560
+}
+```
+
+| Field | Required | Validation | Database field |
+|---|---|---|---|
+| `degree` | อย่างน้อยหนึ่งในกลุ่มข้อมูลการศึกษา | string หรือ null; trim ช่องว่างหัวท้าย | `faculty_education.degree` |
+| `field_of_study` | อย่างน้อยหนึ่งในกลุ่มข้อมูลการศึกษา | string หรือ null; trim ช่องว่างหัวท้าย | `faculty_education.field_of_study` |
+| `institution` | อย่างน้อยหนึ่งในกลุ่มข้อมูลการศึกษา | string หรือ null; trim ช่องว่างหัวท้าย | `faculty_education.institution` |
+| `country` | อย่างน้อยหนึ่งในกลุ่มข้อมูลการศึกษา | string หรือ null; trim ช่องว่างหัวท้าย | `faculty_education.country` |
+| `graduation_year` | อย่างน้อยหนึ่งในกลุ่มข้อมูลการศึกษา | integer ตั้งแต่ 1 ถึง 9999 | `faculty_education.graduation_year` |
+| `display_order` | ไม่บังคับ | integer ตั้งแต่ 0 ขึ้นไป; หากไม่ส่งจะกำหนดลำดับถัดไป | `faculty_education.display_order` |
+
+ไม่รับ field อื่น เช่น `id` หรือ `faculty_id`; server สร้าง education ID เองและใช้ `lecturerId` จาก path เป็นเจ้าของข้อมูล
+
+## Responses
+
+สร้างสำเร็จคืน `201 Created` พร้อม `Location` header:
+
+```json
+{
+  "data": {
+    "id": "edu_...",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Example University",
+    "country": "Thailand",
+    "graduation_year": 2560,
+    "display_order": 0,
+    "created_at": "2026-10-05 00:00:00+00",
+    "updated_at": "2026-10-05 00:00:00+00"
+  }
+}
+```
+
+| Status | Code | เงื่อนไข |
+|---:|---|---|
+| 200 | — | GET สำเร็จ; คืนรายการและจำนวน |
+| 200 | — | GET detail สำเร็จ; คืน education ใน `data` |
+| 200 | — | PATCH สำเร็จ; คืน education ที่อัปเดตแล้วใน `data` |
+| 201 | — | POST สร้างรายการสำเร็จ; คืน education ที่สร้างพร้อม `Location` |
+| 204 | — | DELETE สำเร็จ; ไม่มี response body และเก็บข้อมูลก่อนลบใน audit log |
+| 400 | `VALIDATION_ERROR` | ID ใน path หรือ request body ไม่ผ่าน validation |
+| 404 | `LECTURER_NOT_FOUND` | ไม่พบ lecturer หรือ lecturer ไม่ได้อยู่ในสถานะ `ACTIVE` |
+| 404 | `EDUCATION_NOT_FOUND` | ไม่พบ education ที่อยู่ภายใต้ lecturer ที่ระบุ |
+| 404 | `NOT_FOUND` | path ไม่ตรงกับ endpoint |
+| 405 | `METHOD_NOT_ALLOWED` | method ไม่รองรับ; collection ส่ง `Allow: GET, POST`, detail ส่ง `Allow: GET, PATCH, DELETE` |
+| 500 | `INTERNAL_ERROR` | เกิดข้อผิดพลาดภายใน โดยไม่ส่งรายละเอียดฐานข้อมูลกลับไปยัง client |
+
+สำหรับ POST, DAO ใช้ RDS Data API transaction: lock แถว lecturer ที่ active, กำหนด `display_order` ถ้าไม่ได้ระบุ, insert ลง `faculty_education`, แล้ว commit; เมื่อเกิดข้อผิดพลาดจะ rollback
+
+Postman collection สำหรับ GET list, GET detail, POST, PATCH, DELETE และ validation error อยู่ที่ [`postman/lecturer-education-create.postman_collection.json`](../../postman/lecturer-education-create.postman_collection.json) ตั้งค่า `baseUrl`, `lecturerId` และ `educationId` (ID ที่มีอยู่ของ lecturer นั้น) ก่อนใช้ หลังเชื่อม HTTP route แล้ว คำขอ DELETE จะลบ record จริงและควรใช้กับข้อมูลทดสอบเท่านั้น
