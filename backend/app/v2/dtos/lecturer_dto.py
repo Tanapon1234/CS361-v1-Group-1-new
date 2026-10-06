@@ -11,7 +11,9 @@ class LecturerCreateRequest(RequestDTO):
     name_th: str = Field(min_length=1, max_length=255)
     name_en: str | None = Field(default=None, max_length=255)
     rank: str | None = Field(default=None, max_length=100)
-    department_id: int | None = Field(default=None, ge=1)
+    department_id: int | None = Field(default=None, ge=1, le=32767)
+    # Cognito `sub` of the lecturer's account. Write-only: never returned.
+    cognito_sub: str | None = Field(default=None, min_length=1, max_length=64)
     office: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     phone_extension: str | None = Field(default=None, max_length=50)
@@ -24,7 +26,9 @@ class LecturerUpdateRequest(RequestDTO):
     name_th: str | None = Field(default=None, min_length=1, max_length=255)
     name_en: str | None = Field(default=None, max_length=255)
     rank: str | None = Field(default=None, max_length=100)
-    department_id: int | None = Field(default=None, ge=1)
+    department_id: int | None = Field(default=None, ge=1, le=32767)
+    # Cognito `sub` of the lecturer's account. Write-only: never returned.
+    cognito_sub: str | None = Field(default=None, min_length=1, max_length=64)
     office: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=50)
     phone_extension: str | None = Field(default=None, max_length=50)
@@ -41,6 +45,7 @@ class LecturerUpdateRequest(RequestDTO):
 class LecturerListQuery(PageQuery):
     q: str | None = Field(default=None, max_length=100, description="Search name / email")
     is_active: bool | None = None
+    department_id: int | None = Field(default=None, ge=1, le=32767)
 
 
 class LecturerResponse(ResponseDTO):

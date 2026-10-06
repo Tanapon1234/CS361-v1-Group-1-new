@@ -106,6 +106,8 @@ Rules:
 | `graduation_year` | no | ปีที่จบ |
 | `display_order` | yes | ลำดับแสดงผล |
 
+ดูรายการประวัติการศึกษาด้วย `GET /api/v2/lecturers/{lecturerId}/educations`, ดูรายการเดียวด้วย `GET /api/v2/lecturers/{lecturerId}/educations/{educationId}`, เพิ่มรายการด้วย `POST /api/v2/lecturers/{lecturerId}/educations`, แก้ไขบาง field ด้วย `PATCH /api/v2/lecturers/{lecturerId}/educations/{educationId}` และลบรายการด้วย `DELETE /api/v2/lecturers/{lecturerId}/educations/{educationId}`; ดู contract และ response ได้ใน [Lecturer Education API](./lecturer-education-api.md)
+
 ### `faculty_interest`
 
 ความเชี่ยวชาญ, research interest หรือ keyword
@@ -120,6 +122,7 @@ Rules:
 Rules:
 
 - unique `(faculty_id, interest_type, value)`
+- expertise mapping API ใช้แถวที่ `interest_type = 'EXPERTISE'`; route contract อยู่ใน [lecturer-expertise-api.md](./lecturer-expertise-api.md)
 
 ### `app_user`
 

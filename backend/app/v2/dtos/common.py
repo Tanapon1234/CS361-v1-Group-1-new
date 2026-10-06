@@ -1,6 +1,10 @@
-"""Shared list envelopes. Every collection response is `{"items": [...], "meta": {...}}`."""
+"""Shared list envelopes and field types. Every collection response is
+`{"items": [...], "meta": {...}}`."""
 
-from pydantic import BaseModel, Field
+from decimal import Decimal
+from typing import Annotated
+
+from pydantic import BaseModel, Field, PlainSerializer
 
 from app.v2.dtos.base import QueryDTO
 
@@ -37,3 +41,7 @@ class ListResponse[T](BaseModel):
 
     items: list[T]
     meta: ListMeta
+
+
+# numeric columns: exact Decimal inside the app, a plain JSON number in responses
+Number = Annotated[Decimal, PlainSerializer(float, return_type=float, when_used="json")]
