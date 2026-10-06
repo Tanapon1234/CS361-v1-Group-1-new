@@ -1,0 +1,652 @@
+[
+  {
+    "id": "edu_1c219c847c3cbef4",
+    "faculty_id": "fac_denduang-pradubsuwun",
+    "degree": "D.Eng.",
+    "field_of_study": "Computer Science",
+    "institution": "Tokyo Institute of Technology",
+    "country": "Japan",
+    "graduation_year": 2548,
+    "display_order": 1
+  },
+  {
+    "id": "edu_4b5534555826db9e",
+    "faculty_id": "fac_denduang-pradubsuwun",
+    "degree": "วท.ม.",
+    "field_of_study": "วิทยาการคอมพิวเตอร์",
+    "institution": "จุฬาลงกรณ์มหาวิทยาลัย",
+    "country": "ประเทศไทย",
+    "graduation_year": 2542,
+    "display_order": 2
+  },
+  {
+    "id": "edu_93d540697c1bb127",
+    "faculty_id": "fac_denduang-pradubsuwun",
+    "degree": "วท.บ.",
+    "field_of_study": "วิทยาการคอมพิวเตอร์ (เกียรตินิยมอันดับสอง)",
+    "institution": "มหาวิทยาลัยรามคำแหง",
+    "country": "ประเทศไทย",
+    "graduation_year": 2538,
+    "display_order": 3
+  },
+  {
+    "id": "edu_445b3808152cadb8",
+    "faculty_id": "fac_kasidit-chanchio",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Louisiana State University",
+    "country": "USA",
+    "graduation_year": 2543,
+    "display_order": 1
+  },
+  {
+    "id": "edu_8485bd6cadbe78f6",
+    "faculty_id": "fac_kasidit-chanchio",
+    "degree": "M.S.",
+    "field_of_study": "Computer Science",
+    "institution": "Louisiana State University",
+    "country": "USA",
+    "graduation_year": 2539,
+    "display_order": 2
+  },
+  {
+    "id": "edu_18d3bb0ef06a738c",
+    "faculty_id": "fac_kasidit-chanchio",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2533,
+    "display_order": 3
+  },
+  {
+    "id": "edu_6c78229b3eb4a0e6",
+    "faculty_id": "fac_krittakom-srijiranon",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Chiang Mai University",
+    "country": "Thailand",
+    "graduation_year": 2021,
+    "display_order": 1
+  },
+  {
+    "id": "edu_24a445be42755763",
+    "faculty_id": "fac_krittakom-srijiranon",
+    "degree": "M.Eng.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Chiang Mai University",
+    "country": "Thailand",
+    "graduation_year": 2015,
+    "display_order": 2
+  },
+  {
+    "id": "edu_4246e1d7b84231b8",
+    "faculty_id": "fac_krittakom-srijiranon",
+    "degree": "B.Eng.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Chiang Mai University",
+    "country": "Thailand",
+    "graduation_year": 2014,
+    "display_order": 3
+  },
+  {
+    "id": "edu_6589bdbedb5863b8",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Faculty of Science and Technology, Thammasat University",
+    "country": null,
+    "graduation_year": 2019,
+    "display_order": 1
+  },
+  {
+    "id": "edu_2e1e2dcbc2c4c545",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "degree": "M.Sc.",
+    "field_of_study": "Information Technology",
+    "institution": "Faculty of Information Technology, King Mongkut’s University of Technology North Bangkok",
+    "country": null,
+    "graduation_year": 2013,
+    "display_order": 2
+  },
+  {
+    "id": "edu_b776a5f5e5734adf",
+    "faculty_id": "fac_lumpapun-punchoojit",
+    "degree": "B.Sc.",
+    "field_of_study": "Computer Science",
+    "institution": "Mahidol University International College",
+    "country": null,
+    "graduation_year": 2009,
+    "display_order": 3
+  },
+  {
+    "id": "edu_8982410c9984abba",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "degree": "B.Eng.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Suranaree University of Technology",
+    "country": null,
+    "graduation_year": 2006,
+    "display_order": 1
+  },
+  {
+    "id": "edu_3a7f8a9976e6b258",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "degree": "M.Eng.",
+    "field_of_study": "Information Management",
+    "institution": "Asian Institute of Technology",
+    "country": null,
+    "graduation_year": 2009,
+    "display_order": 2
+  },
+  {
+    "id": "edu_49fffa0760d10e56",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "degree": "M.Sc.",
+    "field_of_study": "Knowledge Science",
+    "institution": "Japan Advanced Institute of Science and Technology",
+    "country": null,
+    "graduation_year": 2018,
+    "display_order": 3
+  },
+  {
+    "id": "edu_c3f8febb12ad3c6d",
+    "faculty_id": "fac_nawarerk-chalarak",
+    "degree": "Ph.D.",
+    "field_of_study": "Knowledge Science",
+    "institution": "Japan Advanced Institute of Science and Technology",
+    "country": null,
+    "graduation_year": 2021,
+    "display_order": 4
+  },
+  {
+    "id": "edu_aa5621e1307aea4a",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "Ph.D.",
+    "field_of_study": "Information Science",
+    "institution": "University of Pittsburgh",
+    "country": "USA",
+    "graduation_year": 2545,
+    "display_order": 1
+  },
+  {
+    "id": "edu_141f065371d04998",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "M.S.",
+    "field_of_study": "Information Science",
+    "institution": "University of Pittsburgh",
+    "country": "USA",
+    "graduation_year": 2545,
+    "display_order": 2
+  },
+  {
+    "id": "edu_af18098cf72c523b",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "M.Ed.",
+    "field_of_study": "Research Methodology",
+    "institution": "University of Pittsburgh",
+    "country": "USA",
+    "graduation_year": 2545,
+    "display_order": 3
+  },
+  {
+    "id": "edu_b0e2640910a910b2",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer and Information Sciences",
+    "institution": "New Jersey Institute of Technology",
+    "country": "USA",
+    "graduation_year": 2539,
+    "display_order": 4
+  },
+  {
+    "id": "edu_c5364ad58c89d301",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "ศศ.ม.",
+    "field_of_study": "จิตวิทยาอุตสาหกรรมและองค์การ",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2539,
+    "display_order": 5
+  },
+  {
+    "id": "edu_0df68fe3dbb0a194",
+    "faculty_id": "fac_nuttanont-hongwarittorrn",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2533,
+    "display_order": 6
+  },
+  {
+    "id": "edu_c256ea5633d1866f",
+    "faculty_id": "fac_onjira-sitthisak",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "University of Southampton",
+    "country": "UK",
+    "graduation_year": 2009,
+    "display_order": 1
+  },
+  {
+    "id": "edu_acf5386118727ad0",
+    "faculty_id": "fac_onjira-sitthisak",
+    "degree": "วท.ม.",
+    "field_of_study": "การจัดการระบบสารสนเทศ",
+    "institution": "สถาบันบัณฑิตพัฒนบริหารศาสตร์",
+    "country": null,
+    "graduation_year": 2545,
+    "display_order": 2
+  },
+  {
+    "id": "edu_100f8538c57ea78b",
+    "faculty_id": "fac_onjira-sitthisak",
+    "degree": "วท.บ.",
+    "field_of_study": "วิทยาการคอมพิวเตอร์ (เกียรตินิยมอันดับ 1)",
+    "institution": "มหาวิทยาลัยสงขลานครินทร์",
+    "country": null,
+    "graduation_year": 2542,
+    "display_order": 3
+  },
+  {
+    "id": "edu_2fa71cf329ddf85c",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "degree": "Ph.D.",
+    "field_of_study": "Knowledge Science",
+    "institution": "Japan Advanced Institute of Science and Technology (JAIST)",
+    "country": "Japan",
+    "graduation_year": null,
+    "display_order": 1
+  },
+  {
+    "id": "edu_6b3f2ead57791db9",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "degree": "M.Sc.",
+    "field_of_study": "Management Mathematics",
+    "institution": "Sirindhorn International Institute of Technology (SIIT), Thammasat University",
+    "country": "Thailand",
+    "graduation_year": null,
+    "display_order": 2
+  },
+  {
+    "id": "edu_56372647b002f07c",
+    "faculty_id": "fac_pakkaporn-saophan",
+    "degree": "B.Sc.",
+    "field_of_study": "Management Mathematics (Second Class Honors)",
+    "institution": "Thammasat University",
+    "country": "Thailand",
+    "graduation_year": null,
+    "display_order": 3
+  },
+  {
+    "id": "edu_1f5db41c09c1d057",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "degree": "ปร.ด.",
+    "field_of_study": "วิศวกรรมไฟฟ้าและคอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",
+    "country": "ประเทศไทย",
+    "graduation_year": 2554,
+    "display_order": 1
+  },
+  {
+    "id": "edu_0a6c168e83729fc8",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "degree": "วศ.ม.",
+    "field_of_study": "วิศวกรรมคอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",
+    "country": "ประเทศไทย",
+    "graduation_year": 2550,
+    "display_order": 2
+  },
+  {
+    "id": "edu_b3e8da0fb04a6031",
+    "faculty_id": "fac_pakorn-leesutthipornchai",
+    "degree": "วศ.บ.",
+    "field_of_study": "วิศวกรรมคอมพิวเตอร์ (เกียรตินิยมอันดับสอง)",
+    "institution": "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",
+    "country": "ประเทศไทย",
+    "graduation_year": 2547,
+    "display_order": 3
+  },
+  {
+    "id": "edu_eb352f1d23430054",
+    "faculty_id": "fac_pakorn-waewsawangwong",
+    "degree": "M.Sc.",
+    "field_of_study": "Software Engineering (Distinction)",
+    "institution": "University of York",
+    "country": null,
+    "graduation_year": 2001,
+    "display_order": 1
+  },
+  {
+    "id": "edu_e7e07ab8e1ead272",
+    "faculty_id": "fac_pokpong-songmuang",
+    "degree": "Ph.D.",
+    "field_of_study": "Information Science",
+    "institution": "The University of Electro-Communications",
+    "country": "Japan",
+    "graduation_year": 2553,
+    "display_order": 1
+  },
+  {
+    "id": "edu_c9a909113748565c",
+    "faculty_id": "fac_pokpong-songmuang",
+    "degree": "M.Eng.",
+    "field_of_study": "Master of Engineering",
+    "institution": "Naoka University of Technology",
+    "country": "Japan",
+    "graduation_year": 2549,
+    "display_order": 2
+  },
+  {
+    "id": "edu_f9f69eb3b9aa8325",
+    "faculty_id": "fac_pokpong-songmuang",
+    "degree": "วท.บ.",
+    "field_of_study": "วิศวกรรมไฟฟ้า",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2546,
+    "display_order": 3
+  },
+  {
+    "id": "edu_bba96581bfccdd98",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "degree": "Ph.D.",
+    "field_of_study": "Electrical and Computer Engineering",
+    "institution": "University of Florida",
+    "country": "USA",
+    "graduation_year": 2554,
+    "display_order": 1
+  },
+  {
+    "id": "edu_f37704da51e13ab3",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Science",
+    "institution": "University of Southern California",
+    "country": "USA",
+    "graduation_year": 2547,
+    "display_order": 2
+  },
+  {
+    "id": "edu_63179d00bc9a23a9",
+    "faculty_id": "fac_prapaporn-rattanatamrong",
+    "degree": "วศ.บ.",
+    "field_of_study": "วิศวกรรมคอมพิวเตอร์ (เกียรตินิยมอันดับสอง)",
+    "institution": "มหาวิทยาลัยเกษตรศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2544,
+    "display_order": 3
+  },
+  {
+    "id": "edu_92ee20b100a76620",
+    "faculty_id": "fac_saowaluk-watanapa",
+    "degree": "ปร.ด.",
+    "field_of_study": "Information Technology",
+    "institution": "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",
+    "country": "ประเทศไทย",
+    "graduation_year": 2551,
+    "display_order": 1
+  },
+  {
+    "id": "edu_f408659865065906",
+    "faculty_id": "fac_saowaluk-watanapa",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Technology",
+    "institution": "Asian Institute of Technology",
+    "country": "ประเทศไทย",
+    "graduation_year": 2534,
+    "display_order": 2
+  },
+  {
+    "id": "edu_c216664abc2957d3",
+    "faculty_id": "fac_saowaluk-watanapa",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2533,
+    "display_order": 3
+  },
+  {
+    "id": "edu_3e1c2d76ed49287f",
+    "faculty_id": "fac_sirikunya-nilpanich",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Science",
+    "institution": "Syracuse University",
+    "country": "USA",
+    "graduation_year": 2538,
+    "display_order": 1
+  },
+  {
+    "id": "edu_1f2a8b8e0ef03760",
+    "faculty_id": "fac_sirikunya-nilpanich",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์ (เกียรตินิยมอันดับสอง)",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": null,
+    "graduation_year": 2533,
+    "display_order": 2
+  },
+  {
+    "id": "edu_afe793c5fa97a173",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "degree": "Ph.D.",
+    "field_of_study": "Decorat en informatique",
+    "institution": "Université de Nancy II",
+    "country": "France",
+    "graduation_year": 2543,
+    "display_order": 1
+  },
+  {
+    "id": "edu_912db9815a1f0cd6",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "degree": "DEA",
+    "field_of_study": "Diplôme d’étude aprofondi specialisé en bases de données, du parallélisme et des systèmes distributes",
+    "institution": "Institut National des Télécommunications",
+    "country": "France",
+    "graduation_year": 2539,
+    "display_order": 2
+  },
+  {
+    "id": "edu_7e633a490471bce5",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "degree": "Maîtrise",
+    "field_of_study": "Maîtrise d’informatique",
+    "institution": "Institut Galilée, Université de Paris XIII",
+    "country": "France",
+    "graduation_year": 2538,
+    "display_order": 3
+  },
+  {
+    "id": "edu_9b28b771cf68a48f",
+    "faculty_id": "fac_songsakdi-rongviriyapanish",
+    "degree": "Licence",
+    "field_of_study": "Licence d’informatique",
+    "institution": "Institut Galilée, Université de Paris XIII",
+    "country": "France",
+    "graduation_year": 2537,
+    "display_order": 4
+  },
+  {
+    "id": "edu_e58346266d87c33c",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Sirindhorn International Institute of Technology, Thammasat University",
+    "country": "Thailand",
+    "graduation_year": 2558,
+    "display_order": 1
+  },
+  {
+    "id": "edu_fe1cd499e3732944",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "degree": "M.Eng.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Suranaree University of Technology",
+    "country": "Thailand",
+    "graduation_year": 2551,
+    "display_order": 2
+  },
+  {
+    "id": "edu_4f181161ba96e857",
+    "faculty_id": "fac_tanatorn-tanantong",
+    "degree": "B.Eng.",
+    "field_of_study": "Computer Engineering",
+    "institution": "Suranaree University of Technology",
+    "country": "Thailand",
+    "graduation_year": 2548,
+    "display_order": 3
+  },
+  {
+    "id": "edu_2ea4d694ea019024",
+    "faculty_id": "fac_thapana-boonchoo",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science and Technology",
+    "institution": "Machine Learning and Data Mining Group, Institute of Computing Technology, University of Chinese Academy of Sciences",
+    "country": "China",
+    "graduation_year": null,
+    "display_order": 1
+  },
+  {
+    "id": "edu_5c529a5f71eb6e0b",
+    "faculty_id": "fac_thapana-boonchoo",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Science and Technology",
+    "institution": "Institute of High-Performance Computing, Tsinghua University",
+    "country": "China",
+    "graduation_year": null,
+    "display_order": 2
+  },
+  {
+    "id": "edu_3de807cf66b7c8b9",
+    "faculty_id": "fac_thapana-boonchoo",
+    "degree": "B.Sc.",
+    "field_of_study": "Computer Science, First Class Honours",
+    "institution": "Thammasat University",
+    "country": "Thailand",
+    "graduation_year": null,
+    "display_order": 3
+  },
+  {
+    "id": "edu_a390fb814b47efe3",
+    "faculty_id": "fac_wanida-putthividhya",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Iowa State University",
+    "country": "USA",
+    "graduation_year": 2549,
+    "display_order": 1
+  },
+  {
+    "id": "edu_46448a0b19330809",
+    "faculty_id": "fac_wanida-putthividhya",
+    "degree": "M.S.",
+    "field_of_study": "Computer Science",
+    "institution": "University of Southern California",
+    "country": "USA",
+    "graduation_year": 2543,
+    "display_order": 2
+  },
+  {
+    "id": "edu_2e2ced3e4fb11b53",
+    "faculty_id": "fac_wanida-putthividhya",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์ (เกียรตินิยมอันดับหนึ่งเหรียญทอง)",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2539,
+    "display_order": 3
+  },
+  {
+    "id": "edu_a147148298822cfd",
+    "faculty_id": "fac_wilawan-rukpakavong",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Loughborough University",
+    "country": "UK",
+    "graduation_year": 2557,
+    "display_order": 1
+  },
+  {
+    "id": "edu_16ad5d62372be3d0",
+    "faculty_id": "fac_wilawan-rukpakavong",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Technology",
+    "institution": "Asian Institute of Technology",
+    "country": "ประเทศไทย",
+    "graduation_year": 2534,
+    "display_order": 2
+  },
+  {
+    "id": "edu_c3a25f88197b0288",
+    "faculty_id": "fac_wilawan-rukpakavong",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2533,
+    "display_order": 3
+  },
+  {
+    "id": "edu_67931be7f379eaf2",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "degree": "Ph.D.",
+    "field_of_study": "Computer Science",
+    "institution": "Asian Institute of Technology",
+    "country": "ประเทศไทย",
+    "graduation_year": 2556,
+    "display_order": 1
+  },
+  {
+    "id": "edu_98247859965c4af4",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "degree": "M.B.A.",
+    "field_of_study": "Management Information System",
+    "institution": "University of Illinois at Urbana Champaign",
+    "country": "USA",
+    "graduation_year": 2541,
+    "display_order": 2
+  },
+  {
+    "id": "edu_2ad729e7b47c2a61",
+    "faculty_id": "fac_wirat-jareevongpiboon",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์ (เกียรตินิยมอันดับสอง)",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2535,
+    "display_order": 3
+  },
+  {
+    "id": "edu_3a9a27b2e99c9646",
+    "faculty_id": "fac_worawan-marurngsith",
+    "degree": "Ph.D.",
+    "field_of_study": "Informatics",
+    "institution": "University of Edinburgh",
+    "country": "UK",
+    "graduation_year": 2549,
+    "display_order": 1
+  },
+  {
+    "id": "edu_9a84a1e35d9750b0",
+    "faculty_id": "fac_worawan-marurngsith",
+    "degree": "M.Sc.",
+    "field_of_study": "Computer Science",
+    "institution": "University of Edinburgh",
+    "country": "UK",
+    "graduation_year": 2542,
+    "display_order": 2
+  },
+  {
+    "id": "edu_a1b7e84e7a9ad3a1",
+    "faculty_id": "fac_worawan-marurngsith",
+    "degree": "วท.บ.",
+    "field_of_study": "ศาสตร์คอมพิวเตอร์",
+    "institution": "มหาวิทยาลัยธรรมศาสตร์",
+    "country": "ประเทศไทย",
+    "graduation_year": 2539,
+    "display_order": 3
+  }
+]
