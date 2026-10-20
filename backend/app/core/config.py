@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     # rotated password keeps working (see docs/v2/backend-db-connection-decision.md).
     db_secret_arn: str = ""
     db_secret_cache_seconds: int = Field(default=300, ge=0)
+    # Sign in with a short-lived IAM token instead of a password (DB_HOST and DB_USER are
+    # used). Needed for Aurora Express Configuration, whose public endpoint refuses passwords.
+    db_iam_auth: bool = False
 
     # Object storage (S3)
     aws_region: str = "ap-southeast-1"
@@ -78,6 +81,7 @@ class Settings(BaseSettings):
         if (
             self.environment is not Environment.LOCAL
             and not self.db_secret_arn
+            and not self.db_iam_auth
             and self.db_password.get_secret_value() in _PLACEHOLDER_PASSWORDS
         ):
             raise ValueError(
