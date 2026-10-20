@@ -6,6 +6,7 @@ import { ActionForm } from '@/components/manage/action-form';
 import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
+  Field,
   PageHeader,
   Pager,
   Section,
@@ -18,7 +19,9 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
-import { PAGE_SIZE, listPublications } from '@/lib/backend/api';
+import { canManage } from '@/lib/auth/permissions';
+import { MAX_PAGE, PAGE_SIZE, listLecturers, listPublications } from '@/lib/backend/api';
+import { getCurrentUser } from '@/lib/backend/client';
 
 export const metadata: Metadata = { title: 'ผลงานตีพิมพ์' };
 
@@ -31,7 +34,12 @@ export default async function PublicationsPage({
   const q = param(params.q);
   const year = intParam(params.publication_year);
   const offset = intParam(params.offset) ?? 0;
-  const publications = await listPublications({ q, publication_year: year, limit: PAGE_SIZE, offset });
+  const [publications, lecturers, me] = await Promise.all([
+    listPublications({ q, publication_year: year, limit: PAGE_SIZE, offset }),
+    listLecturers({ is_active: true, limit: MAX_PAGE }),
+    getCurrentUser(),
+  ]);
+  const manage = canManage(me);
 
   return (
     <div className="space-y-6">
@@ -72,6 +80,29 @@ export default async function PublicationsPage({
       <Section title="เพิ่มผลงาน">
         <ActionForm action={createPublication} submitLabel="เพิ่มผลงาน">
           <PublicationFields />
+          <Field
+            label="ผู้แต่งในคณะ"
+            hint={
+              manage
+                ? 'เลือกได้หลายคน (กด Ctrl / ⌘ ค้างไว้) ลำดับตามรายการนี้'
+                : 'ต้องมีชื่อคุณอยู่ด้วย: เพิ่มได้เฉพาะผลงานของตัวเอง เลือกผู้แต่งร่วมได้หลายคน (กด Ctrl / ⌘ ค้างไว้)'
+            }
+            className="mt-4"
+          >
+            <select
+              name="lecturer_ids"
+              multiple
+              size={6}
+              defaultValue={me && !manage ? [me.lecturer.lecturer_id] : []}
+              className={inputClass}
+            >
+              {lecturers.items.map((lecturer) => (
+                <option key={lecturer.lecturer_id} value={lecturer.lecturer_id}>
+                  {lecturer.name_th}
+                </option>
+              ))}
+            </select>
+          </Field>
         </ActionForm>
       </Section>
     </div>

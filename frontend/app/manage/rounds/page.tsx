@@ -5,13 +5,19 @@ import { createRound } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import { RoundFields } from '@/components/manage/round-fields';
 import { Badge, EmptyNote, Notice, PageHeader, Section, Table, Td, linkClass } from '@/components/manage/ui';
+import { canManage } from '@/lib/auth/permissions';
 import { listRounds, listRubricVersions } from '@/lib/backend/api';
+import { getCurrentUser } from '@/lib/backend/client';
 import { formatDate, formatDateTime } from '@/lib/backend/labels';
 
 export const metadata: Metadata = { title: 'รอบประเมิน' };
 
 export default async function RoundsPage() {
-  const [rounds, versions] = await Promise.all([listRounds(), listRubricVersions()]);
+  const [rounds, versions, me] = await Promise.all([
+    listRounds(),
+    listRubricVersions(),
+    getCurrentUser(),
+  ]);
   const versionCode = new Map(versions.items.map((v) => [v.id, v.code]));
 
   return (
@@ -49,18 +55,20 @@ export default async function RoundsPage() {
         )}
       </Section>
 
-      <Section title="เปิดรอบใหม่">
-        {versions.items.length === 0 ? (
-          <Notice>
-            ต้องมีเกณฑ์ภาระงานก่อน สร้างได้ที่{' '}
-            <Link href="/manage/rubrics" className={linkClass}>เกณฑ์ภาระงาน</Link>
-          </Notice>
-        ) : (
-          <ActionForm action={createRound} submitLabel="สร้างรอบ">
-            <RoundFields versions={versions.items} />
-          </ActionForm>
-        )}
-      </Section>
+      {canManage(me) ? (
+        <Section title="เปิดรอบใหม่">
+          {versions.items.length === 0 ? (
+            <Notice>
+              ต้องมีเกณฑ์ภาระงานก่อน สร้างได้ที่{' '}
+              <Link href="/manage/rubrics" className={linkClass}>เกณฑ์ภาระงาน</Link>
+            </Notice>
+          ) : (
+            <ActionForm action={createRound} submitLabel="สร้างรอบ">
+              <RoundFields versions={versions.items} />
+            </ActionForm>
+          )}
+        </Section>
+      ) : null}
     </div>
   );
 }

@@ -24,7 +24,9 @@ import {
   Section,
   inputClass,
 } from '@/components/manage/ui';
+import { canManage } from '@/lib/auth/permissions';
 import { getRubricForm, listRounds } from '@/lib/backend/api';
+import { getCurrentUser } from '@/lib/backend/client';
 import {
   POSITION_LABEL,
   UNIT_LABEL,
@@ -95,10 +97,13 @@ function SectionBlock({
   section,
   parents,
   locked,
+  manage,
 }: {
   section: RubricFormSection;
   parents: RubricSection[];
+  /** No structure edits: the version is used by a round, or the user is not staff */
   locked: boolean;
+  manage: boolean;
 }) {
   return (
     <div className="rounded-lg border border-line p-4">
@@ -124,10 +129,12 @@ function SectionBlock({
                     </span>
                     <span className="ml-2 text-xs text-ink-muted">{itemSummary(item)}</span>
                   </span>
-                  <span className="text-xs text-brand">{locked ? 'ดูรายละเอียด' : 'แก้ไข'}</span>
+                  {manage ? (
+                    <span className="text-xs text-brand">{locked ? 'ดูรายละเอียด' : 'แก้ไข'}</span>
+                  ) : null}
                 </summary>
                 <div className="mt-3 space-y-3">
-                  {locked ? (
+                  {!manage ? null : locked ? (
                     <ActionForm
                       inline
                       variant="secondary"
@@ -158,7 +165,7 @@ function SectionBlock({
       {section.children.length > 0 ? (
         <div className="mt-3 space-y-3 border-l-2 border-line-soft pl-4">
           {section.children.map((child) => (
-            <SectionBlock key={child.id} section={child} parents={parents} locked={locked} />
+            <SectionBlock key={child.id} section={child} parents={parents} locked={locked} manage={manage} />
           ))}
         </div>
       ) : null}
@@ -197,13 +204,16 @@ function SectionBlock({
 export default async function RubricPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const versionId = Number.parseInt(id, 10);
-  const [form, rounds] = await Promise.all([
+  const [form, rounds, me] = await Promise.all([
     Number.isFinite(versionId) ? getRubricForm(versionId) : Promise.resolve(null),
     listRounds(),
+    getCurrentUser(),
   ]);
   if (!form) notFound();
   const usedBy = rounds.items.filter((round) => round.rubric_version_id === form.id);
   const locked = usedBy.length > 0;
+  const manage = canManage(me);
+  const readOnly = locked || !manage;
 
   return (
     <div className="space-y-6">
@@ -221,7 +231,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
       ) : null}
 
       <Section title="ค่าของฉบับ">
-        <fieldset disabled={locked} className="space-y-4">
+        <fieldset disabled={readOnly} className="space-y-4">
           <ActionForm action={updateRubricVersion.bind(null, form.id)}>
             <div className="grid gap-4 sm:grid-cols-4">
               <Field label="รหัสฉบับ">
@@ -266,10 +276,10 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
             <div className="space-y-3">
               {category.sections.length === 0 ? <EmptyNote>ยังไม่มีข้อในหมวดนี้</EmptyNote> : null}
               {category.sections.map((section) => (
-                <SectionBlock key={section.id} section={section} parents={parents} locked={locked} />
+                <SectionBlock key={section.id} section={section} parents={parents} locked={readOnly} manage={manage} />
               ))}
             </div>
-            {!locked ? (
+            {!readOnly ? (
               <details className="mt-4 border-t border-line-soft pt-4 text-sm">
                 <summary className="cursor-pointer font-semibold text-brand">+ เพิ่มข้อในหมวด {category.code}</summary>
                 <div className="mt-3">
@@ -283,7 +293,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
         );
       })}
 
-      {!locked ? (
+      {!readOnly ? (
         <Section title="เพิ่มหมวด">
           <ActionForm action={createCategory.bind(null, form.id)} submitLabel="เพิ่มหมวด" resetOnSuccess className="flex flex-wrap items-end gap-3">
             <Field label="รหัส" className="w-24">

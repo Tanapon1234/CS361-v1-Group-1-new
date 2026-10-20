@@ -40,6 +40,10 @@ export async function updateLecturer(
   const body: Record<string, unknown> = lecturerBody(form);
   // An empty box keeps the current Cognito link; it is write-only so we cannot show it
   if (body.cognito_sub === null) delete body.cognito_sub;
+  // Disabled (staff-only) inputs are not sent: leave those fields as they are
+  for (const field of ['rank', 'department_id', 'email', 'cognito_sub']) {
+    if (!form.has(field)) delete body[field];
+  }
   return attempt(() => backend('PATCH', `/lecturers/${lecturerId}`, { body }));
 }
 

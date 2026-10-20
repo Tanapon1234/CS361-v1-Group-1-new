@@ -189,7 +189,10 @@ function publicationBody(form: FormData) {
 export async function createPublication(_: ActionState, form: FormData): Promise<ActionState> {
   let created: Publication | null = null;
   const state = await attempt(async () => {
-    created = await backend<Publication>('POST', '/publications', { body: publicationBody(form) });
+    const lecturerIds = form.getAll('lecturer_ids').map(String).filter(Boolean);
+    created = await backend<Publication>('POST', '/publications', {
+      body: { ...publicationBody(form), lecturer_ids: lecturerIds },
+    });
   });
   if (created) redirect(`/manage/publications/${(created as Publication).publication_id}`);
   return state;

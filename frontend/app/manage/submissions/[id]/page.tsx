@@ -29,6 +29,7 @@ import {
   inputClass,
   linkClass,
 } from '@/components/manage/ui';
+import { canSign } from '@/lib/auth/permissions';
 import {
   MAX_PAGE,
   getLecturer,
@@ -43,7 +44,7 @@ import {
   listLecturers,
   settle,
 } from '@/lib/backend/api';
-import { currentLecturerId } from '@/lib/backend/client';
+import { getCurrentUser } from '@/lib/backend/client';
 import {
   DATA_SOURCE_LABEL,
   EDITABLE_STATUSES,
@@ -84,7 +85,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
     listApprovals(id),
     getLecturer(submission.lecturer_id),
     listLecturers({ limit: MAX_PAGE }),
-    currentLecturerId(),
+    getCurrentUser(),
   ]);
   if (!form) notFound();
 
@@ -95,9 +96,11 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   for (const { section } of sections) for (const item of section.items) items.set(item.id, item);
   const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
 
-  const editable = EDITABLE_STATUSES.includes(submission.status);
-  const isOwner = me === submission.lecturer_id;
+  const isOwner = me?.lecturer.lecturer_id === submission.lecturer_id;
+  // Only the owner changes entries, and only while draft / returned
+  const editable = isOwner && EDITABLE_STATUSES.includes(submission.status);
   const step = WORKFLOW_STEP[submission.status];
+  const signs = !!step && canSign(me, step.role, submission);
 
   // Evidence for every entry, assessments for the ranged ones (small numbers per form)
   const [evidence, assessments] = await Promise.all([
@@ -122,7 +125,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         actions={
           <>
             <StatusBadge status={submission.status} />
-            {submission.status === 'draft' ? (
+            {isOwner && submission.status === 'draft' ? (
               <ActionForm
                 inline
                 variant="danger"
@@ -178,16 +181,17 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
 
       <Section
         title="การส่งและการอนุมัติ"
-        description="ระบบเติมบทบาทผู้ลงนามจากสถานะของใบ (สิทธิ์จริงยังเป็น TODO ใน backend)"
+        description="ขั้นถัดไปมาจากสถานะของใบ: เจ้าของส่ง, เจ้าหน้าที่รับเรื่อง, หัวหน้าและกรรมการของสาขาลงนาม"
       >
-        {step ? (
+        {step && !signs ? (
+          <Notice>
+            ขั้นถัดไป: รอ <strong>{SIGNER_ROLE_LABEL[step.role]}</strong> ลงนาม
+          </Notice>
+        ) : step ? (
           <div className="mb-5 grid gap-4 rounded-lg border border-line-soft bg-surface-alt p-4 lg:grid-cols-2">
             <div>
               <p className="text-sm text-ink">
-                ขั้นถัดไป: <strong>{SIGNER_ROLE_LABEL[step.role]}</strong>
-                {step.role === 'performer' && !isOwner ? (
-                  <span className="text-ink-muted"> (ปกติเจ้าของใบเป็นคนส่ง)</span>
-                ) : null}
+                ขั้นถัดไป: <strong>{SIGNER_ROLE_LABEL[step.role]}</strong> (คุณ)
               </p>
               <ActionForm
                 action={signSubmission.bind(null, id, 'approved')}
