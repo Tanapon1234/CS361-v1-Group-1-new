@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { createPublication } from '@/app/manage/actions/academic';
+import { createEntry, createSubmission, withdrawSubmission } from '@/app/manage/actions/workload';
+import { ActionForm } from '@/components/manage/action-form';
+import { EntryFields } from '@/components/manage/entry-fields';
+import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
   Field,
@@ -20,15 +25,19 @@ import {
 import {
   MAX_PAGE,
   getLecturerWork,
+  getRound,
   listLecturers,
   listRounds,
   listRubricCategories,
   listRubricVersions,
+  getRubricForm,
+  listMyPublications,
+  listSubmissions,
   settle,
 } from '@/lib/backend/api';
 import { isLecturerOnly } from '@/lib/auth/permissions';
 import { getCurrentUser } from '@/lib/backend/client';
-import { formatNumber, formatScore } from '@/lib/backend/labels';
+import { EDITABLE_STATUSES, formatNumber, formatScore } from '@/lib/backend/labels';
 import type { LecturerWork, RubricCategory } from '@/types/backend';
 
 export const metadata: Metadata = { title: 'ผลงานรายปี' };
@@ -57,7 +66,15 @@ export default async function LecturerWorkPage({
   const lecturerId = own ?? (UUID.test(param(params.lecturer) ?? '') ? param(params.lecturer) : undefined);
   const year = intParam(params.year);
   const category = param(params.category) || undefined;
+  const addRoundId = intParam(params.add_round);
 
+  const mySheets = own ? (await listSubmissions({ lecturer_id: own })).items : [];
+  const addRound = own && addRoundId ? await getRound(addRoundId) : null;
+  const addSheet = addRound ? mySheets.find((item) => item.round_id === addRound.id) ?? null : null;
+  const addEditable = !!addSheet && EDITABLE_STATUSES.includes(addSheet.status);
+  // The rubric of that round's version, to pick the item and show which fields it needs
+  const addForm = addRound && addEditable ? await getRubricForm(addRound.rubric_version_id) : null;
+  const myPublications = own && addForm ? (await listMyPublications(own, { limit: MAX_PAGE })).items : [];
   const [lecturers, rounds, categories, work] = await Promise.all([
     own ? Promise.resolve(null) : listLecturers({ limit: MAX_PAGE }),
     listRounds(),
@@ -120,6 +137,98 @@ export default async function LecturerWorkPage({
           </button>
         </form>
       </Section>
+
+      {own ? (
+        <Section title="เพิ่มผลงานของฉัน" description="เลือกว่าจะเพิ่มผลงานตีพิมพ์ หรือเพิ่มงานในใบภาระงานของรอบนั้น">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-bold text-ink">ผลงานตีพิมพ์ (บทความ / งานวิจัย)</h3>
+              <details className="mt-2 rounded-lg border border-line p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-brand">เพิ่มผลงานตีพิมพ์ใหม่</summary>
+                <ActionForm action={createPublication} submitLabel="เพิ่มผลงาน" className="mt-3">
+                  <PublicationFields />
+                  <input type="hidden" name="lecturer_ids" value={own} />
+                </ActionForm>
+              </details>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-ink">งานที่ทำในรอบนี้ (สอน / วิจัย / บริการ ฯลฯ)</h3>
+              <p className="mt-1 text-xs text-ink-muted">
+                กรอกแล้วเข้าใบภาระงานของรอบนั้นทันที ระบบคำนวณคะแนนให้เอง
+              </p>
+              <form method="get" action="/manage/work" className="mt-2 flex flex-wrap items-end gap-2">
+                <Field label="เลือกรอบ" className="min-w-52 flex-1">
+                  <select name="add_round" defaultValue={addRoundId ?? ''} required className={inputClass}>
+                    <option value="" disabled>
+                      เลือกรอบ
+                    </option>
+                    {rounds.items.map((round) => (
+                      <option key={round.id} value={round.id}>
+                        {round.name_th}
+                        {round.is_open ? ' (เปิด)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button type="submit" className={secondaryButtonClass}>
+                  เลือก
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {addRound ? (
+            <div className="mt-6 border-t border-line pt-5">
+              <h3 className="text-sm font-bold text-ink">กรอกงานในใบภาระงาน {addRound.name_th}</h3>
+              {addSheet && addForm ? (
+                <>
+                  <p className="mt-1 mb-3 text-xs text-ink-muted">
+                    ใบของคุณเป็น <StatusBadge status={addSheet.status} /> ·{' '}
+                    <Link href={`/manage/submissions/${addSheet.id}`} className={linkClass}>
+                      เปิดดูทั้งใบ
+                    </Link>
+                  </p>
+                  <ActionForm
+                    action={createEntry.bind(null, addSheet.id)}
+                    submitLabel="เพิ่มเข้าใบภาระงาน"
+                    resetOnSuccess
+                  >
+                    <EntryFields form={addForm} publications={myPublications} />
+                  </ActionForm>
+                </>
+              ) : addSheet && addSheet.status === 'submitted' ? (
+                <div className="space-y-3">
+                  <Notice>
+                    ใบของคุณในรอบนี้ส่งแล้ว และยังไม่มีใครรับเรื่อง ถ้าอยากเพิ่มหรือแก้รายการ ถอนใบกลับมาแก้ได้
+                    แล้วส่งใหม่เมื่อเสร็จ
+                  </Notice>
+                  <ActionForm
+                    inline
+                    variant="secondary"
+                    submitLabel="ถอนใบกลับมาแก้ไข"
+                    confirmText="ถอนใบกลับมาแก้ไข? ต้องส่งใหม่อีกครั้งหลังแก้เสร็จ"
+                    action={withdrawSubmission.bind(null, addSheet.id)}
+                  />
+                </div>
+              ) : addSheet ? (
+                <Notice>
+                  ใบของคุณในรอบนี้อยู่ระหว่างตรวจสอบหรืออนุมัติแล้ว แก้รายการไม่ได้ ถ้าต้องแก้
+                  ให้เจ้าหน้าที่หรือผู้อนุมัติตีกลับใบก่อน
+                </Notice>
+              ) : addRound.is_open ? (
+                <ActionForm action={createSubmission} submitLabel="สร้างใบภาระงานของฉันในรอบนี้">
+                  <input type="hidden" name="round_id" value={addRound.id} />
+                  <p className="mb-2 text-sm text-ink-muted">
+                    ยังไม่มีใบของคุณในรอบนี้ สร้างใบก่อน แล้วจะกรอกงานได้
+                  </p>
+                </ActionForm>
+              ) : (
+                <Notice>รอบนี้ปิดแล้วและคุณไม่มีใบ จึงกรอกงานเพิ่มไม่ได้</Notice>
+              )}
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
 
       {!work ? (
         <EmptyNote>เลือกอาจารย์ก่อน แล้วกดค้นหา</EmptyNote>

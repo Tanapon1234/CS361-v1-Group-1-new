@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=10, ge=0)
     db_pool_timeout_seconds: int = Field(default=30, ge=1)
     db_pool_recycle_seconds: int = Field(default=1800, ge=-1)
+    # Fail a stuck connect after this long so the cause shows up in the logs, instead of the
+    # request silently running into the Lambda timeout
+    db_connect_timeout_seconds: int = Field(default=10, ge=1)
     # Secrets Manager secret (JSON with username / password, and host / port if present).
     # When set it replaces DB_USER / DB_PASSWORD and is re-read every few minutes, so a
     # rotated password keeps working (see docs/v2/backend-db-connection-decision.md).

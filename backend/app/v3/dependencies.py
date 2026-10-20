@@ -421,9 +421,16 @@ def get_entry_service(
     evidence_dao: EvidenceDAODep,
     storage: ObjectStorageDep,
     score_keeper: ScoreKeeperDep,
+    publication_dao: PublicationDAODep,
 ) -> EntryService:
     return EntryService(
-        submission_dao, rubric_dao, lecturer_dao, evidence_dao, storage, score_keeper
+        submission_dao,
+        rubric_dao,
+        lecturer_dao,
+        evidence_dao,
+        storage,
+        score_keeper,
+        publication_dao,
     )
 
 
