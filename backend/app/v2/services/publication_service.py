@@ -19,6 +19,7 @@ from app.v2.dtos.publication_dto import (
     PublicationUpdateRequest,
     PublicationUpdateResponse,
 )
+from app.v2.models.enums import VerificationStatus
 from app.v2.models.publication import Publication
 from app.v2.security import Actor, Role
 
@@ -102,8 +103,20 @@ class PublicationService:
             if publication is None:
                 raise NotFoundError("Publication not found")
             self._require_author_or_staff(publication_id, actor)
+            self._require_unlocked(publication, actor)
 
             values = data.model_dump(exclude_unset=True)
+            if (
+                values
+                and not actor.has_any(Role.STAFF)
+                and publication.verification_status is VerificationStatus.REJECTED
+            ):
+                # The author fixed it: back into the reviewers' queue
+                values |= {
+                    "verification_status": VerificationStatus.PENDING,
+                    "verified_by": None,
+                    "verified_at": None,
+                }
             if "doi" in values and values["doi"] is not None:
                 duplicate = self.publication_dao.get_by_doi(values["doi"])
                 if duplicate is not None and duplicate.publication_id != publication_id:
@@ -125,6 +138,7 @@ class PublicationService:
             if publication is None:
                 raise NotFoundError("Publication not found")
             self._require_author_or_staff(publication_id, actor)
+            self._require_unlocked(publication, actor)
 
             self.publication_dao.delete(publication)
         except OperationalError as exc:
@@ -164,3 +178,10 @@ class PublicationService:
             return
         if actor.lecturer_id not in self.publication_dao.get_author_ids(publication_id):
             raise ForbiddenError("Only its authors or staff can change this publication")
+
+    @staticmethod
+    def _require_unlocked(publication: Publication, actor: Actor) -> None:
+        if publication.verification_status is VerificationStatus.VERIFIED and not actor.has_any(
+            Role.STAFF
+        ):
+            raise ForbiddenError("This publication is verified; ask staff to change it")

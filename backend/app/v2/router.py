@@ -31,6 +31,7 @@ from app.v2.controllers import (
     round_controller,
     rubric_controller,
     submission_controller,
+    verification_controller,
 )
 from app.v2.dependencies import authorize
 
@@ -72,5 +73,7 @@ for controller in (
     entry_controller,
     assessment_controller,
     evidence_controller,
+    # verification (V3)
+    verification_controller,
 ):
     api_v2_router.include_router(controller.router)

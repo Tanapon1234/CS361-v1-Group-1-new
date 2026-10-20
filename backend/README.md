@@ -38,6 +38,7 @@ Schema อยู่ใน migration ตามลำดับ **ไฟล์เ�
 - [002_lecturer_profile.sql](../database/migrations/002_lecturer_profile.sql): ข้อมูลอาจารย์และผลงานวิชาการ (Academic Portfolio)
 - [003_faculty_workload.sql](../database/migrations/003_faculty_workload.sql): ภาระงานประจำภาค (SemesterReport) ทำตาม design รวม [FacultyPortfolioWorkload.dbml](../database/data_schema/FacultyPortfolioWorkload/FacultyPortfolioWorkload.dbml) และเพิ่ม `cognito_sub` กับ `department_id` ให้ `lecturer`
 - [004_workload_entry_lock.sql](../database/migrations/004_workload_entry_lock.sql): ปรับ trigger ของ 003 ให้แก้ entry ได้ตอนใบถูกตีกลับ (`returned`) และให้ผู้ประเมินอัปเดตคะแนนได้ตอน `assessing`
+- [005_verification.sql](../database/migrations/005_verification.sql): สถานะการรับรอง (`pending` / `verified` / `rejected`) ของผลงานตีพิมพ์และไฟล์หลักฐาน พร้อมผู้รับรอง เวลา และหมายเหตุ
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
@@ -46,6 +47,7 @@ createdb cs361v2
 psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
 psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้องรันหลัง 002
 psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
+psql -d cs361v2 -f ../database/migrations/005_verification.sql
 ```
 
 | ตาราง | Primary key | หมายเหตุ |

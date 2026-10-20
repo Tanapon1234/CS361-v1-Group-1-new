@@ -18,6 +18,7 @@ from app.main import create_app
 from app.v2.daos.member_position_dao import MemberPositionDAO
 from app.v2.dependencies import get_member_position_dao
 from app.v2.permissions import ROUTE_RULES, Rule
+from app.v2.security import Role
 
 APP = create_app()
 ENDPOINTS = sorted(
@@ -72,7 +73,7 @@ def test_every_endpoint_has_a_rule_and_no_rule_is_stale() -> None:
     assert sorted(ROUTE_RULES.keys() - documented) == []
 
 
-@pytest.mark.parametrize(("method", "path"), ENDPOINTS, ids=" ".join)
+@pytest.mark.parametrize(("method", "path"), ENDPOINTS, ids=lambda value: str(value))
 def test_no_sign_in_is_401(client: TestClient, method: str, path: str) -> None:
     assert call(client, method, path, headers={}) == 401
 
@@ -83,7 +84,7 @@ LECTURER_ONLY = {"X-Lecturer-Id": CALLER}
 @pytest.mark.parametrize(
     ("method", "path"),
     [(m, p) for m, p in ENDPOINTS if not rule(m, p).anyone],
-    ids=" ".join,
+    ids=lambda value: str(value),
 )
 def test_plain_lecturer_is_403_on_someone_elses_or_staff_endpoints(
     client: TestClient, method: str, path: str
@@ -94,7 +95,7 @@ def test_plain_lecturer_is_403_on_someone_elses_or_staff_endpoints(
 @pytest.mark.parametrize(
     ("method", "path"),
     [(m, p) for m, p in ENDPOINTS if rule(m, p).self_param == "lecturer_id"],
-    ids=" ".join,
+    ids=lambda value: str(value),
 )
 def test_lecturer_is_let_in_on_their_own_record(client: TestClient, method: str, path: str) -> None:
     assert call(client, method, path, headers=LECTURER_ONLY, lecturer_id=CALLER) not in {401, 403}
@@ -103,7 +104,7 @@ def test_lecturer_is_let_in_on_their_own_record(client: TestClient, method: str,
 @pytest.mark.parametrize(
     ("method", "path"),
     [(m, p) for m, p in ENDPOINTS if rule(m, p).anyone],
-    ids=" ".join,
+    ids=lambda value: str(value),
 )
 def test_any_signed_in_lecturer_is_let_in(client: TestClient, method: str, path: str) -> None:
     # 403 may still come from a data check in the service; the route itself must let them in
@@ -111,14 +112,18 @@ def test_any_signed_in_lecturer_is_let_in(client: TestClient, method: str, path:
     assert status != 401
 
 
-@pytest.mark.parametrize("role", ["staff", "admin"])
 @pytest.mark.parametrize(
-    ("method", "path"),
-    [(m, p) for m, p in ENDPOINTS if not rule(m, p).anyone],
-    ids=" ".join,
+    ("method", "path", "role"),
+    [
+        (m, p, role)
+        for m, p in ENDPOINTS
+        if not rule(m, p).anyone
+        for role in sorted({*rule(m, p).roles, Role.ADMIN})
+    ],
+    ids=lambda value: str(value),
 )
-def test_staff_and_admin_pass_the_route_check(
-    client: TestClient, method: str, path: str, role: str
+def test_roles_named_in_the_rule_pass_the_route_check(
+    client: TestClient, method: str, path: str, role: Role
 ) -> None:
-    status = call(client, method, path, headers=LECTURER_ONLY | {"X-Dev-Roles": role})
+    status = call(client, method, path, headers=LECTURER_ONLY | {"X-Dev-Roles": role.value})
     assert status not in {401, 403}

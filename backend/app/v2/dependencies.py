@@ -43,7 +43,9 @@ from app.v2.daos.sql.publication_profile_dao import SqlPublicationProfileDAO
 from app.v2.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
+from app.v2.daos.sql.verification_dao import SqlVerificationDAO
 from app.v2.daos.submission_dao import SubmissionDAO
+from app.v2.daos.verification_dao import VerificationDAO
 from app.v2.models.lecturer import Lecturer
 from app.v2.permissions import rule_for
 from app.v2.security import Actor, HeldPosition, Role, roles_from_names
@@ -65,6 +67,7 @@ from app.v2.services.round_service import RoundService
 from app.v2.services.rubric_service import RubricService
 from app.v2.services.score_keeper import ScoreKeeper
 from app.v2.services.submission_service import SubmissionService
+from app.v2.services.verification_service import VerificationService
 from app.v2.storage.object_storage import ObjectStorage
 from app.v2.storage.s3_object_storage import S3ObjectStorage
 
@@ -139,6 +142,10 @@ def get_evidence_dao(session: SessionDep) -> EvidenceDAO:
     return SqlEvidenceDAO(session)
 
 
+def get_verification_dao(session: SessionDep) -> VerificationDAO:
+    return SqlVerificationDAO(session)
+
+
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
 LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
@@ -153,6 +160,7 @@ EvaluationRoundDAODep = Annotated[EvaluationRoundDAO, Depends(get_evaluation_rou
 SubmissionDAODep = Annotated[SubmissionDAO, Depends(get_submission_dao)]
 AssessmentDAODep = Annotated[AssessmentDAO, Depends(get_assessment_dao)]
 EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
+VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
 
@@ -423,3 +431,15 @@ SubmissionServiceDep = Annotated[SubmissionService, Depends(get_submission_servi
 EntryServiceDep = Annotated[EntryService, Depends(get_entry_service)]
 AssessmentServiceDep = Annotated[AssessmentService, Depends(get_assessment_service)]
 EvidenceServiceDep = Annotated[EvidenceService, Depends(get_evidence_service)]
+
+
+def get_verification_service(
+    verification_dao: VerificationDAODep,
+    publication_dao: PublicationDAODep,
+    evidence_dao: EvidenceDAODep,
+    submission_dao: SubmissionDAODep,
+) -> VerificationService:
+    return VerificationService(verification_dao, publication_dao, evidence_dao, submission_dao)
+
+
+VerificationServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
