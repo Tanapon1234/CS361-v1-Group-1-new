@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.database import dispose_engine
 from app.core.error_handlers import register_exception_handlers
 from app.v2.router import api_v2_router
+from app.v3.router import api_v3_router
 
 
 @asynccontextmanager
@@ -23,7 +24,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 def _operation_id(route: APIRoute) -> str:
     # Clean OpenAPI operationIds (e.g. `create_lecturer`) for frontend client generators.
-    return route.name
+    # v2 and v3 share handler names; operation ids must stay unique across both
+    return f"v3_{route.name}" if route.path.startswith("/api/v3") else route.name
 
 
 def create_app() -> FastAPI:
@@ -53,6 +55,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_v2_router)
+    app.include_router(api_v3_router)
     return app
 
 
