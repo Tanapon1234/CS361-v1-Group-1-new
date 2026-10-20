@@ -27,7 +27,7 @@ def test_placeholder_password_is_allowed_locally() -> None:
 
 @pytest.mark.parametrize("environment", [Environment.DEV, Environment.DEMO, Environment.PROD])
 def test_placeholder_password_is_rejected_outside_local(environment: Environment) -> None:
-    with pytest.raises(ValidationError, match="DB_PASSWORD must be set"):
+    with pytest.raises(ValidationError, match="DB_PASSWORD or DB_SECRET_ARN must be set"):
         make_settings(environment=environment, db_password="change-me")
 
 

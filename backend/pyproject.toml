@@ -11,6 +11,8 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.6",
     "boto3>=1.35",
+    # AWS Lambda adapter (app/lambda_handler.py)
+    "mangum>=0.19",
 ]
 
 [dependency-groups]
