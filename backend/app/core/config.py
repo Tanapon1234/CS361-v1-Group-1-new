@@ -46,7 +46,9 @@ class Settings(BaseSettings):
     data_bucket_name: str = ""
     s3_presign_expires_seconds: int = Field(default=900, ge=60, le=3600)
     profile_image_max_bytes: int = Field(default=5 * 1024 * 1024, gt=0)
+    profile_image_allowed_mime_types: list[str] = ["image/jpeg", "image/png", "image/webp"]
     cv_max_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
+    cv_allowed_mime_types: list[str] = ["application/pdf"]
     evidence_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     evidence_allowed_mime_types: list[str] = [
         "application/pdf",
