@@ -44,6 +44,22 @@ ENVIRONMENT=dev
 
 ---
 
+## FastAPI Backend Lambda (#199)
+
+Set by `infra/v2/backend-api.yaml`; the full list with defaults is in `backend/.env.example`.
+
+| Variable | Value |
+|---|---|
+| `ENVIRONMENT` | `dev` / `demo` / `prod` |
+| `DB_HOST`, `DB_PORT`, `DB_NAME` | Aurora writer endpoint, `5432`, `cs361v2` |
+| `DB_SSLMODE` | `require` |
+| `DB_SECRET_ARN` | DB secret; user and password are read from it at connect time (no `DB_PASSWORD`) |
+| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW` | `1`, `0` (one request per warm Lambda) |
+| `DATA_BUCKET_NAME` | foundation output `DataBucketName` |
+| `DEV_AUTH_HEADER_ENABLED` | `true` until Cognito is wired; ignored when `ENVIRONMENT=prod` |
+
+---
+
 ## Lambda Role Outputs
 
 | Responsibility | CloudFormation Output |

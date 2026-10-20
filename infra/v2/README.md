@@ -125,6 +125,26 @@ aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs'
 ```
 
+## Backend API (FastAPI, #199)
+
+`backend-api.yaml` runs `backend/app` on Lambda inside the Aurora VPC behind an API Gateway HTTP API (why: `docs/v2/backend-db-connection-decision.md`).
+
+It creates:
+
+- the Lambda (`app.lambda_handler.handler`, python3.12) in the Aurora private subnets, and a security group rule that lets it reach Aurora on 5432
+- a Secrets Manager interface endpoint and an S3 gateway endpoint (`CreateVpcEndpoints=false` if the VPC already has them or a NAT gateway)
+- an IAM role that can read the DB secret and read/write `lecturers/*` and `submissions/*` in the data bucket
+- the HTTP API with a `$default` route; the endpoint is the stack output `BackendApiEndpoint`
+
+Database credentials are read from `DB_SECRET_ARN` at connect time (cached 5 minutes), so password rotation needs no redeploy.
+
+```bash
+scripts/deploy-v2-backend-api.sh --build-only   # build build/v2/backend-api/backend-api.zip only
+scripts/deploy-v2-backend-api.sh                # build, upload, deploy, then call /health/ready
+```
+
+The script reads the cluster, secret, bucket, VPC, subnets and route tables from the foundation stack and the Aurora cluster. Override any of them with environment variables (`DB_HOST`, `VPC_ID`, `PRIVATE_SUBNET_IDS`, `PRIVATE_ROUTE_TABLE_IDS`, `DB_SECURITY_GROUP_ID`, `CORS_ALLOW_ORIGINS`, ...). Run the migrations first (`backend/scripts/apply_migrations.py`, #198).
+
 ## Verify Data API
 
 Export the outputs into environment variables, then run:

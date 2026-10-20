@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=10, ge=0)
     db_pool_timeout_seconds: int = Field(default=30, ge=1)
     db_pool_recycle_seconds: int = Field(default=1800, ge=-1)
+    # Secrets Manager secret (JSON with username / password, and host / port if present).
+    # When set it replaces DB_USER / DB_PASSWORD and is re-read every few minutes, so a
+    # rotated password keeps working (see docs/v2/backend-db-connection-decision.md).
+    db_secret_arn: str = ""
+    db_secret_cache_seconds: int = Field(default=300, ge=0)
 
     # Object storage (S3)
     aws_region: str = "ap-southeast-1"
@@ -64,9 +69,12 @@ class Settings(BaseSettings):
     def _require_real_secrets_outside_local(self) -> Self:
         if (
             self.environment is not Environment.LOCAL
+            and not self.db_secret_arn
             and self.db_password.get_secret_value() in _PLACEHOLDER_PASSWORDS
         ):
-            raise ValueError(f"DB_PASSWORD must be set when ENVIRONMENT={self.environment}")
+            raise ValueError(
+                f"DB_PASSWORD or DB_SECRET_ARN must be set when ENVIRONMENT={self.environment}"
+            )
         return self
 
     @property
