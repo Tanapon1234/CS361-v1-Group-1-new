@@ -7,6 +7,7 @@ import type {
   RangeBasis,
   SignerRole,
   SubmissionStatus,
+  VerificationStatus,
   WeightMode,
 } from '@/types/backend';
 
@@ -20,6 +21,12 @@ export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
   returned: 'ถูกตีกลับ',
   dept_approved: 'สาขาอนุมัติแล้ว',
   sent_to_faculty: 'ส่งคณะแล้ว',
+};
+
+export const VERIFICATION_LABEL: Record<VerificationStatus, string> = {
+  pending: 'รอตรวจสอบ',
+  verified: 'รับรองแล้ว',
+  rejected: 'ถูกตีกลับ',
 };
 
 export const POSITION_LABEL: Record<PositionCode, string> = {

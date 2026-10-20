@@ -16,7 +16,9 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
+import { canManage } from '@/lib/auth/permissions';
 import { PAGE_SIZE, listDepartments, listLecturers } from '@/lib/backend/api';
+import { getCurrentUser } from '@/lib/backend/client';
 
 export const metadata: Metadata = { title: 'อาจารย์' };
 
@@ -31,7 +33,7 @@ export default async function LecturersPage({
   const active = param(params.is_active);
   const offset = intParam(params.offset) ?? 0;
 
-  const [lecturers, departments] = await Promise.all([
+  const [lecturers, departments, me] = await Promise.all([
     listLecturers({
       q,
       department_id: departmentId,
@@ -40,6 +42,7 @@ export default async function LecturersPage({
       offset,
     }),
     listDepartments(),
+    getCurrentUser(),
   ]);
   const departmentName = new Map(departments.items.map((d) => [d.id, d.name_th]));
 
@@ -49,9 +52,11 @@ export default async function LecturersPage({
         title="อาจารย์"
         description="ข้อมูลอาจารย์ สาขา ตำแหน่งบริหาร และข้อมูลวิชาการ"
         actions={
-          <Link href="/manage/lecturers/new" className={buttonClass}>
-            + เพิ่มอาจารย์
-          </Link>
+          canManage(me) ? (
+            <Link href="/manage/lecturers/new" className={buttonClass}>
+              + เพิ่มอาจารย์
+            </Link>
+          ) : null
         }
       />
 

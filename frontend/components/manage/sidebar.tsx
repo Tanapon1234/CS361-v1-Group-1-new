@@ -3,13 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
+/** What the signed-in user may use (from lib/auth/permissions.ts, computed on the server) */
+export interface SidebarAccess {
+  assess: boolean;
+}
+
+interface Item {
+  href: string;
+  label: string;
+  /** Shown only when this access flag is on */
+  needs?: keyof SidebarAccess;
+}
+
+const GROUPS: { title: string; items: Item[] }[] = [
   { title: '', items: [{ href: '/manage', label: 'ภาพรวมของฉัน' }] },
   {
     title: 'ภาระงานประจำภาค',
     items: [
       { href: '/manage/submissions', label: 'ใบภาระงาน' },
-      { href: '/manage/assessments', label: 'งานประเมินของฉัน' },
+      { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
       { href: '/manage/rounds', label: 'รอบประเมิน' },
       { href: '/manage/rubrics', label: 'เกณฑ์ภาระงาน' },
     ],
@@ -27,7 +39,11 @@ const GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
   },
 ];
 
-export function ManageSidebar() {
+export function ManageSidebar({ access }: { access: SidebarAccess }) {
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.needs || access[item.needs]),
+  })).filter((group) => group.items.length > 0);
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === '/manage' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -38,7 +54,7 @@ export function ManageSidebar() {
       className="overflow-x-auto rounded-xl border border-line bg-surface-alt p-2 lg:sticky lg:top-28"
     >
       <div className="flex min-w-max gap-4 lg:block lg:min-w-0 lg:space-y-4">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.title || 'home'}>
             {group.title ? (
               <p className="hidden px-3 pb-1 text-xs font-bold tracking-wide text-ink-muted uppercase lg:block">

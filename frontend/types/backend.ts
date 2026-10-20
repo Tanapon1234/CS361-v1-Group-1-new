@@ -384,6 +384,15 @@ export interface EvidenceUpload {
   expires_at: string;
 }
 
+export type VerificationStatus = 'pending' | 'verified' | 'rejected';
+
+export interface Verification {
+  verification_status: VerificationStatus;
+  verification_note: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+}
+
 /** docs/v2/permissions.md */
 export type Role = 'lecturer' | 'staff' | 'reviewer' | 'executive' | 'admin';
 

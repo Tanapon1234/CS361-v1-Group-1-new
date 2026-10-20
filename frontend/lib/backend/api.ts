@@ -29,6 +29,7 @@ import type {
   SubmissionStatus,
   SubmissionSummary,
   SubmissionTotals,
+  Verification,
 } from '@/types/backend';
 
 /** Reads (GET) used by the /manage pages. Changes live in app/manage/actions/. */
@@ -101,6 +102,9 @@ export const listPublications = (query: {
 }) => backend<PageResponse<Publication>>('GET', '/publications', { query });
 
 export const getPublication = (id: number) => backendOrNull<Publication>(`/publications/${id}`);
+
+export const getPublicationVerification = (id: number) =>
+  backend<Verification>('GET', `/publications/${id}/verification`);
 
 // --- rubric -------------------------------------------------------------------------
 
