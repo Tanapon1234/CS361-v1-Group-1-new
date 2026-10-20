@@ -79,6 +79,14 @@ class DataSource(StrEnum):
     REGISTRAR_EDITED = "registrar_edited"
 
 
+class VerificationStatus(StrEnum):
+    """A reviewer's verdict on a publication or an evidence file (005)."""
+
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+
+
 class EvidenceStatus(StrEnum):
     PENDING = "pending"
     UPLOADED = "uploaded"
