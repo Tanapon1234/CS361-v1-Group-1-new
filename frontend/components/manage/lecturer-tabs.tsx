@@ -24,6 +24,7 @@ export function LecturerHeader({ lecturer, current }: { lecturer: Lecturer; curr
           { href: base, label: 'ข้อมูลทั่วไปและตำแหน่ง' },
           { href: `${base}/academic`, label: 'ข้อมูลวิชาการ' },
           { href: `${base}/files`, label: 'รูปและ CV' },
+          { href: `/manage/work?lecturer=${lecturer.lecturer_id}`, label: 'ผลงานรายปี' },
         ]}
       />
     </>

@@ -12,6 +12,7 @@ import type {
   Expertise,
   Lecturer,
   LecturerPublication,
+  LecturerWork,
   ListResponse,
   Me,
   PageResponse,
@@ -49,6 +50,12 @@ export const listLecturers = (query: {
 }) => backend<PageResponse<Lecturer>>('GET', '/lecturers', { query });
 
 export const getLecturer = (id: string) => backendOrNull<Lecturer>(`/lecturers/${id}`);
+
+/** Everything one lecturer did, filtered by B.E. academic year and rubric category code */
+export const getLecturerWork = (
+  lecturerId: string,
+  query: { academic_year?: number; category?: string }
+) => backend<LecturerWork>('GET', `/lecturers/${lecturerId}/work`, { query });
 
 export const listPositions = (lecturerId: string) =>
   backend<ListResponse<Position>>('GET', `/lecturers/${lecturerId}/positions`);

@@ -390,3 +390,50 @@ export interface Me {
   signer_roles: SignerRole[];
   open_rounds: EvaluationRound[];
 }
+
+// --- lecturer work (GET /lecturers/{id}/work) ---------------------------------------
+
+export interface WorkEntry {
+  entry_id: string;
+  submission_id: string;
+  submission_status: SubmissionStatus;
+  round_id: number;
+  round_name_th: string;
+  academic_year: number;
+  semester: number | null;
+  section_code: string;
+  section_name_th: string;
+  item_label_th: string;
+  title: string | null;
+  course_code: string | null;
+  quantity: number;
+  score: number;
+}
+
+export interface WorkCategoryGroup {
+  code: string;
+  name_th: string;
+  entries: WorkEntry[];
+}
+
+export interface WorkPublication {
+  publication_id: number;
+  title: string;
+  publication_year: number | null;
+  /** publication_year in B.E. */
+  academic_year: number | null;
+  venue: string | null;
+  doi: string | null;
+  author_order: number | null;
+}
+
+export interface LecturerWork {
+  lecturer_id: string;
+  lecturer_name_th: string;
+  filters: { academic_year: number | null; category: string | null; category_name_th: string | null };
+  categories: WorkCategoryGroup[];
+  publications: WorkPublication[];
+  total: number;
+  /** Every B.E. year with any work, newest first */
+  available_years: number[];
+}
