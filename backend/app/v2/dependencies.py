@@ -21,6 +21,7 @@ from app.v2.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v2.daos.evidence_dao import EvidenceDAO
 from app.v2.daos.expertise_dao import ExpertiseDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
+from app.v2.daos.lecturer_work_dao import LecturerWorkDAO
 from app.v2.daos.member_position_dao import MemberPositionDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
@@ -33,6 +34,7 @@ from app.v2.daos.sql.evaluation_round_dao import SqlEvaluationRoundDAO
 from app.v2.daos.sql.evidence_dao import SqlEvidenceDAO
 from app.v2.daos.sql.expertise_dao import SqlExpertiseDAO
 from app.v2.daos.sql.lecturer_dao import SqlLecturerDAO
+from app.v2.daos.sql.lecturer_work_dao import SqlLecturerWorkDAO
 from app.v2.daos.sql.member_position_dao import SqlMemberPositionDAO
 from app.v2.daos.sql.publication_dao import SqlPublicationDAO
 from app.v2.daos.sql.publication_profile_dao import SqlPublicationProfileDAO
@@ -48,6 +50,7 @@ from app.v2.services.evidence_service import EvidenceService
 from app.v2.services.expertise_service import ExpertiseService
 from app.v2.services.lecturer_file_service import LecturerFileService
 from app.v2.services.lecturer_service import LecturerService
+from app.v2.services.lecturer_work_service import LecturerWorkService
 from app.v2.services.me_service import MeService
 from app.v2.services.position_service import PositionService
 from app.v2.services.publication_profile_service import PublicationProfileService
@@ -93,6 +96,10 @@ CurrentLecturerIdDep = Annotated[UUID, Depends(get_current_lecturer_id)]
 
 def get_lecturer_dao(session: SessionDep) -> LecturerDAO:
     return SqlLecturerDAO(session)
+
+
+def get_lecturer_work_dao(session: SessionDep) -> LecturerWorkDAO:
+    return SqlLecturerWorkDAO(session)
 
 
 def get_education_dao(session: SessionDep) -> EducationDAO:
@@ -144,6 +151,7 @@ def get_evidence_dao(session: SessionDep) -> EvidenceDAO:
 
 
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
+LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
 ResearchInterestDAODep = Annotated[ResearchInterestDAO, Depends(get_research_interest_dao)]
 ExpertiseDAODep = Annotated[ExpertiseDAO, Depends(get_expertise_dao)]
@@ -202,7 +210,14 @@ def get_publication_service(
     return PublicationService(publication_dao, lecturer_dao)
 
 
+def get_lecturer_work_service(
+    work_dao: LecturerWorkDAODep, lecturer_dao: LecturerDAODep
+) -> LecturerWorkService:
+    return LecturerWorkService(work_dao, lecturer_dao)
+
+
 LecturerServiceDep = Annotated[LecturerService, Depends(get_lecturer_service)]
+LecturerWorkServiceDep = Annotated[LecturerWorkService, Depends(get_lecturer_work_service)]
 LecturerFileServiceDep = Annotated[LecturerFileService, Depends(get_lecturer_file_service)]
 EducationServiceDep = Annotated[EducationService, Depends(get_education_service)]
 ResearchInterestServiceDep = Annotated[
