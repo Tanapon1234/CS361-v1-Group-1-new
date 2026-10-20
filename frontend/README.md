@@ -120,6 +120,15 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 ห้าม commit secret จริงลง repo ให้เก็บค่าจริงไว้ใน `.env.local` เท่านั้น
 
+## Deploy ขึ้น Vercel
+
+1. deploy backend ก่อน (`scripts/deploy-v2-backend-api.sh`, ดู `infra/v2/README.md`) แล้วจด output `BackendApiEndpoint`
+2. ใน Vercel project (Root Directory = `frontend`) ไปที่ Settings → Environment Variables ตั้งค่า
+   - `BACKEND_API_BASE_URL` = `BackendApiEndpoint` (ไม่มี `/api/v2` ต่อท้าย) ใช้ฝั่ง server เท่านั้น browser ไม่เห็น
+   - `NEXT_PUBLIC_API_BASE_URL` = API ของ V1 สำหรับหน้า `/faculties`
+3. ให้ S3 data bucket รับอัปโหลดจากโดเมนของเว็บ: ใส่ origin ของ Vercel ใน `WebAllowedOrigins` ของ foundation stack (ดู `infra/v2/README.md` หัวข้อ Data bucket CORS)
+4. redeploy แล้วเปิด `/manage` ถ้าต่อ backend ไม่ได้หน้าจะขึ้นข้อความบอก URL ที่พยายามต่อ
+
 ## ระบบจัดการ (`/manage`)
 
 หน้า back-office ที่ต่อกับ FastAPI backend ทุกกลุ่ม endpoint (`/api/v2`) เปิดได้จากเมนู "ระบบจัดการ" ใน header

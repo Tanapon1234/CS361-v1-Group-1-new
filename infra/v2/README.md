@@ -145,6 +145,16 @@ scripts/deploy-v2-backend-api.sh                # build, upload, deploy, then ca
 
 The script reads the cluster, secret, bucket, VPC, subnets and route tables from the foundation stack and the Aurora cluster. Override any of them with environment variables (`DB_HOST`, `VPC_ID`, `PRIVATE_SUBNET_IDS`, `PRIVATE_ROUTE_TABLE_IDS`, `DB_SECURITY_GROUP_ID`, `CORS_ALLOW_ORIGINS`, ...). Run the migrations first (`backend/scripts/apply_migrations.py`, #198).
 
+## Data bucket CORS (frontend uploads, #200)
+
+The `/manage` pages upload profile images, CVs and evidence from the browser straight to the data bucket with presigned POST, so the bucket must allow the site's origin. Set `WebAllowedOrigins` on the foundation stack (other parameters keep their current values):
+
+```bash
+aws cloudformation deploy --region ap-southeast-1 --stack-name cs361-v2-aws-foundation-dev \
+  --template-file infra/v2/aws-foundation.yaml --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides WebAllowedOrigins="http://localhost:3000,https://<project>.vercel.app"
+```
+
 ## Verify Data API
 
 Export the outputs into environment variables, then run:
