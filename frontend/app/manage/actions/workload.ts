@@ -116,10 +116,10 @@ function entryBody(form: FormData): Record<string, unknown> | string {
       return 'ข้อมูลเพิ่มเติมไม่ถูกต้อง';
     }
   }
+  const publicationId = int(form, 'publication_id');
   return {
     item_id: int(form, 'item_id'),
     title: text(form, 'title'),
-    publication_id: int(form, 'publication_id'),
     course_code: text(form, 'course_code'),
     section_no: text(form, 'section_no'),
     student_count: int(form, 'student_count'),
@@ -128,6 +128,11 @@ function entryBody(form: FormData): Record<string, unknown> | string {
     credits: num(form, 'credits'),
     details,
     note: text(form, 'note'),
+    // Sent only when a publication is picked, or was linked before (so it can be cleared):
+    // a backend from before the link existed still accepts every other entry
+    ...(publicationId !== null || form.get('publication_was')
+      ? { publication_id: publicationId }
+      : {}),
   };
 }
 

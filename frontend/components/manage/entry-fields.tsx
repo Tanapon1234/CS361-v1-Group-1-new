@@ -197,6 +197,7 @@ export function EntryFields({
         label="ผูกกับผลงานตีพิมพ์ของฉัน (ถ้ามี)"
         hint="ใช้กับรายการงานวิชาการ เลือกได้เฉพาะผลงานที่คุณเป็นผู้แต่ง เพิ่มผลงานใหม่ได้ที่หน้านี้ด้านบน"
       >
+        {entry?.publication_id ? <input type="hidden" name="publication_was" value="1" /> : null}
         <select name="publication_id" defaultValue={entry?.publication_id ?? ''} className={inputClass}>
           <option value="">ไม่ผูกกับผลงาน</option>
           {publications.map((publication) => (
