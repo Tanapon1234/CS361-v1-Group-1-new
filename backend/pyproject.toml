@@ -40,9 +40,6 @@ xfail_strict = true
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-# Legacy V2 Lambda code (backend/v2/) has its own conventions. Anchored path on purpose:
-# a bare "v2" would also exclude app/v2 and tests/v2.
-extend-exclude = ["v2/query"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "FAST"]
