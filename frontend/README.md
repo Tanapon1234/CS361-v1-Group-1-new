@@ -111,6 +111,7 @@ frontend/
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | หน้า `/faculties` (API v1) | URL ของ API Gateway |
 | `BACKEND_API_BASE_URL` | หน้า `/manage` (FastAPI ใน `backend/`) | ค่าเริ่มต้น `http://localhost:8000` ใช้ฝั่ง server เท่านั้น ไม่ต้องขึ้นต้นด้วย `NEXT_PUBLIC_` |
+| `COGNITO_REGION`, `COGNITO_CLIENT_ID` | `/login` | output ของ `infra/v2/cognito.yaml` ใช้ฝั่ง server เท่านั้น ถ้าไม่ตั้ง `COGNITO_CLIENT_ID` จะเป็นโหมดพัฒนา (เลือกผู้ใช้ที่ `/manage/switch-user`) |
 
 ถ้าต้องเพิ่มค่าที่ใช้ฝั่ง browser ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เช่น:
 
@@ -136,7 +137,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 | หน้า | ทำอะไร |
 |---|---|
 | `/manage` | ภาพรวมของฉัน: ตำแหน่ง, บทบาทลงนาม, รอบที่เปิด, ใบของฉัน |
-| `/manage/switch-user` | เลือกว่าจะใช้งานในนามอาจารย์คนไหน (ชั่วคราว จนกว่าจะต่อ Cognito) |
+| `/login` | เข้าสู่ระบบด้วยบัญชี Cognito (อีเมล + รหัสผ่าน, ตั้งรหัสใหม่ตอนเข้าครั้งแรก) |
+| `/manage/switch-user` | โหมดพัฒนาเท่านั้น (ไม่ได้ตั้ง `COGNITO_CLIENT_ID`): เลือกอาจารย์และบทบาทที่จะใช้งาน |
 | `/manage/submissions`, `/manage/submissions/[id]` | สร้างใบ, กรอกรายการ (ฟอร์มเปลี่ยนตาม item และ `field_schema`), แนบหลักฐาน, ส่ง, อนุมัติ, ตีกลับ, ดูคะแนน |
 | `/manage/assessments` | คิวงานประเมินของผู้บริหาร ให้ค่า แก้ค่า หรือถอนค่า |
 | `/manage/rounds`, `/manage/rounds/[id]` | เปิด/ปิดรอบ, แก้ไขรอบ, report คะแนนทั้งรอบ, รายการใบในรอบ |
@@ -146,7 +148,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 โครงสร้างโค้ด:
 
-- `lib/backend/client.ts`: ตัวเรียก backend (server-only) ส่ง header `X-Lecturer-Id` จาก cookie และแปลง error แบบ problem+json เป็นข้อความภาษาไทย
+- `lib/backend/client.ts`: ตัวเรียก backend (server-only) ส่ง `Authorization: Bearer <ID token>` จาก cookie (โหมดพัฒนา: `X-Lecturer-Id` / `X-Dev-Roles`) และแปลง error แบบ problem+json เป็นข้อความภาษาไทย `getCurrentUser()` คือผู้ใช้ปัจจุบันจาก `GET /me`
+- `lib/auth/`, `app/login/`, `proxy.ts`: เข้าสู่ระบบด้วย Cognito จากฝั่ง server (ไม่มี SDK, token อยู่ใน cookie แบบ httpOnly) `proxy.ts` ส่งคนที่ยังไม่ login ไป `/login` และต่ออายุ ID token ด้วย refresh token ก่อนหมดอายุ ออกจากระบบจะ revoke refresh token ด้วย
 - `lib/backend/api.ts`: ฟังก์ชันอ่านข้อมูล (GET) ที่หน้าใช้ ส่วน `app/manage/actions/*.ts` คือ Server Actions ที่ใช้แก้ข้อมูล
 - `types/backend.ts`: type ที่ตรงกับ DTO ของ backend
 - `components/manage/`: UI ของ `/manage` โดย `ActionForm` ผูกฟอร์มกับ Server Action และจะไม่ล้างค่าที่กรอกเมื่อ backend ตอบ error
@@ -154,7 +157,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 ข้อจำกัดตอนนี้:
 
-- ยังไม่มีการยืนยันตัวตนจริง และ backend ยังไม่เช็คสิทธิ์ (`TODO(auth)`)
+- เมนูยังไม่ซ่อนตามบทบาท (กดแล้ว backend ตอบว่าไม่มีสิทธิ์)
 - PDF ของใบภาระงานยังไม่มี
 
 ## Workflow แนะนำ

@@ -384,8 +384,12 @@ export interface EvidenceUpload {
   expires_at: string;
 }
 
+/** docs/v2/permissions.md */
+export type Role = 'lecturer' | 'staff' | 'reviewer' | 'executive' | 'admin';
+
 export interface Me {
   lecturer: Lecturer;
+  roles: Role[];
   positions: Position[];
   signer_roles: SignerRole[];
   open_rounds: EvaluationRound[];
