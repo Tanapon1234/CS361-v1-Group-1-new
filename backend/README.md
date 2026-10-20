@@ -6,7 +6,7 @@ backend สำหรับ API อาจารย์ (lecturer, education, resea
 
 - **พร้อมใช้แล้ว**: database schema, model, controller ทุก endpoint, validation, error format, transaction, config
 - **Workload API ทำงานจริงแล้ว** (ดู [Workload API](#workload-api-semesterreport)) ยกเว้น `GET /submissions/{id}/pdf` ที่ยังตอบ 501
-- **ฝั่ง Lecturer API บางส่วนยังเป็น stub** (`raise NotImplementedError  # TODO`) เช่น education, expertise, profile image, CV จะตอบ **501 Not Implemented** จนกว่าจะเขียน logic
+- **Lecturer API ทำงานจริงครบทุก endpoint** (education, expertise, publication, profile image, CV ฯลฯ)
 - method ของ DAO เป็นแค่จุดเริ่มต้น เพิ่ม ลบ หรือเปลี่ยนชื่อได้ตามที่ service ต้องใช้
 
 ---
@@ -77,20 +77,16 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
 
-เทสต์ส่วนใหญ่ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` + `xfailed` (+ `skipped` 1 ตัวถ้าไม่ได้ตั้ง `TEST_DATABASE_URL`)
+เทสต์ส่วนใหญ่ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` ทั้งหมด (+ `skipped` ของ integration ถ้าไม่ได้ตั้ง `TEST_DATABASE_URL`)
 
 - **passed**: เทสต์ controller (routing, validation, status code), service, สูตรคะแนน, error handler, config, transaction และความตรงกันของ model กับ SQL
-- **integration** (`tests/v2/integration/`): ทดสอบ workflow ภาระงานทั้งเส้นผ่าน HTTP กับ PostgreSQL จริง รันเฉพาะเมื่อตั้ง `TEST_DATABASE_URL` เทสต์จะ **ลบ schema `public` ทิ้งแล้วสร้างใหม่ทุกครั้ง** ห้ามชี้ไป dev/prod DB
+- **integration** (`tests/v2/integration/`): ทดสอบ workflow ภาระงานและข้อมูลอาจารย์ (education, expertise, ผู้แต่ง publication, รูป, CV) ผ่าน HTTP กับ PostgreSQL จริง รันเฉพาะเมื่อตั้ง `TEST_DATABASE_URL` เทสต์จะ **ลบ schema `public` ทิ้งแล้วสร้างใหม่ทุกครั้ง** ห้ามชี้ไป dev/prod DB
 
   ```bash
   createdb cs361_test
   TEST_DATABASE_URL=postgresql+psycopg://postgres@localhost:5432/cs361_test uv run pytest
   ```
 
-- **xfailed**: service ละ 1 เทสต์ตัวอย่างใน `tests/v2/unit/services/` ใช้เป็นแบบเวลาเขียนเทสต์ของตัวเอง
-  - ตอน service ยัง `raise NotImplementedError` จะนับเป็น XFAIL (ถือว่าผ่าน)
-  - พอ implement แล้วเทสต์ผ่าน จะขึ้นเป็น **XPASS แล้ว fail ทันที** เพื่อเตือนให้ลบบรรทัด `pytestmark = pytest.mark.xfail(...)` ออก
-  - เทสต์ตัวอย่างไม่ตรงกับวิธีที่เราออกแบบ? แก้หรือลบได้เลย
 
 ---
 
@@ -200,6 +196,9 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 - **PATCH** อัปเดตเฉพาะ field ที่ส่งมา (`model_dump(exclude_unset=True)`) ส่วน **PUT** `/research-interests` และ `/expertise` ของอาจารย์จะแทนที่ทั้งชุด
 - **Activate / deactivate** เปลี่ยน `lecturer.is_active`
 - **Upload ไฟล์** (profile image / CV) ทำ 3 ขั้น: `presign` ได้ presigned S3 URL, client อัปโหลดตรงไป S3, แล้วเรียก `complete` ให้ server บันทึกลง `lecturer.profile_image_url` / `cv_url` (ตอบกลับเป็น lecturer)
+  - สองคอลัมน์นี้เก็บ **S3 key** (`lecturers/{id}/profile-image/...`, `lecturers/{id}/cv/...`) ไม่ใช่ URL ที่เปิดได้ตรง ๆ ให้เรียก `GET .../profile-image` หรือ `GET .../cv` เพื่อขอ URL อายุสั้น (ถ้าเป็น URL ภายนอกที่มาจาก V1 จะได้ค่าเดิมกลับไป)
+  - รูปรับ `image/jpeg`, `image/png`, `image/webp` ส่วน CV รับ `application/pdf` (ตั้งได้ใน `.env`: `PROFILE_IMAGE_*`, `CV_*`) อัปโหลดไฟล์ใหม่แล้วไฟล์เก่าใน S3 จะถูกลบ
+- **ผู้แต่ง publication**: ส่ง `lecturer_ids` ตอน `POST /publications` ได้ (ลำดับใน list = `author_order`) ดูกลับได้จาก `GET /lecturers/{id}/publications`
 
 ### Error format (RFC 9457 / RFC 7807)
 
@@ -301,7 +300,7 @@ endpoint ที่ต้องรู้ว่าใครเรียก (`/me`,
 ## เรื่องที่ยังค้างอยู่
 
 1. **ยังไม่มี authentication**: endpoint ที่แก้ข้อมูล (POST/PATCH/PUT/DELETE) ควรจำกัดให้ admin ผ่าน Cognito JWT เพิ่มเป็น dependency ระดับ router ได้ ฝั่ง workload ให้เปลี่ยน `get_current_lecturer_id` ไปอ่าน JWT แล้วเติมจุด `TODO(auth)`
-2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (`backend/v2/`) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
-3. **DAO integration test** มีแล้วสำหรับ workload (`tests/v2/integration/`) ฝั่ง lecturer profile ยังไม่มี
+2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (ลบออกไปแล้ว) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
+3. **DAO integration test** มีแล้วสำหรับ workload และ lecturer profile (`tests/v2/integration/`) ยังขาด research interest และ publication profile
 4. **Migration 002-004 ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
 5. **Workload ที่ยังไม่ได้ทำ**: PDF ของใบ, `/course-offerings` (ทะเบียน), job ลบหลักฐานที่ค้าง `pending` เกิน 24 ชม., `receiver` ยังไม่มีตำแหน่งใน schema (ตอนนี้ใครก็เซ็นเป็น receiver ได้)
