@@ -15,6 +15,17 @@ class PublicationCreateRequest(RequestDTO):
     pages: str | None = Field(default=None, max_length=50)
     doi: str | None = Field(default=None, max_length=255)
     citation_text: str | None = None
+    # Write-only: authors are read back through GET /lecturers/{lecturer_id}/publications
+    lecturer_ids: list[UUID] = Field(
+        default_factory=list, description="Authors in order; position becomes author_order"
+    )
+
+    @field_validator("lecturer_ids")
+    @classmethod
+    def no_duplicate_authors(cls, value: list[UUID]) -> list[UUID]:
+        if len(value) != len(set(value)):
+            raise ValueError("lecturer_ids must not contain duplicates")
+        return value
 
 
 class PublicationUpdateRequest(RequestDTO):
