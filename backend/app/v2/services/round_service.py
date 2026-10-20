@@ -24,6 +24,8 @@ from app.v2.dtos.round_dto import (
 from app.v2.dtos.submission_dto import SubmissionResponse
 from app.v2.models.rubric import RubricVersion
 from app.v2.models.submission import EvaluationRound
+from app.v2.security import Actor
+from app.v2.services.access import require_department_view
 from app.v2.services.scoring import ZERO, round_score
 
 
@@ -74,14 +76,15 @@ class RoundService:
         return RoundResponse.model_validate(self.round_dao.update(evaluation_round, values))
 
     def list_round_submissions(
-        self, round_id: int, query: RoundSubmissionsQuery
+        self, round_id: int, actor: Actor, query: RoundSubmissionsQuery
     ) -> PageResponse[SubmissionResponse]:
         self._require_round(round_id)
-        # TODO(auth): dept chair / committee see their department, the faculty sees all
+        # Department chair / committee see their department, viewers see all
+        department_id = require_department_view(actor, query.department_id)
         items, total = self.submission_dao.find_page(
             round_id=round_id,
             lecturer_id=None,
-            department_id=query.department_id,
+            department_id=department_id,
             status=query.status,
             limit=query.limit,
             offset=query.offset,
@@ -91,9 +94,12 @@ class RoundService:
             meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
         )
 
-    def get_report(self, round_id: int, query: RoundReportQuery) -> RoundReportResponse:
+    def get_report(
+        self, round_id: int, actor: Actor, query: RoundReportQuery
+    ) -> RoundReportResponse:
         """Scores of every submission in the round (stored totals, kept up to date)."""
         evaluation_round = self._require_round(round_id)
+        department_id = require_department_view(actor, query.department_id)
         version = self.rubric_dao.get_version(evaluation_round.rubric_version_id)
         if version is None:
             raise NotFoundError("Rubric version not found")
@@ -113,7 +119,7 @@ class RoundService:
                 meets_min_required=submission.capped_total >= version.min_required,
             )
             for submission, lecturer in self.submission_dao.list_with_lecturer(
-                round_id, query.department_id
+                round_id, department_id
             )
         ]
         average = (

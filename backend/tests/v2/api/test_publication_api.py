@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import ANY, MagicMock, create_autospec
 from uuid import uuid4
 
 import pytest
@@ -398,7 +398,7 @@ def test_delete_publication(client: TestClient, service: MagicMock) -> None:
 
     assert response.status_code == 204
     assert response.content == b""
-    service.delete_publication.assert_called_once_with(9)
+    service.delete_publication.assert_called_once_with(9, actor=ANY)
 
 
 def test_delete_unknown_publication_is_404(client: TestClient, service: MagicMock) -> None:

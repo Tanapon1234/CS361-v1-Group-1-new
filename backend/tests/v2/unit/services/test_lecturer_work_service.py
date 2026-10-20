@@ -5,18 +5,20 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.lecturer_work_dao import LecturerWorkDAO, WorkEntryRow
 from app.v2.dtos.lecturer_work_dto import LecturerWorkQuery
-from app.v2.models.enums import AcademicRank, SubmissionStatus
+from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.models.rubric import RubricCategory, RubricItem, RubricSection
 from app.v2.models.submission import EvaluationRound, Submission, SubmissionEntry
+from app.v2.security import Actor, HeldPosition, Role
 from app.v2.services.lecturer_work_service import LecturerWorkService
 
 LECTURER_ID = uuid4()
+VIEWER = Actor(uuid4(), frozenset({Role.LECTURER, Role.EXECUTIVE}))
 
 
 @pytest.fixture
@@ -86,7 +88,7 @@ def test_unknown_lecturer_is_not_found(
     lecturer_dao.get_by_id.return_value = None
 
     with pytest.raises(NotFoundError):
-        service.get_work(uuid4(), LecturerWorkQuery())
+        service.get_work(uuid4(), VIEWER, LecturerWorkQuery())
 
 
 def test_entries_are_grouped_by_category_in_dao_order(
@@ -94,7 +96,7 @@ def test_entries_are_grouped_by_category_in_dao_order(
 ) -> None:
     work_dao.list_entries.return_value = [row("1", "a"), row("1", "b"), row("4", "c")]
 
-    result = service.get_work(LECTURER_ID, LecturerWorkQuery(academic_year=2567))
+    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567))
 
     assert [(g.code, [e.title for e in g.entries]) for g in result.categories] == [
         ("1", ["a", "b"]),
@@ -113,7 +115,7 @@ def test_publications_use_the_ce_year_and_report_be(
         (Publication(publication_id=1, title="Paper", publication_year=2024), 1)
     ]
 
-    result = service.get_work(LECTURER_ID, LecturerWorkQuery(academic_year=2567))
+    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567))
 
     work_dao.list_publications.assert_called_once_with(LECTURER_ID, publication_year=2024)
     assert result.publications[0].academic_year == 2567
@@ -122,7 +124,7 @@ def test_publications_use_the_ce_year_and_report_be(
 def test_publications_are_left_out_for_other_categories(
     service: LecturerWorkService, work_dao: MagicMock
 ) -> None:
-    result = service.get_work(LECTURER_ID, LecturerWorkQuery(category="1"))
+    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(category="1"))
 
     work_dao.list_publications.assert_not_called()
     assert result.publications == []
@@ -135,7 +137,9 @@ def test_empty_result_still_describes_the_search(
     work_dao.list_entry_years.return_value = [2566, 2568]
     work_dao.list_publication_years.return_value = [2023]
 
-    result = service.get_work(LECTURER_ID, LecturerWorkQuery(academic_year=2567, category="2"))
+    result = service.get_work(
+        LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567, category="2")
+    )
 
     assert result.total == 0
     assert result.filters.model_dump() == {
@@ -144,3 +148,39 @@ def test_empty_result_still_describes_the_search(
         "category_name_th": "งานวิชาการ",
     }
     assert result.available_years == [2568, 2566]
+
+
+@pytest.mark.parametrize(
+    ("actor", "allowed"),
+    [
+        (Actor(LECTURER_ID, frozenset({Role.LECTURER})), True),
+        (Actor(uuid4(), frozenset({Role.LECTURER})), False),
+        (
+            Actor(
+                uuid4(),
+                frozenset({Role.LECTURER}),
+                frozenset({HeldPosition(PositionCode.DEPT_CHAIR, 7)}),
+            ),
+            True,
+        ),
+        (
+            Actor(
+                uuid4(),
+                frozenset({Role.LECTURER}),
+                frozenset({HeldPosition(PositionCode.DEPT_CHAIR, 8)}),
+            ),
+            False,
+        ),
+    ],
+    ids=["self", "another-lecturer", "chair-of-their-department", "chair-elsewhere"],
+)
+def test_who_may_see_a_lecturers_work(
+    service: LecturerWorkService, lecturer_dao: MagicMock, actor: Actor, allowed: bool
+) -> None:
+    lecturer_dao.get_by_id.return_value.department_id = 7
+
+    if allowed:
+        service.get_work(LECTURER_ID, actor, LecturerWorkQuery())
+    else:
+        with pytest.raises(ForbiddenError):
+            service.get_work(LECTURER_ID, actor, LecturerWorkQuery())

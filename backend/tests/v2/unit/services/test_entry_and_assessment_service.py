@@ -112,7 +112,7 @@ def assessments(mocks: dict[str, MagicMock]) -> AssessmentService:
 def test_entry_gets_the_server_score_and_refreshes_totals(
     entries: EntryService, mocks: dict[str, MagicMock]
 ) -> None:
-    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT)
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
     mocks["submission"].count_entries.return_value = 0
 
     result = entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
@@ -124,7 +124,7 @@ def test_entry_gets_the_server_score_and_refreshes_totals(
 def test_entries_of_a_sent_submission_are_locked(
     entries: EntryService, mocks: dict[str, MagicMock]
 ) -> None:
-    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.SUBMITTED)
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.SUBMITTED, ACTOR)
 
     with pytest.raises(ConflictError):
         entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
@@ -134,7 +134,7 @@ def test_entries_of_a_sent_submission_are_locked(
 def test_entry_item_must_belong_to_the_round_rubric(
     entries: EntryService, mocks: dict[str, MagicMock]
 ) -> None:
-    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT)
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
 
     with pytest.raises(BadRequestError, match="item_id"):
         entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=99))
@@ -143,11 +143,19 @@ def test_entry_item_must_belong_to_the_round_rubric(
 def test_section_max_entries_is_enforced(
     entries: EntryService, mocks: dict[str, MagicMock]
 ) -> None:
-    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT)
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
     mocks["submission"].count_entries.return_value = 2
 
     with pytest.raises(BadRequestError, match="at most 2"):
         entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+
+
+def test_only_the_owner_adds_entries(entries: EntryService, mocks: dict[str, MagicMock]) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT)
+
+    with pytest.raises(ForbiddenError, match="owner"):
+        entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+    mocks["submission"].add.assert_not_called()
 
 
 def ranged_entry(mocks: dict[str, MagicMock], status: SubmissionStatus) -> SubmissionEntry:

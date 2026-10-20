@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.v2.controllers.params import LecturerId
-from app.v2.dependencies import LecturerServiceDep
+from app.v2.dependencies import CurrentActorDep, LecturerServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.lecturer_dto import (
     LecturerCreateRequest,
@@ -34,9 +34,13 @@ def get_lecturer(lecturer_id: LecturerId, service: LecturerServiceDep) -> Lectur
 
 @router.patch("/{lecturer_id}")
 def update_lecturer(
-    lecturer_id: LecturerId, data: LecturerUpdateRequest, service: LecturerServiceDep
+    lecturer_id: LecturerId,
+    data: LecturerUpdateRequest,
+    actor: CurrentActorDep,
+    service: LecturerServiceDep,
 ) -> LecturerResponse:
-    return service.update_lecturer(lecturer_id, data)
+    """Staff change any field; a lecturer only their own contact details."""
+    return service.update_lecturer(lecturer_id, data, actor=actor)
 
 
 @router.post("/{lecturer_id}/activate")

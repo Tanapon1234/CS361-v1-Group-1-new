@@ -35,7 +35,7 @@ def test_get_work_passes_the_filters(client: TestClient, service: MagicMock) -> 
 
     assert response.status_code == 200
     assert response.json()["filters"]["academic_year"] == 2567
-    called_id, query = service.get_work.call_args.args
+    called_id, _, query = service.get_work.call_args.args
     assert (called_id, query.academic_year, query.category) == (lecturer_id, 2567, "2")
 
 

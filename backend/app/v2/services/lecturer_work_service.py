@@ -9,7 +9,7 @@ left out when another category is asked for.
 
 from uuid import UUID
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.lecturer_work_dao import LecturerWorkDAO, WorkEntryRow
 from app.v2.dtos.lecturer_work_dto import (
@@ -20,6 +20,8 @@ from app.v2.dtos.lecturer_work_dto import (
     WorkEntryResponse,
     WorkPublicationResponse,
 )
+from app.v2.security import Actor
+from app.v2.services.access import signer_departments
 
 BUDDHIST_ERA_OFFSET = 543
 PUBLICATION_CATEGORY_CODE = "2"
@@ -30,10 +32,19 @@ class LecturerWorkService:
         self.work_dao = work_dao
         self.lecturer_dao = lecturer_dao
 
-    def get_work(self, lecturer_id: UUID, query: LecturerWorkQuery) -> LecturerWorkResponse:
+    def get_work(
+        self, lecturer_id: UUID, actor: Actor, query: LecturerWorkQuery
+    ) -> LecturerWorkResponse:
         lecturer = self.lecturer_dao.get_by_id(lecturer_id)
         if lecturer is None:
             raise NotFoundError("Lecturer not found")
+        # The route lets in self, viewers and department signers; signers only for their own
+        if not (
+            actor.is_lecturer(lecturer_id)
+            or actor.views_all
+            or lecturer.department_id in signer_departments(actor)
+        ):
+            raise ForbiddenError("You may only see the work of lecturers in your department")
 
         rows = self.work_dao.list_entries(
             lecturer_id, academic_year=query.academic_year, category_code=query.category

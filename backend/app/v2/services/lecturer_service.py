@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.v2.daos.department_dao import DepartmentDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.dtos.common import PageMeta, PageResponse
@@ -19,6 +19,7 @@ from app.v2.dtos.lecturer_dto import (
     LecturerUpdateRequest,
 )
 from app.v2.models.lecturer import Lecturer
+from app.v2.security import Actor, Role
 
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
@@ -26,6 +27,10 @@ def _is_unique_violation(exc: IntegrityError) -> bool:
     if sqlstate == "23505":
         return True
     return "unique constraint failed" in str(exc.orig).lower()
+
+
+# Identity and position in the faculty; a lecturer editing their own record cannot touch them
+STAFF_ONLY_FIELDS = frozenset({"email", "cognito_sub", "department_id", "rank"})
 
 
 class LecturerService:
@@ -66,12 +71,19 @@ class LecturerService:
             raise NotFoundError("Lecturer not found")
         return LecturerResponse.model_validate(lecturer)
 
-    def update_lecturer(self, lecturer_id: UUID, data: LecturerUpdateRequest) -> LecturerResponse:
+    def update_lecturer(
+        self, lecturer_id: UUID, data: LecturerUpdateRequest, *, actor: Actor
+    ) -> LecturerResponse:
         lecturer = self.lecturer_dao.get_by_id(lecturer_id)
         if lecturer is None:
             raise NotFoundError("Lecturer not found")
 
         values = data.model_dump(exclude_unset=True)
+        if not actor.has_any(Role.STAFF):
+            # The route allows the lecturer themselves, for their contact details only
+            restricted = sorted(STAFF_ONLY_FIELDS & values.keys())
+            if restricted:
+                raise ForbiddenError(f"Only staff can change {', '.join(restricted)}")
         if not values:
             return LecturerResponse.model_validate(lecturer)
 
