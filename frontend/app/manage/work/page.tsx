@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { createPublication } from '@/app/manage/actions/academic';
-import { createSubmission } from '@/app/manage/actions/workload';
+import { createEntry, createSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
+import { EntryFields } from '@/components/manage/entry-fields';
 import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
@@ -24,10 +25,12 @@ import {
 import {
   MAX_PAGE,
   getLecturerWork,
+  getRound,
   listLecturers,
   listRounds,
   listRubricCategories,
   listRubricVersions,
+  getRubricForm,
   listSubmissions,
   settle,
 } from '@/lib/backend/api';
@@ -62,8 +65,14 @@ export default async function LecturerWorkPage({
   const lecturerId = own ?? (UUID.test(param(params.lecturer) ?? '') ? param(params.lecturer) : undefined);
   const year = intParam(params.year);
   const category = param(params.category) || undefined;
+  const addRoundId = intParam(params.add_round);
 
   const mySheets = own ? (await listSubmissions({ lecturer_id: own })).items : [];
+  const addRound = own && addRoundId ? await getRound(addRoundId) : null;
+  const addSheet = addRound ? mySheets.find((item) => item.round_id === addRound.id) ?? null : null;
+  const addEditable = !!addSheet && EDITABLE_STATUSES.includes(addSheet.status);
+  // The rubric of that round's version, to pick the item and show which fields it needs
+  const addForm = addRound && addEditable ? await getRubricForm(addRound.rubric_version_id) : null;
   const [lecturers, rounds, categories, work] = await Promise.all([
     own ? Promise.resolve(null) : listLecturers({ limit: MAX_PAGE }),
     listRounds(),
@@ -141,33 +150,66 @@ export default async function LecturerWorkPage({
               </details>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-ink">งานในใบภาระงาน (สอน / วิจัย / บริการ ฯลฯ)</h3>
-              <ul className="mt-2 space-y-2 text-sm">
-                {rounds.items.map((round) => {
-                  const sheet = mySheets.find((item) => item.round_id === round.id);
-                  return (
-                    <li key={round.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line p-3">
-                      <span className="font-medium text-ink">{round.name_th}</span>
-                      {sheet ? (
-                        <span className="flex items-center gap-2">
-                          <StatusBadge status={sheet.status} />
-                          <Link href={`/manage/submissions/${sheet.id}`} className={linkClass}>
-                            {EDITABLE_STATUSES.includes(sheet.status) ? 'เพิ่มรายการในใบนี้' : 'เปิดดู (แก้ไม่ได้แล้ว)'}
-                          </Link>
-                        </span>
-                      ) : round.is_open ? (
-                        <ActionForm inline action={createSubmission} submitLabel="สร้างใบและเพิ่มรายการ">
-                          <input type="hidden" name="round_id" value={round.id} />
-                        </ActionForm>
-                      ) : (
-                        <span className="text-ink-muted">รอบปิดแล้ว ไม่มีใบ</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              <h3 className="text-sm font-bold text-ink">งานที่ทำในรอบนี้ (สอน / วิจัย / บริการ ฯลฯ)</h3>
+              <p className="mt-1 text-xs text-ink-muted">
+                กรอกแล้วเข้าใบภาระงานของรอบนั้นทันที ระบบคำนวณคะแนนให้เอง
+              </p>
+              <form method="get" action="/manage/work" className="mt-2 flex flex-wrap items-end gap-2">
+                <Field label="เลือกรอบ" className="min-w-52 flex-1">
+                  <select name="add_round" defaultValue={addRoundId ?? ''} required className={inputClass}>
+                    <option value="" disabled>
+                      เลือกรอบ
+                    </option>
+                    {rounds.items.map((round) => (
+                      <option key={round.id} value={round.id}>
+                        {round.name_th}
+                        {round.is_open ? ' (เปิด)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button type="submit" className={secondaryButtonClass}>
+                  เลือก
+                </button>
+              </form>
             </div>
           </div>
+
+          {addRound ? (
+            <div className="mt-6 border-t border-line pt-5">
+              <h3 className="text-sm font-bold text-ink">กรอกงานในใบภาระงาน {addRound.name_th}</h3>
+              {addSheet && addForm ? (
+                <>
+                  <p className="mt-1 mb-3 text-xs text-ink-muted">
+                    ใบของคุณเป็น <StatusBadge status={addSheet.status} /> ·{' '}
+                    <Link href={`/manage/submissions/${addSheet.id}`} className={linkClass}>
+                      เปิดดูทั้งใบ
+                    </Link>
+                  </p>
+                  <ActionForm
+                    action={createEntry.bind(null, addSheet.id)}
+                    submitLabel="เพิ่มเข้าใบภาระงาน"
+                    resetOnSuccess
+                  >
+                    <EntryFields form={addForm} />
+                  </ActionForm>
+                </>
+              ) : addSheet ? (
+                <Notice>
+                  ใบของคุณในรอบนี้ส่งไปแล้ว แก้รายการไม่ได้ ถ้าต้องแก้ ให้เจ้าหน้าที่หรือผู้อนุมัติตีกลับใบก่อน
+                </Notice>
+              ) : addRound.is_open ? (
+                <ActionForm action={createSubmission} submitLabel="สร้างใบภาระงานของฉันในรอบนี้">
+                  <input type="hidden" name="round_id" value={addRound.id} />
+                  <p className="mb-2 text-sm text-ink-muted">
+                    ยังไม่มีใบของคุณในรอบนี้ สร้างใบก่อน แล้วจะกรอกงานได้
+                  </p>
+                </ActionForm>
+              ) : (
+                <Notice>รอบนี้ปิดแล้วและคุณไม่มีใบ จึงกรอกงานเพิ่มไม่ได้</Notice>
+              )}
+            </div>
+          ) : null}
         </Section>
       ) : null}
 
