@@ -13,6 +13,10 @@ class ExpertiseDAO(ABC):
     def get_by_id(self, expertise_id: int) -> Expertise | None: ...
 
     @abstractmethod
+    def get_by_description(self, description: str) -> Expertise | None:
+        """Case-insensitive exact match."""
+
+    @abstractmethod
     def find_page(
         self, *, q: str | None, limit: int, offset: int
     ) -> tuple[Sequence[Expertise], int]: ...
