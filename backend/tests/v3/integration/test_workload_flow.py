@@ -274,6 +274,11 @@ def test_full_workload_flow(api: TestClient, storage: FakeStorage) -> None:
     totals = ok(api.get(f"{v2}/submissions/{sub['id']}/totals"))
     assert totals["raw_total"] == 400.0
     ok(api.patch(f"{v2}/entries/{e1['id']}", json={"quantity": 3}, headers=as_(owner)), 409)
+    # the owner pulls it back while nobody has accepted it, fixes a note, sends it again
+    pulled = ok(api.post(approvals, json={"decision": "returned"}, headers=as_(owner)), 201)
+    assert (pulled["role"], pulled["decision"]) == ("performer", "returned")
+    ok(api.patch(f"{v2}/entries/{e1['id']}", json={"note": "ถอนมาแก้"}, headers=as_(owner)))
+    ok(api.post(approvals, json={"decision": "approved"}, headers=as_(owner)), 201)
     ok(api.post(approvals, json={"decision": "approved"}, headers=as_(staff)), 201)  # -> assessing
 
     my_value = f"{v2}/entries/{e2['id']}/assessments/me"
@@ -301,6 +306,8 @@ def test_full_workload_flow(api: TestClient, storage: FakeStorage) -> None:
     ok(api.post(approvals, json={"decision": "approved"}, headers=as_(owner)), 201)
     history = ok(api.get(approvals))
     assert [a["role"] for a in history["items"]] == [
+        "performer",
+        "performer",
         "performer",
         "receiver",
         "dept_chair",

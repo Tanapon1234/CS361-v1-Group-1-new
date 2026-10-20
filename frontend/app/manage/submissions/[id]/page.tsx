@@ -9,6 +9,7 @@ import {
   deleteSubmission,
   finishEvidenceUpload,
   signSubmission,
+  withdrawSubmission,
   startEvidenceUpload,
   updateEntry,
 } from '@/app/manage/actions/workload';
@@ -198,6 +199,20 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         title="การส่งและการอนุมัติ"
         description="ขั้นถัดไปมาจากสถานะของใบ: เจ้าของส่ง, เจ้าหน้าที่รับเรื่อง, หัวหน้าและกรรมการของสาขาลงนาม"
       >
+        {isOwner && submission.status === 'submitted' ? (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-soft bg-surface-alt p-4">
+            <p className="text-sm text-ink">
+              ใบนี้ส่งแล้ว ยังไม่มีใครรับเรื่อง ถ้าอยากแก้รายการ ถอนใบกลับมาแก้ได้
+            </p>
+            <ActionForm
+              inline
+              variant="secondary"
+              submitLabel="ถอนใบกลับมาแก้ไข"
+              confirmText="ถอนใบกลับมาแก้ไข? ต้องส่งใหม่อีกครั้งหลังแก้เสร็จ"
+              action={withdrawSubmission.bind(null, id)}
+            />
+          </div>
+        ) : null}
         {step && !signs ? (
           <Notice>
             ขั้นถัดไป: รอ <strong>{SIGNER_ROLE_LABEL[step.role]}</strong> ลงนาม

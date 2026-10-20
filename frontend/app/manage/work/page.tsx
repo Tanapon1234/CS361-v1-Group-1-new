@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { createPublication } from '@/app/manage/actions/academic';
-import { createEntry, createSubmission } from '@/app/manage/actions/workload';
+import { createEntry, createSubmission, withdrawSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import { EntryFields } from '@/components/manage/entry-fields';
 import { PublicationFields } from '@/components/manage/publication-fields';
@@ -196,9 +196,24 @@ export default async function LecturerWorkPage({
                     <EntryFields form={addForm} publications={myPublications} />
                   </ActionForm>
                 </>
+              ) : addSheet && addSheet.status === 'submitted' ? (
+                <div className="space-y-3">
+                  <Notice>
+                    ใบของคุณในรอบนี้ส่งแล้ว และยังไม่มีใครรับเรื่อง ถ้าอยากเพิ่มหรือแก้รายการ ถอนใบกลับมาแก้ได้
+                    แล้วส่งใหม่เมื่อเสร็จ
+                  </Notice>
+                  <ActionForm
+                    inline
+                    variant="secondary"
+                    submitLabel="ถอนใบกลับมาแก้ไข"
+                    confirmText="ถอนใบกลับมาแก้ไข? ต้องส่งใหม่อีกครั้งหลังแก้เสร็จ"
+                    action={withdrawSubmission.bind(null, addSheet.id)}
+                  />
+                </div>
               ) : addSheet ? (
                 <Notice>
-                  ใบของคุณในรอบนี้ส่งไปแล้ว แก้รายการไม่ได้ ถ้าต้องแก้ ให้เจ้าหน้าที่หรือผู้อนุมัติตีกลับใบก่อน
+                  ใบของคุณในรอบนี้อยู่ระหว่างตรวจสอบหรืออนุมัติแล้ว แก้รายการไม่ได้ ถ้าต้องแก้
+                  ให้เจ้าหน้าที่หรือผู้อนุมัติตีกลับใบก่อน
                 </Notice>
               ) : addRound.is_open ? (
                 <ActionForm action={createSubmission} submitLabel="สร้างใบภาระงานของฉันในรอบนี้">

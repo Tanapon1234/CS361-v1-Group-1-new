@@ -10,7 +10,9 @@ role comes from the current status, never from the request body.
     dept_approved     --receiver sends to the faculty---->  sent_to_faculty
 
 From submitted onwards the signer may return it instead (status -> returned), and the
-owner fixes the entries and sends it again. Change this table to change the workflow.
+owner fixes the entries and sends it again. While it is still `submitted` (nobody has
+accepted it) the owner may also pull it back to `returned` (SubmissionService.create_approval).
+Change this table to change the workflow.
 Who may sign each role: app/v3/services/access.py (can_sign).
 """
 

@@ -93,6 +93,17 @@ export async function signSubmission(
   );
 }
 
+/**
+ * The owner pulls a sent sheet back to edit it, while nobody has accepted it yet
+ * (status `submitted`). The backend records it as the owner returning their own sheet.
+ */
+export async function withdrawSubmission(submissionId: string): Promise<ActionState> {
+  return attempt(
+    () => backend('POST', `/submissions/${submissionId}/approvals`, { body: { decision: 'returned' } }),
+    'ถอนใบกลับมาแล้ว แก้รายการได้ แล้วส่งใหม่'
+  );
+}
+
 // --- entries -----------------------------------------------------------------------
 
 function entryBody(form: FormData): Record<string, unknown> | string {
