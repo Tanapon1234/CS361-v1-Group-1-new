@@ -4,8 +4,9 @@ API tests never touch a real database: `get_session` is replaced by a mock, and 
 test module replaces the service it needs via `app.dependency_overrides`.
 
 They test the HTTP contract (routing, validation, status codes), so the caller is an
-admin: the lecturer in `X-Lecturer-Id`, or a role-only script caller without it. Who may
-call what is tested with the real caller in tests/v2/test_permissions.py.
+admin: the lecturer in `X-Lecturer-Id`, or a role-only script caller without it, and the
+route check / audit (`authorize`) is skipped. Who may call what is tested with the real
+caller in tests/v2/test_permissions.py, auditing in tests/v2/integration/.
 """
 
 from collections.abc import Iterator
@@ -20,7 +21,7 @@ from sqlmodel import Session
 
 from app.core.database import get_session
 from app.main import create_app
-from app.v2.dependencies import get_actor
+from app.v2.dependencies import authorize, get_actor
 from app.v2.security import Actor, Role
 
 
@@ -40,6 +41,7 @@ def app(session: MagicMock) -> Iterator[FastAPI]:
     app = create_app()
     app.dependency_overrides[get_session] = lambda: session
     app.dependency_overrides[get_actor] = contract_test_actor
+    app.dependency_overrides[authorize] = lambda: None
     yield app
     app.dependency_overrides.clear()
 

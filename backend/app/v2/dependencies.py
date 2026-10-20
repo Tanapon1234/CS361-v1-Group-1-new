@@ -16,6 +16,7 @@ from app.core.cognito import CognitoTokenVerifier
 from app.core.config import SettingsDep, get_settings
 from app.core.database import SessionDep
 from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.v2 import audit
 from app.v2.daos.assessment_dao import AssessmentDAO
 from app.v2.daos.department_dao import DepartmentDAO
 from app.v2.daos.education_dao import EducationDAO
@@ -30,6 +31,7 @@ from app.v2.daos.publication_profile_dao import PublicationProfileDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.daos.rubric_dao import RubricDAO
 from app.v2.daos.sql.assessment_dao import SqlAssessmentDAO
+from app.v2.daos.sql.audit_log_dao import SqlAuditLogDAO
 from app.v2.daos.sql.department_dao import SqlDepartmentDAO
 from app.v2.daos.sql.education_dao import SqlEducationDAO
 from app.v2.daos.sql.evaluation_round_dao import SqlEvaluationRoundDAO
@@ -50,6 +52,7 @@ from app.v2.models.lecturer import Lecturer
 from app.v2.permissions import rule_for
 from app.v2.security import Actor, HeldPosition, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
+from app.v2.services.audit_log_service import AuditLogService
 from app.v2.services.department_service import DepartmentService
 from app.v2.services.education_service import EducationService
 from app.v2.services.entry_service import EntryService
@@ -247,12 +250,14 @@ def _link_by_email(lecturer_dao: LecturerDAO, claims: dict) -> Lecturer:
 CurrentActorDep = Annotated[Actor, Depends(get_actor)]
 
 
-def authorize(request: Request, actor: CurrentActorDep) -> None:
-    """Router-level check of docs/v2/permissions.md (ROUTE_RULES) for every /api/v2 call."""
+def authorize(request: Request, actor: CurrentActorDep, session: SessionDep) -> None:
+    """Router-level check of docs/v2/permissions.md (ROUTE_RULES) for every /api/v2 call.
+    The caller then goes on the request's session, so every change is audited (audit.py)."""
     route = request.scope.get("route")
     rule = rule_for(request.method, getattr(route, "path", ""))
     if rule is None or not rule.allows(actor, request.path_params):
         raise ForbiddenError("You do not have permission to do this")
+    audit.attach(session, actor, f"{request.method} {request.url.path}")
 
 
 def get_current_lecturer_id(actor: CurrentActorDep) -> UUID:
@@ -443,3 +448,10 @@ def get_verification_service(
 
 
 VerificationServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
+
+
+def get_audit_log_service(session: SessionDep) -> AuditLogService:
+    return AuditLogService(SqlAuditLogDAO(session))
+
+
+AuditLogServiceDep = Annotated[AuditLogService, Depends(get_audit_log_service)]

@@ -39,6 +39,7 @@ Schema อยู่ใน migration ตามลำดับ **ไฟล์เ�
 - [003_faculty_workload.sql](../database/migrations/003_faculty_workload.sql): ภาระงานประจำภาค (SemesterReport) ทำตาม design รวม [FacultyPortfolioWorkload.dbml](../database/data_schema/FacultyPortfolioWorkload/FacultyPortfolioWorkload.dbml) และเพิ่ม `cognito_sub` กับ `department_id` ให้ `lecturer`
 - [004_workload_entry_lock.sql](../database/migrations/004_workload_entry_lock.sql): ปรับ trigger ของ 003 ให้แก้ entry ได้ตอนใบถูกตีกลับ (`returned`) และให้ผู้ประเมินอัปเดตคะแนนได้ตอน `assessing`
 - [005_verification.sql](../database/migrations/005_verification.sql): สถานะการรับรอง (`pending` / `verified` / `rejected`) ของผลงานตีพิมพ์และไฟล์หลักฐาน พร้อมผู้รับรอง เวลา และหมายเหตุ
+- [006_audit_log.sql](../database/migrations/006_audit_log.sql): ตาราง `audit_log` บันทึกทุกแถวที่ API เพิ่ม แก้ หรือลบ (ใคร บทบาท request และค่าที่เปลี่ยน) เขียนโดย `app/v2/audit.py` ใน transaction เดียวกับการเปลี่ยน อ่านได้ที่ `GET /api/v2/audit-log` (admin)
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
@@ -48,6 +49,7 @@ psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
 psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้องรันหลัง 002
 psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 psql -d cs361v2 -f ../database/migrations/005_verification.sql
+psql -d cs361v2 -f ../database/migrations/006_audit_log.sql
 ```
 
 หรือใช้ `scripts/apply_migrations.py` ซึ่งจำว่าไฟล์ไหนรันไปแล้ว (ตาราง `schema_migration`) และรันแต่ละไฟล์ใน transaction เดียว
