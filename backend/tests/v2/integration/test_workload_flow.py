@@ -1,117 +1,16 @@
 """End-to-end workload flow over HTTP against a real PostgreSQL (migrations 002-004).
 
-Skipped unless TEST_DATABASE_URL points at a database that may be wiped, e.g.
-
-    createdb cs361_test
-    TEST_DATABASE_URL=postgresql+psycopg://postgres@localhost:5432/cs361_test uv run pytest
-
-Never point it at a dev or prod database: every run drops and recreates the public schema.
+How to run it: see support.py in this folder.
 """
 
-import os
-from collections.abc import Iterator
-from datetime import UTC, date, datetime, timedelta
-from pathlib import Path
+from datetime import date, timedelta
 from typing import Any
 
-import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, text
-from sqlmodel import Session, create_engine
 
-from app.core.database import get_session
-from app.v2.dependencies import get_object_storage
-from app.v2.storage.object_storage import (
-    ObjectStorage,
-    PresignedDownload,
-    PresignedUpload,
-    StoredObject,
-)
+from tests.v2.integration.support import FakeStorage, as_, ok, requires_database
 
-DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
-MIGRATIONS = Path(__file__).parents[4] / "database" / "migrations"
-
-pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL is not set")
-
-
-class FakeStorage(ObjectStorage):
-    """In-memory S3: `uploaded` holds the keys a client 'uploaded'."""
-
-    def __init__(self) -> None:
-        self.uploaded: dict[str, int] = {}
-        self.deleted: list[str] = []
-
-    def create_presigned_upload(
-        self, *, key: str, content_type: str, max_size_bytes: int, expires_in_seconds: int
-    ) -> PresignedUpload:
-        return PresignedUpload(
-            url="https://s3.example/upload",
-            fields={"key": key, "Content-Type": content_type},
-            expires_at=datetime.now(UTC) + timedelta(seconds=expires_in_seconds),
-        )
-
-    def create_presigned_download(
-        self, *, key: str, file_name: str, expires_in_seconds: int
-    ) -> PresignedDownload:
-        return PresignedDownload(
-            url=f"https://s3.example/{key}",
-            expires_at=datetime.now(UTC) + timedelta(seconds=expires_in_seconds),
-        )
-
-    def head_object(self, key: str) -> StoredObject | None:
-        size = self.uploaded.get(key)
-        return None if size is None else StoredObject(key=key, size_bytes=size, content_type=None)
-
-    def delete_object(self, key: str) -> None:
-        self.deleted.append(key)
-
-
-@pytest.fixture(scope="module")
-def engine() -> Iterator[Engine]:
-    engine = create_engine(DATABASE_URL)  # type: ignore[arg-type]
-    with engine.begin() as connection:
-        connection.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
-    raw = engine.raw_connection()
-    try:
-        with raw.cursor() as cursor:
-            for name in (
-                "002_lecturer_profile.sql",
-                "003_faculty_workload.sql",
-                "004_workload_entry_lock.sql",
-            ):
-                cursor.execute((MIGRATIONS / name).read_text())
-        raw.commit()
-    finally:
-        raw.close()
-    yield engine
-    engine.dispose()
-
-
-@pytest.fixture
-def storage() -> FakeStorage:
-    return FakeStorage()
-
-
-@pytest.fixture
-def api(app: FastAPI, engine: Engine, storage: FakeStorage) -> Iterator[TestClient]:
-    def session_override() -> Iterator[Session]:
-        with Session(engine) as session, session.begin():
-            yield session
-
-    app.dependency_overrides[get_session] = session_override
-    app.dependency_overrides[get_object_storage] = lambda: storage
-    with TestClient(app) as client:
-        yield client
-
-
-def as_(lecturer_id: str) -> dict[str, str]:
-    return {"X-Lecturer-Id": lecturer_id}
-
-
-def ok(response: Any, status: int = 200) -> Any:
-    assert response.status_code == status, response.text
-    return response.json() if response.content else None
+pytestmark = requires_database
 
 
 def test_full_workload_flow(api: TestClient, storage: FakeStorage) -> None:
