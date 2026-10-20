@@ -120,7 +120,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 }
 
 /**
- * Server Component — fetches `GET /api/v1/faculties/{id}` on the server.
+ * Server Component — fetches `GET /public/v3/faculties/{id}` on the server.
  * 404 → not-found.tsx, 400 → "invalid id" state, anything else → error.tsx.
  * loading.tsx shows while rendering waits, per Next.js file convention.
  */
