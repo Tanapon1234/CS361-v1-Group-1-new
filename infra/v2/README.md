@@ -154,6 +154,16 @@ aws cloudformation deploy --region ap-southeast-1 --stack-name cs361-v2-aws-foun
   --template-file infra/v2/aws-foundation.yaml --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides WebAllowedOrigins="http://localhost:3000,https://<project>.vercel.app"
 ```
+## Sign-in (Cognito, #209)
+
+`cognito.yaml` creates the user pool (sign-in with email, accounts created by staff only), an app client for the Next.js server (`USER_PASSWORD_AUTH`, no client secret, ID token 60 minutes, refresh token 12 hours) and the groups `staff`, `reviewer`, `executive`, `admin` (roles: `docs/v2/permissions.md`).
+
+```bash
+cp infra/v2/cognito-users.example.csv infra/v2/cognito-users.local.csv   # edit passwords
+scripts/deploy-v2-cognito.sh infra/v2/cognito-users.local.csv
+```
+
+The script prints `COGNITO_USER_POOL_ID` and `COGNITO_CLIENT_ID` for the backend and Vercel. Each account also needs a lecturer record with the same email (create it in `/manage` → อาจารย์); the backend links them on first sign-in.
 
 ## Verify Data API
 

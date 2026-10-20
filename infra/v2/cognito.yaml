@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  CS361 V3 sign-in: Cognito user pool, an app client for the Next.js server, and one group
+  per role (docs/v2/permissions.md).
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cs361-v2
+    AllowedPattern: "^[a-z][a-z0-9-]{2,30}$"
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, demo, prod]
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub "${ProjectName}-${Environment}-users"
+      # Accounts are created by staff, not by sign-up
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      UserPoolTags:
+        Project: !Ref ProjectName
+        Environment: !Ref Environment
+
+  WebClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${ProjectName}-${Environment}-web"
+      UserPoolId: !Ref UserPool
+      # The Next.js server calls InitiateAuth itself; no client secret, no hosted UI
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      RefreshTokenValidity: 12
+      TokenValidityUnits:
+        IdToken: minutes
+        AccessToken: minutes
+        RefreshToken: hours
+      ReadAttributes: [email, email_verified]
+
+  StaffGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: staff
+      Description: เจ้าหน้าที่ - ข้อมูลกลาง อาจารย์ เกณฑ์ รอบ และรับเรื่องใบภาระงาน
+
+  ReviewerGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: reviewer
+      Description: ผู้ตรวจสอบ - ดูได้ทุกอย่าง รับรองผลงานและหลักฐาน
+
+  ExecutiveGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: executive
+      Description: ผู้บริหาร - ดูได้ทุกอย่างรวม report
+
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: admin
+      Description: ผู้ดูแลระบบ
+
+Outputs:
+  UserPoolId:
+    Description: COGNITO_USER_POOL_ID (backend and frontend)
+    Value: !Ref UserPool
+  WebClientId:
+    Description: COGNITO_CLIENT_ID (backend and frontend)
+    Value: !Ref WebClient
+  Issuer:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+  JwksUrl:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}/.well-known/jwks.json"
