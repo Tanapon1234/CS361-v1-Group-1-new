@@ -30,6 +30,10 @@ import type {
   SubmissionSummary,
   SubmissionTotals,
   Verification,
+  VerificationStatus,
+  AuditLogEntry,
+  EvidenceQueueItem,
+  PublicationQueueItem,
 } from '@/types/backend';
 
 /** Reads (GET) used by the /manage pages. Changes live in app/manage/actions/. */
@@ -185,6 +189,25 @@ export const listAssessmentQueue = (query: {
   backend<PageResponse<AssessmentQueueItem>>('GET', '/assessments', {
     query: { ...query, limit: PAGE_SIZE },
   });
+
+// --- review and audit ---------------------------------------------------------------
+
+export const listPublicationQueue = (query: { status?: VerificationStatus; offset?: number }) =>
+  backend<PageResponse<PublicationQueueItem>>('GET', '/verifications/publications', {
+    query: { ...query, limit: PAGE_SIZE },
+  });
+
+export const listEvidenceQueue = (query: { status?: VerificationStatus; offset?: number }) =>
+  backend<PageResponse<EvidenceQueueItem>>('GET', '/verifications/evidence', {
+    query: { ...query, limit: PAGE_SIZE },
+  });
+
+export const listAuditLog = (query: {
+  entity?: string;
+  entity_id?: string;
+  actor_id?: string;
+  offset?: number;
+}) => backend<PageResponse<AuditLogEntry>>('GET', '/audit-log', { query: { ...query, limit: PAGE_SIZE } });
 
 /** Run reads in parallel, but keep one failing section from breaking the whole page */
 export async function settle<T>(promise: Promise<T>): Promise<{ data: T | null; error: string | null }> {

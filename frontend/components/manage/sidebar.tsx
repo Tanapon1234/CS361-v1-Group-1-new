@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 /** What the signed-in user may use (from lib/auth/permissions.ts, computed on the server) */
 export interface SidebarAccess {
   assess: boolean;
+  review: boolean;
+  admin: boolean;
 }
 
 interface Item {
@@ -24,6 +26,13 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
       { href: '/manage/rounds', label: 'รอบประเมิน' },
       { href: '/manage/rubrics', label: 'เกณฑ์ภาระงาน' },
+    ],
+  },
+  {
+    title: 'ตรวจสอบ',
+    items: [
+      { href: '/manage/review', label: 'ตรวจสอบและรับรอง', needs: 'review' },
+      { href: '/manage/audit', label: 'ประวัติการแก้ไข', needs: 'admin' },
     ],
   },
   {

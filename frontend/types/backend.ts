@@ -450,3 +450,43 @@ export interface LecturerWork {
   /** Every B.E. year with any work, newest first */
   available_years: number[];
 }
+
+// --- review queues (GET /verifications/*) and audit log -------------------------------
+
+export interface PublicationQueueItem {
+  publication_id: number;
+  title: string;
+  publication_year: number | null;
+  venue: string | null;
+  doi: string | null;
+  authors: string[];
+  verification_status: VerificationStatus;
+  verification_note: string | null;
+  created_at: string | null;
+}
+
+export interface EvidenceQueueItem {
+  evidence_id: string;
+  file_name: string;
+  label: string | null;
+  entry_id: string;
+  entry_title: string | null;
+  submission_id: string;
+  owner_id: string;
+  owner_name_th: string;
+  verification_status: VerificationStatus;
+  verification_note: string | null;
+  created_at: string;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  occurred_at: string;
+  actor_id: string | null;
+  actor_roles: string;
+  request: string | null;
+  action: 'insert' | 'update' | 'delete';
+  entity: string;
+  entity_id: string;
+  changes: Record<string, unknown> | null;
+}
