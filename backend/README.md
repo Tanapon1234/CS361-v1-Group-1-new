@@ -70,6 +70,18 @@ psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 - trigger (003 + 004) ไม่ให้เพิ่ม แก้ หรือลบ `submission_entry` เมื่อใบไม่ได้อยู่ในสถานะ `draft` หรือ `returned` (DB จะตอบ error `check_violation`) ยกเว้นการอัปเดตแค่ `score` / `weight_applied` และมี view `v_section_total` ที่คิดยอดรายข้อย่อยหลังตัดเพดานแล้ว
 - ถ้าจะแก้ schema: แก้ไฟล์ SQL และ model ให้ตรงกัน เทสต์ `tests/v2/unit/test_models.py` จะ fail ถ้าชื่อตารางหรือ column ไม่ตรงกัน
 
+### ข้อมูลตั้งต้น
+
+script ใน `scripts/` เรียก API (`/api/v2`) เหมือนคนกรอก จึงผ่าน validation และสูตรคะแนนเดียวกัน ค่าเริ่มต้นรันในตัว (in-process) กับ database ใน `.env` หรือใส่ `--base-url` เพื่อยิงไปที่ backend ที่รันอยู่ (เช่น API ที่ deploy แล้ว) รันซ้ำได้ไม่เกิดข้อมูลซ้ำ
+
+```bash
+uv run python -m scripts.import_v1_lecturers    # อาจารย์ 22 คนจาก V1 (build/v1/serving/faculties/)
+```
+
+- จับคู่อาจารย์ด้วย email ถ้ามีอยู่แล้วจะไม่สร้างใหม่ education และโปรไฟล์ภายนอกจะเพิ่มเฉพาะตอนที่ยังไม่มี ส่วนหัวข้อวิจัยและความเชี่ยวชาญจะแทนด้วยชุดจาก V1
+- ไม่ได้นำเข้ารูปจาก V1 (API รับเฉพาะไฟล์ที่อัปโหลด) ต้องอัปโหลดใหม่ใน `/manage`
+- ตารางของ `001_base.sql` (`faculty`, `faculty_education`, `work_item` ฯลฯ) ไม่ได้ลบ ปล่อยให้ V1 และ Master Data API เดิมอ่านต่อ แต่ข้อมูลอาจารย์ของ V2 ใช้ตาราง `lecturer` (002) อย่างเดียว
+
 ## รันเทสต์และ lint
 
 ```bash
