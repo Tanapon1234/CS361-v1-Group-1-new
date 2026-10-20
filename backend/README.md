@@ -48,6 +48,21 @@ psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้อ
 psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 ```
 
+หรือใช้ `scripts/apply_migrations.py` ซึ่งจำว่าไฟล์ไหนรันไปแล้ว (ตาราง `schema_migration`) และรันแต่ละไฟล์ใน transaction เดียว
+
+```bash
+uv run python -m scripts.apply_migrations --database-url postgresql://postgres@localhost/cs361v2
+
+# Aurora (อยู่ใน private subnet จึงยิงผ่าน RDS Data API ต้องมี AWS credentials)
+# 001_base รันไปแล้วตอนย้ายข้อมูล V1 จึง baseline ไว้ ไม่รันซ้ำ
+uv run python -m scripts.apply_migrations --cluster-arn <DBClusterArn> --secret-arn <DBSecretArn> \
+    --database cs361v2 --baseline 001_base --dry-run      # ดูก่อนว่าจะรันอะไร
+uv run python -m scripts.apply_migrations --cluster-arn <DBClusterArn> --secret-arn <DBSecretArn> \
+    --database cs361v2 --baseline 001_base
+```
+
+ค่า ARN ดูจาก output ของ stack `cs361-v2-aws-foundation-dev` (ดู `docs/v2/deployment-env.md`) ตาราง 001 กับ 002-004 อยู่ร่วมกันได้ ไม่มีชื่อซ้ำ
+
 | ตาราง | Primary key | หมายเหตุ |
 |---|---|---|
 | `lecturer` | `lecturer_id` uuid | `is_active` ใช้กับ activate/deactivate, ไฟล์เก็บใน `profile_image_url` / `cv_url` |
