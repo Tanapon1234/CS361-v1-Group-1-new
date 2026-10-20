@@ -63,6 +63,7 @@ from app.v3.services.lecturer_service import LecturerService
 from app.v3.services.lecturer_work_service import LecturerWorkService
 from app.v3.services.me_service import MeService
 from app.v3.services.position_service import PositionService
+from app.v3.services.public_faculty_service import PublicFacultyService
 from app.v3.services.publication_profile_service import PublicationProfileService
 from app.v3.services.publication_service import PublicationService
 from app.v3.services.research_interest_service import ResearchInterestService
@@ -284,6 +285,26 @@ def get_lecturer_file_service(
     return LecturerFileService(lecturer_dao, storage, settings)
 
 
+def get_public_faculty_service(
+    lecturer_dao: LecturerDAODep,
+    education_dao: EducationDAODep,
+    research_interest_dao: ResearchInterestDAODep,
+    expertise_dao: ExpertiseDAODep,
+    publication_dao: PublicationDAODep,
+    publication_profile_dao: PublicationProfileDAODep,
+    file_service: Annotated[LecturerFileService, Depends(get_lecturer_file_service)],
+) -> PublicFacultyService:
+    return PublicFacultyService(
+        lecturer_dao,
+        education_dao,
+        research_interest_dao,
+        expertise_dao,
+        publication_dao,
+        publication_profile_dao,
+        file_service,
+    )
+
+
 def get_education_service(
     education_dao: EducationDAODep, lecturer_dao: LecturerDAODep
 ) -> EducationService:
@@ -323,6 +344,7 @@ def get_lecturer_work_service(
 LecturerServiceDep = Annotated[LecturerService, Depends(get_lecturer_service)]
 LecturerWorkServiceDep = Annotated[LecturerWorkService, Depends(get_lecturer_work_service)]
 LecturerFileServiceDep = Annotated[LecturerFileService, Depends(get_lecturer_file_service)]
+PublicFacultyServiceDep = Annotated[PublicFacultyService, Depends(get_public_faculty_service)]
 EducationServiceDep = Annotated[EducationService, Depends(get_education_service)]
 ResearchInterestServiceDep = Annotated[
     ResearchInterestService, Depends(get_research_interest_service)

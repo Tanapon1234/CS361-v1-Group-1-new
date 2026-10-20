@@ -18,7 +18,7 @@ interface FacultiesPageProps {
 }
 
 /**
- * Server Component — fetches `GET /api/v1/faculties` on the server.
+ * Server Component — fetches `GET /public/v3/faculties` on the server.
  * If getFaculties() throws, it falls through to this segment's `error.tsx`,
  * and `loading.tsx` shows while rendering waits — no useEffect/useState needed.
  */

@@ -40,11 +40,17 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=10, ge=0)
     db_pool_timeout_seconds: int = Field(default=30, ge=1)
     db_pool_recycle_seconds: int = Field(default=1800, ge=-1)
+    # Fail a stuck connect after this long so the cause shows up in the logs, instead of the
+    # request silently running into the Lambda timeout
+    db_connect_timeout_seconds: int = Field(default=10, ge=1)
     # Secrets Manager secret (JSON with username / password, and host / port if present).
     # When set it replaces DB_USER / DB_PASSWORD and is re-read every few minutes, so a
     # rotated password keeps working (see docs/v2/backend-db-connection-decision.md).
     db_secret_arn: str = ""
     db_secret_cache_seconds: int = Field(default=300, ge=0)
+    # Sign in with a short-lived IAM token instead of a password (DB_HOST and DB_USER are
+    # used). Needed for Aurora Express Configuration, whose public endpoint refuses passwords.
+    db_iam_auth: bool = False
 
     # Object storage (S3)
     aws_region: str = "ap-southeast-1"
@@ -78,6 +84,7 @@ class Settings(BaseSettings):
         if (
             self.environment is not Environment.LOCAL
             and not self.db_secret_arn
+            and not self.db_iam_auth
             and self.db_password.get_secret_value() in _PLACEHOLDER_PASSWORDS
         ):
             raise ValueError(
