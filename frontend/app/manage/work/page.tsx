@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   EmptyNote,
   Field,
+  Notice,
   PageHeader,
   Section,
   StatusBadge,
@@ -14,6 +15,7 @@ import {
   linkClass,
   param,
   secondaryButtonClass,
+  withQuery,
 } from '@/components/manage/ui';
 import {
   MAX_PAGE,
@@ -22,6 +24,7 @@ import {
   listRounds,
   listRubricCategories,
   listRubricVersions,
+  settle,
 } from '@/lib/backend/api';
 import { formatNumber, formatScore } from '@/lib/backend/labels';
 import type { LecturerWork, RubricCategory } from '@/types/backend';
@@ -54,11 +57,12 @@ export default async function LecturerWorkPage({
     listLecturers({ limit: MAX_PAGE }),
     listRounds(),
     categoryOptions(),
-    lecturerId ? getLecturerWork(lecturerId, { academic_year: year, category }) : null,
+    // A failed search must look different from an empty one, so it does not throw
+    lecturerId ? settle(getLecturerWork(lecturerId, { academic_year: year, category })) : null,
   ]);
 
   const years = [
-    ...new Set([...rounds.items.map((round) => round.academic_year), ...(work?.available_years ?? [])]),
+    ...new Set([...rounds.items.map((round) => round.academic_year), ...(work?.data?.available_years ?? [])]),
   ].sort((a, b) => b - a);
 
   return (
@@ -108,16 +112,38 @@ export default async function LecturerWorkPage({
         </form>
       </Section>
 
-      {work ? <WorkResult work={work} /> : <EmptyNote>เลือกอาจารย์ก่อน แล้วกดค้นหา</EmptyNote>}
+      {!work ? (
+        <EmptyNote>เลือกอาจารย์ก่อน แล้วกดค้นหา</EmptyNote>
+      ) : work.data ? (
+        <WorkResult work={work.data} />
+      ) : (
+        <Notice tone="error">
+          <p className="font-semibold">โหลดผลงานไม่สำเร็จ ผลนี้ไม่ได้แปลว่าไม่มีผลงาน</p>
+          <p className="mt-1">{work.error}</p>
+          <a href={withQuery('/manage/work', { lecturer: lecturerId, year, category })} className={`${linkClass} mt-2 inline-block`}>
+            ลองอีกครั้ง
+          </a>
+        </Notice>
+      )}
     </div>
   );
 }
 
+/** "งานวิชาการของ อ.ก ในปีการศึกษา 2567": what was searched, in words */
+function describe(work: LecturerWork): string {
+  const what = work.filters.category_name_th ?? (work.filters.category ? `หมวด ${work.filters.category}` : 'ผลงาน');
+  const when = work.filters.academic_year ? `ในปีการศึกษา ${work.filters.academic_year}` : 'ในทุกปีการศึกษา';
+  return `${what}ของ ${work.lecturer_name_th} ${when}`;
+}
+
 function WorkResult({ work }: { work: LecturerWork }) {
-  if (work.total === 0) return <EmptyNote>ไม่พบผลงาน</EmptyNote>;
+  if (work.total === 0) return <NoWork work={work} />;
 
   return (
     <>
+      <p role="status" className="text-sm text-ink-muted">
+        พบ{describe(work)} {work.total} รายการ
+      </p>
       {work.categories.map((group) => (
         <Section key={group.code} title={`${group.code}. ${group.name_th}`} description={`${group.entries.length} รายการ`}>
           <Table head={['ข้อ', 'รายการ', 'รอบ', 'จำนวน', 'คะแนน', 'สถานะใบ']}>
@@ -167,5 +193,41 @@ function WorkResult({ work }: { work: LecturerWork }) {
         </Section>
       ) : null}
     </>
+  );
+}
+
+/** Empty result: say exactly what found nothing, and where this lecturer does have work */
+function NoWork({ work }: { work: LecturerWork }) {
+  const otherYears = work.available_years.filter((year) => year !== work.filters.academic_year);
+  // Year links drop the category: those years have data in some category, not necessarily this one
+  const hrefFor = (year: number) => withQuery('/manage/work', { lecturer: work.lecturer_id, year });
+
+  return (
+    <div role="status" className="rounded-xl border border-dashed border-line bg-surface px-5 py-8 text-center">
+      <p className="font-semibold text-ink">ไม่พบ{describe(work)}</p>
+      {work.available_years.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-muted">อาจารย์คนนี้ยังไม่มีภาระงานหรือผลงานตีพิมพ์ในระบบเลย</p>
+      ) : otherYears.length > 0 ? (
+        <div className="mt-3 text-sm text-ink-muted">
+          <p>ปีการศึกษาที่อาจารย์คนนี้มีข้อมูล (ทุกหมวด):</p>
+          <ul className="mt-2 flex flex-wrap justify-center gap-2">
+            {otherYears.map((year) => (
+              <li key={year}>
+                <Link href={hrefFor(year)} className={secondaryButtonClass}>
+                  {year}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {work.filters.category ? (
+        <p className="mt-3 text-sm">
+          <Link href={withQuery('/manage/work', { lecturer: work.lecturer_id, year: work.filters.academic_year })} className={linkClass}>
+            ดูทุกหมวดของปีนี้
+          </Link>
+        </p>
+      ) : null}
+    </div>
   );
 }
