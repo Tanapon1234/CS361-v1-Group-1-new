@@ -55,8 +55,15 @@ class PublicationService:
         try:
             if data.doi is not None and self.publication_dao.get_by_doi(data.doi) is not None:
                 raise ConflictError("Publication DOI already exists")
+            for lecturer_id in data.lecturer_ids:
+                if self.lecturer_dao.get_by_id(lecturer_id) is None:
+                    raise NotFoundError(f"Lecturer {lecturer_id} not found")
 
-            publication = self.publication_dao.add(Publication(**data.model_dump()))
+            publication = self.publication_dao.add(
+                Publication(**data.model_dump(exclude={"lecturer_ids"}))
+            )
+            if data.lecturer_ids:
+                self.publication_dao.set_authors(publication.publication_id, data.lecturer_ids)
         except IntegrityError as exc:
             if _is_unique_violation(exc):
                 raise ConflictError("Publication DOI already exists") from exc
