@@ -5,6 +5,7 @@ the concrete DAO / storage implementations, so tests can swap any layer with
 `app.dependency_overrides[get_xxx] = ...`.
 """
 
+from datetime import date
 from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
@@ -44,7 +45,7 @@ from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
 from app.v2.daos.submission_dao import SubmissionDAO
 from app.v2.models.lecturer import Lecturer
-from app.v2.security import Actor, Role, roles_from_names
+from app.v2.security import Actor, HeldPosition, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
 from app.v2.services.department_service import DepartmentService
 from app.v2.services.education_service import EducationService
@@ -174,6 +175,7 @@ def get_actor(
     settings: SettingsDep,
     verifier: TokenVerifierDep,
     lecturer_dao: LecturerDAODep,
+    position_dao: MemberPositionDAODep,
     authorization: Annotated[str | None, Header()] = None,
     x_lecturer_id: Annotated[
         UUID | None, Header(description="Dev only (not prod): act as this lecturer_id")
@@ -196,15 +198,28 @@ def get_actor(
         if not lecturer.is_active:
             raise ForbiddenError("This lecturer account is deactivated")
         groups = claims.get("cognito:groups") or []
-        return Actor(lecturer.lecturer_id, roles_from_names(groups) | {Role.LECTURER})
+        return Actor(
+            lecturer.lecturer_id,
+            roles_from_names(groups) | {Role.LECTURER},
+            _positions_held(position_dao, lecturer.lecturer_id),
+        )
 
     if settings.allows_dev_auth_header and (x_lecturer_id or x_dev_roles):
         roles = roles_from_names((x_dev_roles or "").split(","))
-        if x_lecturer_id is not None:
-            roles |= {Role.LECTURER}
-        return Actor(x_lecturer_id, roles)
+        if x_lecturer_id is None:
+            return Actor(None, roles)
+        return Actor(
+            x_lecturer_id, roles | {Role.LECTURER}, _positions_held(position_dao, x_lecturer_id)
+        )
 
     raise UnauthorizedError("Sign-in required")
+
+
+def _positions_held(position_dao: MemberPositionDAO, lecturer_id: UUID) -> frozenset[HeldPosition]:
+    return frozenset(
+        HeldPosition(held.position, held.department_id)
+        for held in position_dao.list_active(lecturer_id, date.today())
+    )
 
 
 def _link_by_email(lecturer_dao: LecturerDAO, claims: dict) -> Lecturer:
