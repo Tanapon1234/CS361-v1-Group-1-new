@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { createPublication } from '@/app/manage/actions/academic';
+import { createSubmission } from '@/app/manage/actions/workload';
+import { ActionForm } from '@/components/manage/action-form';
+import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
   Field,
@@ -24,11 +28,12 @@ import {
   listRounds,
   listRubricCategories,
   listRubricVersions,
+  listSubmissions,
   settle,
 } from '@/lib/backend/api';
 import { isLecturerOnly } from '@/lib/auth/permissions';
 import { getCurrentUser } from '@/lib/backend/client';
-import { formatNumber, formatScore } from '@/lib/backend/labels';
+import { EDITABLE_STATUSES, formatNumber, formatScore } from '@/lib/backend/labels';
 import type { LecturerWork, RubricCategory } from '@/types/backend';
 
 export const metadata: Metadata = { title: 'ผลงานรายปี' };
@@ -58,6 +63,7 @@ export default async function LecturerWorkPage({
   const year = intParam(params.year);
   const category = param(params.category) || undefined;
 
+  const mySheets = own ? (await listSubmissions({ lecturer_id: own })).items : [];
   const [lecturers, rounds, categories, work] = await Promise.all([
     own ? Promise.resolve(null) : listLecturers({ limit: MAX_PAGE }),
     listRounds(),
@@ -120,6 +126,50 @@ export default async function LecturerWorkPage({
           </button>
         </form>
       </Section>
+
+      {own ? (
+        <Section title="เพิ่มผลงานของฉัน" description="เลือกว่าจะเพิ่มผลงานตีพิมพ์ หรือเพิ่มงานในใบภาระงานของรอบนั้น">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-bold text-ink">ผลงานตีพิมพ์ (บทความ / งานวิจัย)</h3>
+              <details className="mt-2 rounded-lg border border-line p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-brand">เพิ่มผลงานตีพิมพ์ใหม่</summary>
+                <ActionForm action={createPublication} submitLabel="เพิ่มผลงาน" className="mt-3">
+                  <PublicationFields />
+                  <input type="hidden" name="lecturer_ids" value={own} />
+                </ActionForm>
+              </details>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-ink">งานในใบภาระงาน (สอน / วิจัย / บริการ ฯลฯ)</h3>
+              <ul className="mt-2 space-y-2 text-sm">
+                {rounds.items.map((round) => {
+                  const sheet = mySheets.find((item) => item.round_id === round.id);
+                  return (
+                    <li key={round.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line p-3">
+                      <span className="font-medium text-ink">{round.name_th}</span>
+                      {sheet ? (
+                        <span className="flex items-center gap-2">
+                          <StatusBadge status={sheet.status} />
+                          <Link href={`/manage/submissions/${sheet.id}`} className={linkClass}>
+                            {EDITABLE_STATUSES.includes(sheet.status) ? 'เพิ่มรายการในใบนี้' : 'เปิดดู (แก้ไม่ได้แล้ว)'}
+                          </Link>
+                        </span>
+                      ) : round.is_open ? (
+                        <ActionForm inline action={createSubmission} submitLabel="สร้างใบและเพิ่มรายการ">
+                          <input type="hidden" name="round_id" value={round.id} />
+                        </ActionForm>
+                      ) : (
+                        <span className="text-ink-muted">รอบปิดแล้ว ไม่มีใบ</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </Section>
+      ) : null}
 
       {!work ? (
         <EmptyNote>เลือกอาจารย์ก่อน แล้วกดค้นหา</EmptyNote>
