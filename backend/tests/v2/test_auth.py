@@ -154,3 +154,59 @@ def test_bearer_without_cognito_configured_is_401(lecturer_dao: MagicMock) -> No
     client.app.dependency_overrides[get_token_verifier] = lambda: None
 
     assert client.get("/who", headers=bearer(token())).status_code == 401
+
+
+# --- first sign-in: link by verified email (#212) -------------------------------------
+
+
+@pytest.fixture
+def unlinked() -> Lecturer:
+    return Lecturer(lecturer_id=uuid4(), name_th="ใหม่", email="New.Person@x.ac.th")
+
+
+@pytest.fixture
+def linking_dao(lecturer_dao: MagicMock, unlinked: Lecturer) -> MagicMock:
+    lecturer_dao.get_by_email.side_effect = lambda email: (
+        unlinked if email.lower() == unlinked.email.lower() else None
+    )
+    lecturer_dao.update.side_effect = lambda row, values: row.sqlmodel_update(values) or row
+    return lecturer_dao
+
+
+def test_first_sign_in_links_by_verified_email(linking_dao: MagicMock, unlinked: Lecturer) -> None:
+    client = make_client(linking_dao)
+    login = token(sub="sub-new", email="new.person@x.ac.th", email_verified=True)
+
+    response = client.get("/who", headers=bearer(login))
+
+    assert response.status_code == 200
+    assert response.json()["lecturer_id"] == str(unlinked.lecturer_id)
+    linking_dao.update.assert_called_once_with(unlinked, {"cognito_sub": "sub-new"})
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"email": "new.person@x.ac.th", "email_verified": False},
+        {"email": "nobody@x.ac.th", "email_verified": True},
+    ],
+    ids=["email-not-verified", "no-lecturer-with-email"],
+)
+def test_first_sign_in_without_a_match_is_403(linking_dao: MagicMock, claims: dict) -> None:
+    client = make_client(linking_dao)
+
+    response = client.get("/who", headers=bearer(token(sub="sub-new", **claims)))
+
+    assert response.status_code == 403
+    linking_dao.update.assert_not_called()
+
+
+def test_email_of_a_lecturer_linked_to_another_account_is_403(
+    linking_dao: MagicMock, unlinked: Lecturer
+) -> None:
+    unlinked.cognito_sub = "someone-else"
+    client = make_client(linking_dao)
+    login = token(sub="sub-new", email=unlinked.email, email_verified=True)
+
+    assert client.get("/who", headers=bearer(login)).status_code == 403
+    linking_dao.update.assert_not_called()
