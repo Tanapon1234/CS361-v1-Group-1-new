@@ -39,6 +39,7 @@ from app.v2.models.submission import Submission, SubmissionApproval
 from app.v2.security import Actor
 from app.v2.services.access import (
     require_owner,
+    require_signer,
     require_view_submission,
     signer_departments,
 )
@@ -237,16 +238,17 @@ class SubmissionService:
         return ListResponse(items=items, meta=ListMeta(count=len(items)))
 
     def create_approval(
-        self, submission_id: UUID, actor_id: UUID, data: ApprovalCreateRequest
+        self, submission_id: UUID, actor: Actor, data: ApprovalCreateRequest
     ) -> ApprovalResponse:
         submission = self._require_submission(submission_id)
+        if actor.lecturer_id is None:
+            raise UnauthorizedError("Sign in as a lecturer: signatures are personal")
+        actor_id = actor.lecturer_id
         self._require_actor(actor_id)
         step = STEPS.get(submission.status)
         if step is None:
             raise ConflictError(f"A {submission.status} submission cannot change any more")
-        # TODO(auth): the caller must be able to sign as `step.role`: the owner for
-        # performer; the dept_chair / dept_committee of submission.department_snapshot;
-        # faculty staff for receiver.
+        require_signer(actor, submission, step.role)
 
         changes: dict[str, object] = {}
         if data.decision is ApprovalDecision.RETURNED:

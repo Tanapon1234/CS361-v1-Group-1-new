@@ -6,15 +6,22 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.exceptions import BadRequestError, ConflictError, UnauthorizedError
+from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, UnauthorizedError
 from app.v2.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v2.daos.evidence_dao import EvidenceDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.submission_dao import SubmissionDAO
 from app.v2.dtos.submission_dto import ApprovalCreateRequest, SubmissionCreateRequest
-from app.v2.models.enums import AcademicRank, ApprovalDecision, SignerRole, SubmissionStatus
+from app.v2.models.enums import (
+    AcademicRank,
+    ApprovalDecision,
+    PositionCode,
+    SignerRole,
+    SubmissionStatus,
+)
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.submission import EvaluationRound, Submission
+from app.v2.security import Actor, HeldPosition, Role
 from app.v2.services.score_keeper import ScoreKeeper
 from app.v2.services.submission_service import SubmissionService, rank_from_text
 from app.v2.storage.object_storage import ObjectStorage
@@ -49,6 +56,20 @@ def service(daos: dict[str, MagicMock]) -> SubmissionService:
 
 def lecturer(**values: object) -> Lecturer:
     return Lecturer(name_th="สมชาย", email="a@x.th", department_id=1, **values)
+
+
+def signs_everything(owner: Lecturer) -> Actor:
+    """The owner who is also staff, chair and committee of department 1: may sign any step."""
+    return Actor(
+        owner.lecturer_id,
+        frozenset({Role.LECTURER, Role.STAFF}),
+        frozenset(
+            {
+                HeldPosition(PositionCode.DEPT_CHAIR, 1),
+                HeldPosition(PositionCode.DEPT_COMMITTEE, 1),
+            }
+        ),
+    )
 
 
 def submission(status: SubmissionStatus, owner: Lecturer) -> Submission:
@@ -138,7 +159,9 @@ def test_approving_moves_the_submission_on(
     daos["lecturer"].get_by_id.return_value = owner
 
     approval = service.create_approval(
-        current.id, owner.lecturer_id, ApprovalCreateRequest(decision=ApprovalDecision.APPROVED)
+        current.id,
+        signs_everything(owner),
+        ApprovalCreateRequest(decision=ApprovalDecision.APPROVED),
     )
 
     assert approval.role is role
@@ -152,7 +175,9 @@ def test_sending_freezes_the_totals(service: SubmissionService, daos: dict[str, 
     daos["lecturer"].get_by_id.return_value = owner
 
     service.create_approval(
-        current.id, owner.lecturer_id, ApprovalCreateRequest(decision=ApprovalDecision.APPROVED)
+        current.id,
+        signs_everything(owner),
+        ApprovalCreateRequest(decision=ApprovalDecision.APPROVED),
     )
 
     assert current.submitted_at is not None
@@ -170,7 +195,9 @@ def test_leaving_assessing_needs_every_assessment(
 
     with pytest.raises(ConflictError, match="2 entries"):
         service.create_approval(
-            uuid4(), owner.lecturer_id, ApprovalCreateRequest(decision=ApprovalDecision.APPROVED)
+            uuid4(),
+            signs_everything(owner),
+            ApprovalCreateRequest(decision=ApprovalDecision.APPROVED),
         )
     daos["submission"].add.assert_not_called()
 
@@ -184,12 +211,12 @@ def test_returning_needs_a_comment_and_cannot_happen_on_a_draft(
 
     daos["submission"].get_by_id.return_value = submission(SubmissionStatus.SUBMITTED, owner)
     with pytest.raises(BadRequestError, match="comment"):
-        service.create_approval(uuid4(), owner.lecturer_id, returned)
+        service.create_approval(uuid4(), signs_everything(owner), returned)
 
     daos["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, owner)
     with pytest.raises(ConflictError):
         service.create_approval(
-            uuid4(), owner.lecturer_id, returned.model_copy(update={"comment": "x"})
+            uuid4(), signs_everything(owner), returned.model_copy(update={"comment": "x"})
         )
 
 
@@ -202,7 +229,9 @@ def test_finished_submission_cannot_change(
 
     with pytest.raises(ConflictError):
         service.create_approval(
-            uuid4(), owner.lecturer_id, ApprovalCreateRequest(decision=ApprovalDecision.APPROVED)
+            uuid4(),
+            signs_everything(owner),
+            ApprovalCreateRequest(decision=ApprovalDecision.APPROVED),
         )
 
 
@@ -220,3 +249,61 @@ def test_only_a_draft_can_be_deleted(
 
 def test_score_fields_are_decimals() -> None:
     assert isinstance(Submission.model_fields["raw_total"].default, Decimal)
+
+
+@pytest.mark.parametrize(
+    ("status", "who", "allowed"),
+    [
+        (SubmissionStatus.DRAFT, "owner", True),
+        (SubmissionStatus.DRAFT, "staff", False),
+        (SubmissionStatus.SUBMITTED, "staff", True),
+        (SubmissionStatus.SUBMITTED, "owner", False),
+        (SubmissionStatus.ASSESSING, "chair", True),
+        (SubmissionStatus.ASSESSING, "chair-elsewhere", False),
+        (SubmissionStatus.ASSESSING, "admin", False),
+        (SubmissionStatus.DEPT_REVIEW, "committee", True),
+        (SubmissionStatus.DEPT_REVIEW, "chair", False),
+        (SubmissionStatus.DEPT_APPROVED, "admin", True),
+    ],
+)
+def test_each_step_is_signed_by_its_role(
+    service: SubmissionService,
+    daos: dict[str, MagicMock],
+    status: SubmissionStatus,
+    who: str,
+    allowed: bool,
+) -> None:
+    owner = lecturer()
+    current = submission(status, owner)
+    daos["submission"].get_by_id.return_value = current
+    daos["lecturer"].get_by_id.return_value = owner
+    daos["keeper"].pending_assessments.return_value = 0
+    someone = uuid4()
+    actor = {
+        "owner": Actor(owner.lecturer_id, frozenset({Role.LECTURER})),
+        "staff": Actor(someone, frozenset({Role.LECTURER, Role.STAFF})),
+        "admin": Actor(someone, frozenset({Role.LECTURER, Role.ADMIN})),
+        "chair": Actor(
+            someone,
+            frozenset({Role.LECTURER}),
+            frozenset({HeldPosition(PositionCode.DEPT_CHAIR, 1)}),
+        ),
+        "chair-elsewhere": Actor(
+            someone,
+            frozenset({Role.LECTURER}),
+            frozenset({HeldPosition(PositionCode.DEPT_CHAIR, 2)}),
+        ),
+        "committee": Actor(
+            someone,
+            frozenset({Role.LECTURER}),
+            frozenset({HeldPosition(PositionCode.DEPT_COMMITTEE, 1)}),
+        ),
+    }[who]
+    approve = ApprovalCreateRequest(decision=ApprovalDecision.APPROVED)
+
+    if allowed:
+        service.create_approval(current.id, actor, approve)
+    else:
+        with pytest.raises(ForbiddenError, match="signed by"):
+            service.create_approval(current.id, actor, approve)
+        daos["submission"].add.assert_not_called()

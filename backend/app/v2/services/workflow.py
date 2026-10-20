@@ -11,6 +11,7 @@ role comes from the current status, never from the request body.
 
 From submitted onwards the signer may return it instead (status -> returned), and the
 owner fixes the entries and sends it again. Change this table to change the workflow.
+Who may sign each role: app/v2/services/access.py (can_sign).
 """
 
 from dataclasses import dataclass
