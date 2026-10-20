@@ -61,6 +61,8 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("PUT", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/expertise/{expertise_id}"),
+    # lecturer work by year / category (peer test TC1-TC3)
+    ("GET", "/api/v2/lecturers/{lecturer_id}/work"),
     # --- workload (database/data_schema/SemesterReport/api-reference.md) ---
     # me
     ("GET", "/api/v2/me"),
