@@ -18,6 +18,7 @@ EXPECTED_ENDPOINTS = {
     # profile image
     ("POST", "/api/v2/lecturers/{lecturer_id}/profile-image/presign"),
     ("POST", "/api/v2/lecturers/{lecturer_id}/profile-image/complete"),
+    ("GET", "/api/v2/lecturers/{lecturer_id}/profile-image"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/profile-image"),
     # cv
     ("POST", "/api/v2/lecturers/{lecturer_id}/cv/presign"),
