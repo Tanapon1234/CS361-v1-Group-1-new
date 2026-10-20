@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import { switchUser } from '@/app/manage/actions/session';
 import { EmptyNote, Notice, PageHeader, Pager, inputClass, intParam, param, secondaryButtonClass, withQuery } from '@/components/manage/ui';
 import { PAGE_SIZE, listDepartments, listLecturers } from '@/lib/backend/api';
+import { cognitoEnabled } from '@/lib/auth/cognito';
 import { currentLecturerId } from '@/lib/backend/client';
+
+const ROLE_CHOICES = [
+  ['staff', 'เจ้าหน้าที่'],
+  ['reviewer', 'ผู้ตรวจสอบ'],
+  ['executive', 'ผู้บริหาร'],
+  ['admin', 'ผู้ดูแลระบบ'],
+] as const;
 
 export const metadata: Metadata = { title: 'เลือกผู้ใช้งาน' };
 
@@ -12,6 +21,8 @@ export default async function SwitchUserPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // With Cognito, people sign in for real
+  if (cognitoEnabled()) redirect('/login');
   const params = await searchParams;
   const q = param(params.q);
   const offset = intParam(params.offset) ?? 0;
@@ -26,10 +37,11 @@ export default async function SwitchUserPage({
     <div className="space-y-6">
       <PageHeader
         title="เลือกผู้ใช้งาน"
-        description="ใช้ชั่วคราวจนกว่าจะต่อ Cognito: เลือกว่าจะทำงานในนามอาจารย์ท่านไหน (ระบบส่งเป็น header X-Lecturer-Id ไปที่ backend)"
+        description="โหมดพัฒนา (ยังไม่ได้ตั้ง COGNITO_CLIENT_ID): เลือกว่าจะทำงานในนามอาจารย์ท่านไหน และมีบทบาทอะไรเพิ่ม"
       />
       <Notice>
-        สิทธิ์การใช้งานจริงยังไม่ได้เช็คใน backend (TODO(auth)) ยกเว้นการประเมินที่เช็คตำแหน่งบริหารแล้ว
+        ระบบส่งเป็น header X-Lecturer-Id และ X-Dev-Roles ซึ่ง backend เช็คสิทธิ์ตามบทบาทจริง
+        (docs/v2/permissions.md) และไม่รับ header นี้ใน production
       </Notice>
 
       <form className="flex gap-2" role="search">
@@ -59,6 +71,14 @@ export default async function SwitchUserPage({
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                    {ROLE_CHOICES.map(([value, label]) => (
+                      <label key={value} className="flex items-center gap-1 text-xs text-ink-muted">
+                        <input type="checkbox" name="roles" value={value} className="h-3.5 w-3.5 accent-brand" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <button type="submit" className={secondaryButtonClass}>
                   {lecturer.lecturer_id === current ? 'กำลังใช้งาน' : 'ใช้ชื่อนี้'}
