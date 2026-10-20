@@ -107,7 +107,10 @@ frontend/
 
 ## Environment Variables
 
-ตอนนี้โปรเจกต์ยังไม่มี environment variable ที่จำเป็น
+| ตัวแปร | ใช้กับ | หมายเหตุ |
+|---|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | หน้า `/faculties` (API v1) | URL ของ API Gateway |
+| `BACKEND_API_BASE_URL` | หน้า `/manage` (FastAPI ใน `backend/`) | ค่าเริ่มต้น `http://localhost:8000` ใช้ฝั่ง server เท่านั้น ไม่ต้องขึ้นต้นด้วย `NEXT_PUBLIC_` |
 
 ถ้าต้องเพิ่มค่าที่ใช้ฝั่ง browser ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เช่น:
 
@@ -116,6 +119,34 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
 ห้าม commit secret จริงลง repo ให้เก็บค่าจริงไว้ใน `.env.local` เท่านั้น
+
+## ระบบจัดการ (`/manage`)
+
+หน้า back-office ที่ต่อกับ FastAPI backend ทุกกลุ่ม endpoint (`/api/v2`) เปิดได้จากเมนู "ระบบจัดการ" ใน header
+
+| หน้า | ทำอะไร |
+|---|---|
+| `/manage` | ภาพรวมของฉัน: ตำแหน่ง, บทบาทลงนาม, รอบที่เปิด, ใบของฉัน |
+| `/manage/switch-user` | เลือกว่าจะใช้งานในนามอาจารย์คนไหน (ชั่วคราว จนกว่าจะต่อ Cognito) |
+| `/manage/submissions`, `/manage/submissions/[id]` | สร้างใบ, กรอกรายการ (ฟอร์มเปลี่ยนตาม item และ `field_schema`), แนบหลักฐาน, ส่ง, อนุมัติ, ตีกลับ, ดูคะแนน |
+| `/manage/assessments` | คิวงานประเมินของผู้บริหาร ให้ค่า แก้ค่า หรือถอนค่า |
+| `/manage/rounds`, `/manage/rounds/[id]` | เปิด/ปิดรอบ, แก้ไขรอบ, report คะแนนทั้งรอบ, รายการใบในรอบ |
+| `/manage/rubrics`, `/manage/rubrics/[id]` | เกณฑ์หลายฉบับ, คัดลอกจากฉบับเดิม, จัดหมวด → ข้อ → ตัวเลือก |
+| `/manage/lecturers`, `/manage/lecturers/[id]` (+ `/academic`, `/files`) | ข้อมูลอาจารย์, ตำแหน่งบริหาร, หัวข้อวิจัย, ความเชี่ยวชาญ, การศึกษา, โปรไฟล์ภายนอก, ผลงาน, รูปและ CV |
+| `/manage/departments`, `/publications`, `/research-interests`, `/expertise` | ข้อมูลกลาง (master data) |
+
+โครงสร้างโค้ด:
+
+- `lib/backend/client.ts`: ตัวเรียก backend (server-only) ส่ง header `X-Lecturer-Id` จาก cookie และแปลง error แบบ problem+json เป็นข้อความภาษาไทย
+- `lib/backend/api.ts`: ฟังก์ชันอ่านข้อมูล (GET) ที่หน้าใช้ ส่วน `app/manage/actions/*.ts` คือ Server Actions ที่ใช้แก้ข้อมูล
+- `types/backend.ts`: type ที่ตรงกับ DTO ของ backend
+- `components/manage/`: UI ของ `/manage` โดย `ActionForm` ผูกฟอร์มกับ Server Action และจะไม่ล้างค่าที่กรอกเมื่อ backend ตอบ error
+- อัปโหลดไฟล์ใช้ presigned S3 คือ browser ส่งไฟล์ตรงไป S3 เอง (bucket ต้องตั้ง CORS ให้ origin ของเว็บ)
+
+ข้อจำกัดตอนนี้:
+
+- ยังไม่มีการยืนยันตัวตนจริง และ backend ยังไม่เช็คสิทธิ์ (`TODO(auth)`)
+- PDF ของใบภาระงานยังไม่มี
 
 ## Workflow แนะนำ
 
