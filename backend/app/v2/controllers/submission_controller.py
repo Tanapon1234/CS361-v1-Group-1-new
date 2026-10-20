@@ -92,8 +92,9 @@ def list_submission_approvals(
 def create_submission_approval(
     submission_id: SubmissionId,
     data: ApprovalCreateRequest,
-    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
     service: SubmissionServiceDep,
 ) -> ApprovalResponse:
-    """Send / accept / return / approve. The signer's role comes from the current status."""
-    return service.create_approval(submission_id, actor_id, data)
+    """Send / accept / return / approve. The step (from the current status) decides who may
+    sign: the owner, staff (receiver), or the chair / committee of the department."""
+    return service.create_approval(submission_id, actor, data)
