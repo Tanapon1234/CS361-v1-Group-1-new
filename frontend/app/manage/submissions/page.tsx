@@ -20,7 +20,8 @@ import {
   withQuery,
 } from '@/components/manage/ui';
 import { MAX_PAGE, PAGE_SIZE, listLecturers, listRounds, listSubmissions } from '@/lib/backend/api';
-import { currentLecturerId } from '@/lib/backend/client';
+import { isLecturerOnly } from '@/lib/auth/permissions';
+import { currentLecturerId, getCurrentUser } from '@/lib/backend/client';
 import { SUBMISSION_STATUS_LABEL, formatDateTime, formatScore } from '@/lib/backend/labels';
 import type { SubmissionStatus } from '@/types/backend';
 
@@ -33,7 +34,10 @@ export default async function SubmissionsPage({
 }) {
   const params = await searchParams;
   const me = await currentLecturerId();
-  const scope = param(params.scope) === 'all' ? 'all' : 'mine';
+  const user = await getCurrentUser().catch(() => null);
+  // A plain lecturer has only their own sheets: no "all" scope to pick
+  const ownOnly = isLecturerOnly(user);
+  const scope = !ownOnly && param(params.scope) === 'all' ? 'all' : 'mine';
   const roundId = intParam(params.round_id);
   const status = param(params.status) as SubmissionStatus | undefined;
   const offset = intParam(params.offset) ?? 0;
@@ -82,10 +86,12 @@ export default async function SubmissionsPage({
 
           <Section title={scope === 'mine' ? 'ใบของฉัน' : 'ใบทั้งหมด'}>
             <form role="search" className="mb-4 flex flex-wrap gap-2">
-              <select name="scope" defaultValue={scope} className={`${inputClass} sm:w-44`} aria-label="ขอบเขต">
-                <option value="mine">เฉพาะของฉัน</option>
-                <option value="all">ทั้งหมด</option>
-              </select>
+              {ownOnly ? null : (
+                <select name="scope" defaultValue={scope} className={`${inputClass} sm:w-44`} aria-label="ขอบเขต">
+                  <option value="mine">เฉพาะของฉัน</option>
+                  <option value="all">ทั้งหมด</option>
+                </select>
+              )}
               <select name="round_id" defaultValue={roundId ?? ''} className={`${inputClass} sm:w-56`} aria-label="รอบ">
                 <option value="">ทุกรอบ</option>
                 {rounds.items.map((round) => (
