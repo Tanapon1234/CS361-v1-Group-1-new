@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.v2.controllers.params import EntryId
-from app.v2.dependencies import AssessmentServiceDep, CurrentLecturerIdDep
+from app.v2.dependencies import AssessmentServiceDep, CurrentActorDep, CurrentLecturerIdDep
 from app.v2.dtos.assessment_dto import (
     AssessmentPutRequest,
     AssessmentQueueItem,
@@ -27,9 +27,9 @@ def list_assessment_queue(
 
 @router.get("/entries/{entry_id}/assessments")
 def list_entry_assessments(
-    entry_id: EntryId, service: AssessmentServiceDep
+    entry_id: EntryId, actor: CurrentActorDep, service: AssessmentServiceDep
 ) -> ListResponse[AssessmentResponse]:
-    return service.list_entry_assessments(entry_id)
+    return service.list_entry_assessments(entry_id, actor)
 
 
 @router.put("/entries/{entry_id}/assessments/me")

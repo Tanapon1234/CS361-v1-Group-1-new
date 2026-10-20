@@ -40,7 +40,7 @@ def test_full_workload_flow(api: TestClient, storage: FakeStorage) -> None:
     ok(appoint(exec2, "exec_committee"), 201)
     ok(appoint(exec2, "exec_committee"), 409)  # overlapping term
     ok(appoint(chair, "dept_chair"), 400)  # department position without a department
-    me = ok(api.get(f"{v2}/me", headers=as_(chair)))
+    me = ok(api.get(f"{v2}/me", headers=as_(chair) | {"X-Dev-Roles": ""}))  # no staff role
     assert me["signer_roles"] == ["performer", "dept_chair"]
     ok(api.get(f"{v2}/me"), 401)
 

@@ -273,6 +273,8 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 - **login ครั้งแรก:** ถ้ายังไม่มีอาจารย์ที่ `cognito_sub` ตรง ระบบหาอาจารย์ที่ email ตรงกับ email ของบัญชี (ต้อง verified, ไม่สนตัวพิมพ์) ที่ยังไม่ผูกกับบัญชีอื่น แล้วบันทึก `cognito_sub` ให้ ถ้าไม่เจอได้ 403 เจ้าหน้าที่ / ผู้บริหารที่ไม่ใช่อาจารย์ก็ต้องมีแถวใน `lecturer` (ใช้เป็นตัวตนในระบบ) หรือ staff ตั้ง `cognito_sub` ให้เองผ่าน `PATCH /lecturers/{id}`
 - **ตอนพัฒนา / เทสต์ / script (ไม่ใช่ prod):** `X-Lecturer-Id` แทนตัวอาจารย์ และ `X-Dev-Roles: staff,admin` เพิ่มบทบาท ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod` หรือ `DEV_AUTH_HEADER_ENABLED=false`
 - endpoint ที่ทำในนามคน (สร้างใบ, อนุมัติ, ประเมิน) ใช้ `CurrentLecturerIdDep` ซึ่งต้องเป็นอาจารย์ (ไม่ใช่ script ที่มีแค่บทบาท)
+- **สิทธิ์:** router ของ `/api/v2` เช็คทุก request กับ `ROUTE_RULES` ใน `app/v2/permissions.py` (ตารางเดียวกับ `docs/v2/permissions.md`) route ที่ไม่มีในตารางถูกปฏิเสธ เรื่องที่ต้องดูข้อมูลก่อน (เจ้าของใบ, สาขาของใบ, ผู้แต่งผลงาน) อยู่ใน service ผ่าน `app/v2/services/access.py`
+- **เพิ่ม endpoint ใหม่:** ต้องเพิ่ม rule ใน `ROUTE_RULES` ด้วย ไม่อย่างนั้นทุกคนได้ 403 และ `tests/v2/test_permissions.py` จะ fail
 - ข้อยกเว้นคือการประเมิน ระบบเช็คแล้วว่าผู้ให้ค่าถือตำแหน่งตาม `assessor_position` ของ item และไม่ใช่เจ้าของใบ เพราะต้องบันทึก `position_used` ลงตาราง
 
 ### ลำดับสถานะของใบ

@@ -6,7 +6,7 @@ and is included next to this one in app/main.py.
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.core.problem import ProblemDetail
 from app.v2.controllers import (
@@ -32,6 +32,7 @@ from app.v2.controllers import (
     rubric_controller,
     submission_controller,
 )
+from app.v2.dependencies import authorize
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ProblemDetail, "description": "Business rule violated"},
@@ -43,7 +44,10 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     422: {"model": ProblemDetail, "description": "Invalid request fields"},
 }
 
-api_v2_router = APIRouter(prefix="/api/v2", responses=ERROR_RESPONSES)
+# Every endpoint needs a signed-in caller allowed by app/v2/permissions.py
+api_v2_router = APIRouter(
+    prefix="/api/v2", responses=ERROR_RESPONSES, dependencies=[Depends(authorize)]
+)
 
 for controller in (
     lecturer_controller,

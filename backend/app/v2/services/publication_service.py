@@ -2,7 +2,12 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from app.core.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
+from app.core.exceptions import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
 from app.v2.daos.lecturer_dao import LecturerDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.dtos.common import PageMeta, PageResponse
@@ -15,6 +20,7 @@ from app.v2.dtos.publication_dto import (
     PublicationUpdateResponse,
 )
 from app.v2.models.publication import Publication
+from app.v2.security import Actor, Role
 
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
@@ -51,7 +57,11 @@ class PublicationService:
             meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
         )
 
-    def create_publication(self, data: PublicationCreateRequest) -> PublicationListItemResponse:
+    def create_publication(
+        self, data: PublicationCreateRequest, *, actor: Actor
+    ) -> PublicationListItemResponse:
+        if not actor.has_any(Role.STAFF) and actor.lecturer_id not in data.lecturer_ids:
+            raise ForbiddenError("Add yourself to lecturer_ids: you can only add your own work")
         try:
             if data.doi is not None and self.publication_dao.get_by_doi(data.doi) is not None:
                 raise ConflictError("Publication DOI already exists")
@@ -85,12 +95,13 @@ class PublicationService:
         return PublicationListItemResponse.model_validate(publication)
 
     def update_publication(
-        self, publication_id: int, data: PublicationUpdateRequest
+        self, publication_id: int, data: PublicationUpdateRequest, *, actor: Actor
     ) -> PublicationUpdateResponse:
         try:
             publication = self.publication_dao.get_by_id(publication_id)
             if publication is None:
                 raise NotFoundError("Publication not found")
+            self._require_author_or_staff(publication_id, actor)
 
             values = data.model_dump(exclude_unset=True)
             if "doi" in values and values["doi"] is not None:
@@ -108,11 +119,12 @@ class PublicationService:
 
         return PublicationUpdateResponse.model_validate(updated)
 
-    def delete_publication(self, publication_id: int) -> None:
+    def delete_publication(self, publication_id: int, *, actor: Actor) -> None:
         try:
             publication = self.publication_dao.get_by_id(publication_id)
             if publication is None:
                 raise NotFoundError("Publication not found")
+            self._require_author_or_staff(publication_id, actor)
 
             self.publication_dao.delete(publication)
         except OperationalError as exc:
@@ -146,3 +158,9 @@ class PublicationService:
             items=items,
             meta=PageMeta(total=total, limit=query.limit, offset=query.offset),
         )
+
+    def _require_author_or_staff(self, publication_id: int, actor: Actor) -> None:
+        if actor.has_any(Role.STAFF):
+            return
+        if actor.lecturer_id not in self.publication_dao.get_author_ids(publication_id):
+            raise ForbiddenError("Only its authors or staff can change this publication")

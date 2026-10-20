@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Header, Query, Response, status
 
 from app.v2.controllers.params import EntryId, SubmissionId
-from app.v2.dependencies import CurrentLecturerIdDep, EntryServiceDep
+from app.v2.dependencies import CurrentActorDep, CurrentLecturerIdDep, EntryServiceDep
 from app.v2.dtos.common import ListResponse
 from app.v2.dtos.submission_dto import (
     EntryCreateRequest,
@@ -20,9 +20,10 @@ router = APIRouter(tags=["entries"])
 def list_entries(
     submission_id: SubmissionId,
     query: Annotated[EntryListQuery, Query()],
+    actor: CurrentActorDep,
     service: EntryServiceDep,
 ) -> ListResponse[EntryResponse]:
-    return service.list_entries(submission_id, query)
+    return service.list_entries(submission_id, actor, query)
 
 
 @router.post("/submissions/{submission_id}/entries", status_code=status.HTTP_201_CREATED)
@@ -40,8 +41,10 @@ def create_entry(
 
 
 @router.get("/entries/{entry_id}")
-def get_entry(entry_id: EntryId, service: EntryServiceDep, response: Response) -> EntryResponse:
-    entry = service.get_entry(entry_id)
+def get_entry(
+    entry_id: EntryId, actor: CurrentActorDep, service: EntryServiceDep, response: Response
+) -> EntryResponse:
+    entry = service.get_entry(entry_id, actor)
     response.headers["ETag"] = entry_etag(entry)
     return entry
 

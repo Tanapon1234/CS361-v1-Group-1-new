@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.v2.controllers.params import PublicationId
-from app.v2.dependencies import PublicationServiceDep
+from app.v2.dependencies import CurrentActorDep, PublicationServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.publication_dto import (
     PublicationCreateRequest,
@@ -25,9 +25,10 @@ def list_publications(
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_publication(
-    data: PublicationCreateRequest, service: PublicationServiceDep
+    data: PublicationCreateRequest, actor: CurrentActorDep, service: PublicationServiceDep
 ) -> PublicationListItemResponse:
-    return service.create_publication(data)
+    """Lecturers add their own work (they must be in lecturer_ids); staff add anyone's."""
+    return service.create_publication(data, actor=actor)
 
 
 @router.get("/{publication_id}")
@@ -39,11 +40,18 @@ def get_publication(
 
 @router.patch("/{publication_id}")
 def update_publication(
-    publication_id: PublicationId, data: PublicationUpdateRequest, service: PublicationServiceDep
+    publication_id: PublicationId,
+    data: PublicationUpdateRequest,
+    actor: CurrentActorDep,
+    service: PublicationServiceDep,
 ) -> PublicationUpdateResponse:
-    return service.update_publication(publication_id, data)
+    """Its authors or staff."""
+    return service.update_publication(publication_id, data, actor=actor)
 
 
 @router.delete("/{publication_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_publication(publication_id: PublicationId, service: PublicationServiceDep) -> None:
-    service.delete_publication(publication_id)
+def delete_publication(
+    publication_id: PublicationId, actor: CurrentActorDep, service: PublicationServiceDep
+) -> None:
+    """Its authors or staff."""
+    service.delete_publication(publication_id, actor=actor)

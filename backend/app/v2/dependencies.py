@@ -10,7 +10,7 @@ from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 
 from app.core.cognito import CognitoTokenVerifier
 from app.core.config import SettingsDep, get_settings
@@ -45,6 +45,7 @@ from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
 from app.v2.daos.submission_dao import SubmissionDAO
 from app.v2.models.lecturer import Lecturer
+from app.v2.permissions import rule_for
 from app.v2.security import Actor, HeldPosition, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
 from app.v2.services.department_service import DepartmentService
@@ -236,6 +237,14 @@ def _link_by_email(lecturer_dao: LecturerDAO, claims: dict) -> Lecturer:
 
 
 CurrentActorDep = Annotated[Actor, Depends(get_actor)]
+
+
+def authorize(request: Request, actor: CurrentActorDep) -> None:
+    """Router-level check of docs/v2/permissions.md (ROUTE_RULES) for every /api/v2 call."""
+    route = request.scope.get("route")
+    rule = rule_for(request.method, getattr(route, "path", ""))
+    if rule is None or not rule.allows(actor, request.path_params):
+        raise ForbiddenError("You do not have permission to do this")
 
 
 def get_current_lecturer_id(actor: CurrentActorDep) -> UUID:

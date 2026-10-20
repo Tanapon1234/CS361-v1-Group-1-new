@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.v2.controllers.params import RoundId
-from app.v2.dependencies import RoundServiceDep
+from app.v2.dependencies import CurrentActorDep, RoundServiceDep
 from app.v2.dtos.common import PageResponse
 from app.v2.dtos.round_dto import (
     RoundCreateRequest,
@@ -48,14 +48,18 @@ def update_round(
 def list_round_submissions(
     round_id: RoundId,
     query: Annotated[RoundSubmissionsQuery, Query()],
+    actor: CurrentActorDep,
     service: RoundServiceDep,
 ) -> PageResponse[SubmissionResponse]:
-    return service.list_round_submissions(round_id, query)
+    return service.list_round_submissions(round_id, actor, query)
 
 
 @router.get("/{round_id}/report")
 def get_round_report(
-    round_id: RoundId, query: Annotated[RoundReportQuery, Query()], service: RoundServiceDep
+    round_id: RoundId,
+    query: Annotated[RoundReportQuery, Query()],
+    actor: CurrentActorDep,
+    service: RoundServiceDep,
 ) -> RoundReportResponse:
     """Scores of every submission in the round, for the dashboard."""
-    return service.get_report(round_id, query)
+    return service.get_report(round_id, actor, query)

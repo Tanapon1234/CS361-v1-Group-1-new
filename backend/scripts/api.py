@@ -28,11 +28,18 @@ def add_target_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
+# Scripts act as admin through the dev headers (docs/v2/permissions.md); the target
+# backend must not run with ENVIRONMENT=prod. `as_()` adds the lecturer to act as.
+SCRIPT_HEADERS = {"X-Dev-Roles": "admin"}
+
+
 @contextmanager
 def open_api(base_url: str | None) -> Iterator[httpx2.Client]:
     logging.getLogger("httpx2").setLevel(logging.WARNING)  # no line per request
     if base_url:
-        with httpx2.Client(base_url=base_url.rstrip("/"), timeout=30) as client:
+        with httpx2.Client(
+            base_url=base_url.rstrip("/"), timeout=30, headers=SCRIPT_HEADERS
+        ) as client:
             yield client
         return
 
@@ -40,7 +47,7 @@ def open_api(base_url: str | None) -> Iterator[httpx2.Client]:
 
     from app.main import create_app
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(), headers=SCRIPT_HEADERS) as client:
         yield client
 
 

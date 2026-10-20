@@ -30,6 +30,8 @@ from app.v2.dtos.evidence_dto import (
 )
 from app.v2.models.enums import EvidenceStatus
 from app.v2.models.submission import EntryEvidence, Submission, SubmissionEntry
+from app.v2.security import Actor
+from app.v2.services.access import require_owner, require_view_submission
 from app.v2.services.workflow import EDITABLE_STATUSES
 from app.v2.storage.object_storage import ObjectStorage, PresignedDownload
 
@@ -51,8 +53,8 @@ class EvidenceService:
         self.storage = storage
         self.settings = settings
 
-    def list_evidence(self, entry_id: UUID) -> ListResponse[EvidenceResponse]:
-        self._require_entry(entry_id)
+    def list_evidence(self, entry_id: UUID, actor: Actor) -> ListResponse[EvidenceResponse]:
+        self._require_viewable(self._require_entry(entry_id), actor)
         items = [
             EvidenceResponse.model_validate(evidence)
             for evidence in self.evidence_dao.list_by_entry(entry_id)
@@ -96,8 +98,10 @@ class EvidenceService:
             expires_at=upload.expires_at,
         )
 
-    def get_evidence(self, evidence_id: UUID) -> EvidenceResponse:
-        return EvidenceResponse.model_validate(self._require_evidence(evidence_id))
+    def get_evidence(self, evidence_id: UUID, actor: Actor) -> EvidenceResponse:
+        evidence = self._require_evidence(evidence_id)
+        self._require_viewable(self._require_entry(evidence.entry_id), actor)
+        return EvidenceResponse.model_validate(evidence)
 
     def update_evidence(
         self, evidence_id: UUID, actor_id: UUID, data: EvidenceUpdateRequest, if_match: str | None
@@ -126,9 +130,9 @@ class EvidenceService:
             raise BadRequestError("size_bytes is set when confirming the upload")
         return EvidenceResponse.model_validate(self.evidence_dao.update(evidence, values))
 
-    def get_download(self, evidence_id: UUID) -> PresignedDownload:
+    def get_download(self, evidence_id: UUID, actor: Actor) -> PresignedDownload:
         evidence = self._require_evidence(evidence_id)
-        # TODO(auth): only people who may see the submission
+        self._require_viewable(self._require_entry(evidence.entry_id), actor)
         if evidence.status is not EvidenceStatus.UPLOADED:
             raise ConflictError("The file has not been uploaded yet")
         return self.storage.create_presigned_download(
@@ -158,6 +162,12 @@ class EvidenceService:
             raise NotFoundError("Evidence not found")
         return evidence
 
+    def _require_viewable(self, entry: SubmissionEntry, actor: Actor) -> None:
+        submission = self.submission_dao.get_by_id(entry.submission_id)
+        if submission is None:
+            raise NotFoundError("Submission not found")
+        require_view_submission(actor, submission)
+
     def _require_editable(self, entry: SubmissionEntry, actor_id: UUID) -> Submission:
         actor = self.lecturer_dao.get_by_id(actor_id)
         if actor is None or not actor.is_active:
@@ -165,7 +175,7 @@ class EvidenceService:
         submission = self.submission_dao.get_by_id(entry.submission_id)
         if submission is None:
             raise NotFoundError("Submission not found")
-        # TODO(auth): only the owner (submission.lecturer_id == actor_id)
+        require_owner(actor_id, submission)
         if submission.status not in EDITABLE_STATUSES:
             raise ConflictError(f"The submission is {submission.status} and can no longer change")
         return submission

@@ -9,7 +9,7 @@ from sqlalchemy import Engine, text
 from sqlmodel import Session, create_engine
 
 from app.core.database import get_session
-from app.v2.dependencies import get_object_storage
+from app.v2.dependencies import get_actor, get_object_storage
 from tests.v2.integration.support import DATABASE_URL, MIGRATIONS, FakeStorage
 
 
@@ -47,5 +47,7 @@ def api(app: FastAPI, engine: Engine, storage: FakeStorage) -> Iterator[TestClie
 
     app.dependency_overrides[get_session] = session_override
     app.dependency_overrides[get_object_storage] = lambda: storage
-    with TestClient(app) as client:
+    # The real caller check (dev headers): admin by default, X-Lecturer-Id per request
+    app.dependency_overrides.pop(get_actor, None)
+    with TestClient(app, headers={"X-Dev-Roles": "admin"}) as client:
         yield client
