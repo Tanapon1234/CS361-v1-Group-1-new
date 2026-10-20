@@ -43,6 +43,7 @@ from app.v2.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
 from app.v2.daos.submission_dao import SubmissionDAO
+from app.v2.models.lecturer import Lecturer
 from app.v2.security import Actor, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
 from app.v2.services.department_service import DepartmentService
@@ -189,9 +190,9 @@ def get_actor(
         if verifier is None:
             raise UnauthorizedError("Sign-in is not configured on this server")
         claims = verifier.verify(token)
-        lecturer = lecturer_dao.get_by_cognito_sub(claims["sub"])
-        if lecturer is None:
-            raise ForbiddenError("This account is not linked to a lecturer record")
+        lecturer = lecturer_dao.get_by_cognito_sub(claims["sub"]) or _link_by_email(
+            lecturer_dao, claims
+        )
         if not lecturer.is_active:
             raise ForbiddenError("This lecturer account is deactivated")
         groups = claims.get("cognito:groups") or []
@@ -204,6 +205,19 @@ def get_actor(
         return Actor(x_lecturer_id, roles)
 
     raise UnauthorizedError("Sign-in required")
+
+
+def _link_by_email(lecturer_dao: LecturerDAO, claims: dict) -> Lecturer:
+    """First sign-in: the lecturer record with the account's verified email gets its `sub`."""
+    email = claims.get("email")
+    if not email or claims.get("email_verified") not in (True, "true"):
+        raise ForbiddenError("This account is not linked to a lecturer record")
+    lecturer = lecturer_dao.get_by_email(email)
+    if lecturer is None:
+        raise ForbiddenError(f"No lecturer record has the email {email}; ask staff to add one")
+    if lecturer.cognito_sub is not None:
+        raise ForbiddenError("This lecturer is already linked to another account")
+    return lecturer_dao.update(lecturer, {"cognito_sub": claims["sub"]})
 
 
 CurrentActorDep = Annotated[Actor, Depends(get_actor)]

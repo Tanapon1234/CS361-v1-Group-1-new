@@ -11,7 +11,8 @@ class LecturerDAO(ABC):
     def get_by_id(self, lecturer_id: UUID) -> Lecturer | None: ...
 
     @abstractmethod
-    def get_by_email(self, email: str) -> Lecturer | None: ...
+    def get_by_email(self, email: str) -> Lecturer | None:
+        """Case-insensitive."""
 
     @abstractmethod
     def get_by_cognito_sub(self, cognito_sub: str) -> Lecturer | None: ...

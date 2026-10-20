@@ -15,7 +15,8 @@ class SqlLecturerDAO(SqlDAO, LecturerDAO):
         return self.session.get(Lecturer, lecturer_id)
 
     def get_by_email(self, email: str) -> Lecturer | None:
-        statement = select(Lecturer).where(Lecturer.email == email)
+        # Case-insensitive: Cognito lower-cases emails, people type them however they like
+        statement = select(Lecturer).where(func.lower(Lecturer.email) == email.lower())
         return self.session.exec(statement).first()
 
     def get_by_cognito_sub(self, cognito_sub: str) -> Lecturer | None:

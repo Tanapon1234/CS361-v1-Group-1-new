@@ -285,6 +285,7 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 
 - **จริง:** ส่ง `Authorization: Bearer <Cognito ID token>` backend ตรวจลายเซ็น (RS256), client, pool, อายุ และต้องเป็น ID token แล้วหาอาจารย์ที่ `cognito_sub` ตรงกับ `sub` บทบาทมาจาก `cognito:groups` (ทุกคนได้ `lecturer` เสมอ) ตั้งค่าด้วย `COGNITO_*` ใน `.env`
 - token ไม่ถูกต้องหรือหมดอายุได้ 401, บัญชีที่ยังไม่ผูกกับอาจารย์หรืออาจารย์ที่ปิดใช้งานได้ 403
+- **login ครั้งแรก:** ถ้ายังไม่มีอาจารย์ที่ `cognito_sub` ตรง ระบบหาอาจารย์ที่ email ตรงกับ email ของบัญชี (ต้อง verified, ไม่สนตัวพิมพ์) ที่ยังไม่ผูกกับบัญชีอื่น แล้วบันทึก `cognito_sub` ให้ ถ้าไม่เจอได้ 403 เจ้าหน้าที่ / ผู้บริหารที่ไม่ใช่อาจารย์ก็ต้องมีแถวใน `lecturer` (ใช้เป็นตัวตนในระบบ) หรือ staff ตั้ง `cognito_sub` ให้เองผ่าน `PATCH /lecturers/{id}`
 - **ตอนพัฒนา / เทสต์ / script (ไม่ใช่ prod):** `X-Lecturer-Id` แทนตัวอาจารย์ และ `X-Dev-Roles: staff,admin` เพิ่มบทบาท ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod` หรือ `DEV_AUTH_HEADER_ENABLED=false`
 - endpoint ที่ทำในนามคน (สร้างใบ, อนุมัติ, ประเมิน) ใช้ `CurrentLecturerIdDep` ซึ่งต้องเป็นอาจารย์ (ไม่ใช่ script ที่มีแค่บทบาท)
 - ข้อยกเว้นคือการประเมิน ระบบเช็คแล้วว่าผู้ให้ค่าถือตำแหน่งตาม `assessor_position` ของ item และไม่ใช่เจ้าของใบ เพราะต้องบันทึก `position_used` ลงตาราง
