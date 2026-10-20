@@ -12,6 +12,7 @@ import { ActionForm } from '@/components/manage/action-form';
 import { LecturerFields } from '@/components/manage/lecturer-fields';
 import { LecturerHeader } from '@/components/manage/lecturer-tabs';
 import { EmptyNote, Field, Section, Table, Td, inputClass } from '@/components/manage/ui';
+import { keepToSelf } from '@/lib/auth/guards';
 import { canEditLecturer, canManage } from '@/lib/auth/permissions';
 import { getLecturer, listDepartments, listPositions } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -22,6 +23,7 @@ export const metadata: Metadata = { title: 'ข้อมูลอาจารย
 
 export default async function LecturerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await keepToSelf(id);
   const lecturer = await getLecturer(id);
   if (!lecturer) notFound();
 

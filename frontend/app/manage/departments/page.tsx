@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { createDepartment, updateDepartment } from '@/app/manage/actions/people';
 import { ActionForm } from '@/components/manage/action-form';
 import { Checkbox, EmptyNote, Field, PageHeader, Section, inputClass } from '@/components/manage/ui';
+import { leaveIfLecturerOnly } from '@/lib/auth/guards';
 import { canManage } from '@/lib/auth/permissions';
 import { listDepartments } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -10,6 +11,7 @@ import { getCurrentUser } from '@/lib/backend/client';
 export const metadata: Metadata = { title: 'สาขาวิชา' };
 
 export default async function DepartmentsPage() {
+  await leaveIfLecturerOnly();
   const [departments, me] = await Promise.all([listDepartments(), getCurrentUser()]);
   const manage = canManage(me);
 

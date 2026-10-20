@@ -15,6 +15,7 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
+import { leaveIfLecturerOnly } from '@/lib/auth/guards';
 import { canManage } from '@/lib/auth/permissions';
 import { PAGE_SIZE, listExpertise, settle } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -26,6 +27,7 @@ export default async function ExpertisePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await leaveIfLecturerOnly();
   const params = await searchParams;
   const q = param(params.q);
   const offset = intParam(params.offset) ?? 0;

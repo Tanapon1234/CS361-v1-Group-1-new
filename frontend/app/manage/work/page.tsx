@@ -26,6 +26,8 @@ import {
   listRubricVersions,
   settle,
 } from '@/lib/backend/api';
+import { isLecturerOnly } from '@/lib/auth/permissions';
+import { getCurrentUser } from '@/lib/backend/client';
 import { formatNumber, formatScore } from '@/lib/backend/labels';
 import type { LecturerWork, RubricCategory } from '@/types/backend';
 
@@ -49,12 +51,15 @@ export default async function LecturerWorkPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const lecturerId = UUID.test(param(params.lecturer) ?? '') ? param(params.lecturer) : undefined;
+  const me = await getCurrentUser();
+  // A plain lecturer sees their own work only, so there is no lecturer to pick
+  const own = isLecturerOnly(me) && me ? me.lecturer.lecturer_id : null;
+  const lecturerId = own ?? (UUID.test(param(params.lecturer) ?? '') ? param(params.lecturer) : undefined);
   const year = intParam(params.year);
   const category = param(params.category) || undefined;
 
   const [lecturers, rounds, categories, work] = await Promise.all([
-    listLecturers({ limit: MAX_PAGE }),
+    own ? Promise.resolve(null) : listLecturers({ limit: MAX_PAGE }),
     listRounds(),
     categoryOptions(),
     // A failed search must look different from an empty one, so it does not throw
@@ -68,24 +73,28 @@ export default async function LecturerWorkPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ผลงานรายปี"
-        description="ดูภาระงานและผลงานตีพิมพ์ของอาจารย์ทีละคน เลือกปีการศึกษาและหมวดงานได้"
+        title={own ? 'ผลงานรายปีของฉัน' : 'ผลงานรายปี'}
+        description={
+          own
+            ? 'ภาระงานและผลงานตีพิมพ์ของคุณ เลือกปีการศึกษาและหมวดงานได้'
+            : 'ดูภาระงานและผลงานตีพิมพ์ของอาจารย์ทีละคน เลือกปีการศึกษาและหมวดงานได้'
+        }
       />
 
       <Section title="ค้นหา">
-        <form className="grid gap-3 sm:grid-cols-[2fr_1fr_1.5fr_auto] sm:items-end">
-          <Field label="อาจารย์">
+        <form className={`grid gap-3 sm:items-end ${own ? 'sm:grid-cols-[1fr_1.5fr_auto]' : 'sm:grid-cols-[2fr_1fr_1.5fr_auto]'}`}>
+          {own ? null : <Field label="อาจารย์">
             <select name="lecturer" defaultValue={lecturerId ?? ''} required className={inputClass}>
               <option value="" disabled>
                 เลือกอาจารย์
               </option>
-              {lecturers.items.map((lecturer) => (
+              {lecturers?.items.map((lecturer) => (
                 <option key={lecturer.lecturer_id} value={lecturer.lecturer_id}>
                   {lecturer.name_th}
                 </option>
               ))}
             </select>
-          </Field>
+          </Field>}
           <Field label="ปีการศึกษา">
             <select name="year" defaultValue={year ?? ''} className={inputClass}>
               <option value="">ทุกปี</option>

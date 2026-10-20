@@ -17,6 +17,13 @@ export const isAdmin = (me: Me | null) => hasRole(me, 'admin');
 /** Sees everyone's submissions and reports */
 export const viewsAll = (me: Me | null) => hasRole(me, 'staff', 'reviewer', 'executive');
 
+/**
+ * Signed in with no role beyond "lecturer": sees and edits only their own profile, works
+ * and workload sheets. Master data, the lecturer directory and the rubric are not for them.
+ */
+export const isLecturerOnly = (me: Me | null) =>
+  !!me && !hasRole(me, 'staff', 'reviewer', 'executive');
+
 export const isSelf = (me: Me | null, lecturerId: string) => me?.lecturer.lecturer_id === lecturerId;
 
 /** A lecturer's profile data: themselves or staff */

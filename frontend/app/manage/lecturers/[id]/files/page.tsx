@@ -10,6 +10,7 @@ import { ActionForm } from '@/components/manage/action-form';
 import { FileUpload } from '@/components/manage/file-upload';
 import { LecturerHeader } from '@/components/manage/lecturer-tabs';
 import { Notice, Section, linkClass } from '@/components/manage/ui';
+import { keepToSelf } from '@/lib/auth/guards';
 import { canEditLecturer } from '@/lib/auth/permissions';
 import { getLecturer } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -18,6 +19,7 @@ export const metadata: Metadata = { title: 'รูปและ CV' };
 
 export default async function LecturerFilesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await keepToSelf(id);
   const [lecturer, me] = await Promise.all([getLecturer(id), getCurrentUser()]);
   if (!lecturer) notFound();
   const editable = canEditLecturer(me, id);
