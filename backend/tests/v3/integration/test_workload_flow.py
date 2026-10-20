@@ -184,6 +184,45 @@ def test_full_workload_flow(api: TestClient, storage: FakeStorage) -> None:
     assert (summary["pending_assessments"], summary["meets_min_teaching_credits"]) == (1, False)
     ok(api.get(f"{v2}/submissions/{sub['id']}/totals"), 409)  # not sent yet
 
+    # --- a line can claim a publication the owner wrote, and only that ---
+    mine = ok(
+        api.post(
+            f"{v2}/publications",
+            json={"title": "ของฉัน", "lecturer_ids": [owner]},
+            headers=as_(owner),
+        ),
+        201,
+    )
+    theirs = ok(
+        api.post(
+            f"{v2}/publications",
+            json={"title": "ของเขา", "lecturer_ids": [chair]},
+            headers=as_(chair),
+        ),
+        201,
+    )
+    claimed = ok(
+        api.patch(
+            f"{v2}/entries/{e1['id']}",
+            json={"publication_id": mine["publication_id"]},
+            headers=as_(owner),
+        )
+    )
+    assert claimed["publication_id"] == mine["publication_id"]
+    ok(
+        api.patch(
+            f"{v2}/entries/{e1['id']}",
+            json={"publication_id": theirs["publication_id"]},
+            headers=as_(owner),
+        ),
+        400,
+    )
+    ok(
+        api.patch(f"{v2}/entries/{e1['id']}", json={"publication_id": 999999}, headers=as_(owner)),
+        400,
+    )
+    ok(api.delete(f"{v2}/publications/{mine['publication_id']}", headers=as_(owner)), 409)
+
     got = api.get(f"{v2}/entries/{e1['id']}")
     ok(
         api.patch(

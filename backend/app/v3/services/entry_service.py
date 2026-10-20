@@ -17,6 +17,7 @@ from app.v2.models.rubric import RubricItem
 from app.v2.models.submission import Submission, SubmissionEntry
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
+from app.v3.daos.publication_dao import PublicationDAO
 from app.v3.daos.rubric_dao import RubricDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.common import ListMeta, ListResponse
@@ -44,6 +45,7 @@ class EntryService:
         evidence_dao: EvidenceDAO,
         storage: ObjectStorage,
         score_keeper: ScoreKeeper,
+        publication_dao: PublicationDAO,
     ) -> None:
         self.submission_dao = submission_dao
         self.rubric_dao = rubric_dao
@@ -51,6 +53,7 @@ class EntryService:
         self.evidence_dao = evidence_dao
         self.storage = storage
         self.score_keeper = score_keeper
+        self.publication_dao = publication_dao
 
     def list_entries(
         self, submission_id: UUID, actor: Actor, query: EntryListQuery
@@ -77,6 +80,7 @@ class EntryService:
         rubric = self.score_keeper.rubric_of(submission)
         values = data.model_dump()
         item = self._check(submission, rubric, values, entry_id=None)
+        self._check_publication(submission, values.get("publication_id"))
 
         entry = SubmissionEntry(submission_id=submission_id, **values)
         result = self.score_keeper.score(entry, item, rubric)
@@ -101,6 +105,8 @@ class EntryService:
         values = data.model_dump(exclude_unset=True)
         merged = entry.model_dump() | values
         item = self._check(submission, rubric, merged, entry_id=entry.id)
+        if "publication_id" in values:
+            self._check_publication(submission, values["publication_id"])
 
         result = self.score_keeper.score(SubmissionEntry.model_validate(merged), item, rubric)
         values |= {"weight_applied": result.weight_applied, "score": result.score}
@@ -159,6 +165,15 @@ class EntryService:
                 f"Section {section.code} allows at most {section.max_entries} entries"
             )
         return item
+
+    def _check_publication(self, submission: Submission, publication_id: int | None) -> None:
+        """A line may claim only a publication the sheet's owner is an author of."""
+        if publication_id is None:
+            return
+        if self.publication_dao.get_by_id(publication_id) is None:
+            raise BadRequestError("publication_id is not a publication")
+        if submission.lecturer_id not in self.publication_dao.get_author_ids(publication_id):
+            raise BadRequestError("You can only claim a publication you are an author of")
 
     def _require_submission(self, submission_id: UUID) -> Submission:
         submission = self.submission_dao.get_by_id(submission_id)

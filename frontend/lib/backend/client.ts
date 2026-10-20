@@ -8,7 +8,7 @@ import { DEV_LECTURER_COOKIE, DEV_ROLES_COOKIE, ID_TOKEN_COOKIE } from '@/lib/au
 import type { Me, ProblemDetail } from '@/types/backend';
 
 /**
- * Client for the FastAPI backend (`backend/`, every path under `/api/v2`).
+ * Client for the FastAPI backend (`backend/`, every path under `/api/v3`).
  *
  * Server-only: pages fetch in Server Components and change data in Server Actions, so the
  * backend URL and the caller's token never reach the browser. Requests are never cached:
@@ -75,7 +75,7 @@ interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: Query): string {
-  const url = new URL(`${BACKEND_API_BASE_URL}/api/v2${path}`);
+  const url = new URL(`${BACKEND_API_BASE_URL}/api/v3${path}`);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, String(value));

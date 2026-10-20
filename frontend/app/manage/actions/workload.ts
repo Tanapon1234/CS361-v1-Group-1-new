@@ -108,6 +108,7 @@ function entryBody(form: FormData): Record<string, unknown> | string {
   return {
     item_id: int(form, 'item_id'),
     title: text(form, 'title'),
+    publication_id: int(form, 'publication_id'),
     course_code: text(form, 'course_code'),
     section_no: text(form, 'section_no'),
     student_count: int(form, 'student_count'),

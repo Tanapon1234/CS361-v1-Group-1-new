@@ -31,8 +31,8 @@ import {
 } from '@/components/manage/ui';
 import { canSign } from '@/lib/auth/permissions';
 import {
-  MAX_PAGE,
   getLecturer,
+  getPublication,
   getRound,
   getRubricForm,
   getSubmission,
@@ -42,6 +42,8 @@ import {
   listEntryAssessments,
   listEvidence,
   listLecturers,
+  listMyPublications,
+  MAX_PAGE,
   settle,
 } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -101,6 +103,19 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const editable = isOwner && EDITABLE_STATUSES.includes(submission.status);
   const step = WORKFLOW_STEP[submission.status];
   const signs = !!step && canSign(me, step.role, submission);
+
+  // The owner's publications to link a line to; titles of the ones already linked
+  const myPublications = editable
+    ? (await listMyPublications(submission.lecturer_id, { limit: MAX_PAGE })).items
+    : [];
+  const linkedIds = [
+    ...new Set(submission.entries.map((entry) => entry.publication_id).filter((v): v is number => !!v)),
+  ];
+  const linked = new Map(
+    (await Promise.all(linkedIds.map((publicationId) => getPublication(publicationId))))
+      .filter((publication) => publication !== null)
+      .map((publication) => [publication.publication_id, publication])
+  );
 
   // Evidence for every entry, assessments for the ranged ones (small numbers per form)
   const [evidence, assessments] = await Promise.all([
@@ -248,7 +263,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
       {editable ? (
         <Section title="เพิ่มรายการ" description="เลือกรายการตามเกณฑ์ ระบบจะคำนวณคะแนนให้เอง">
           <ActionForm action={createEntry.bind(null, id)} submitLabel="เพิ่มรายการ" resetOnSuccess>
-            <EntryFields form={form} />
+            <EntryFields form={form} publications={myPublications} />
           </ActionForm>
         </Section>
       ) : (
@@ -297,7 +312,15 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                               .filter(Boolean)
                               .join(' · ')}
                           </p>
-                          {entry.note ? <p className="mt-1 text-xs text-ink-muted">หมายเหตุ: {entry.note}</p> : null}
+                          {entry.publication_id && linked.get(entry.publication_id) ? (
+                            <p className="mt-1 text-xs text-ink-muted">
+                              ผลงานที่ผูก:{' '}
+                              <Link href={`/manage/publications/${entry.publication_id}`} className={linkClass}>
+                                {linked.get(entry.publication_id)?.title}
+                              </Link>
+                            </p>
+                          ) : null}
+          {entry.note ? <p className="mt-1 text-xs text-ink-muted">หมายเหตุ: {entry.note}</p> : null}
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-ink">{formatScore(entry.score)}</p>
@@ -368,7 +391,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                           <summary className="cursor-pointer text-sm font-semibold text-brand">แก้ไข / ลบรายการ</summary>
                           <div className="mt-3 space-y-3">
                             <ActionForm action={updateEntry.bind(null, entry.id)} variant="secondary">
-                              <EntryFields form={form} entry={entry} />
+                              <EntryFields form={form} entry={entry} publications={myPublications} />
                             </ActionForm>
                             <ActionForm
                               inline

@@ -31,6 +31,7 @@ import {
   listRubricCategories,
   listRubricVersions,
   getRubricForm,
+  listMyPublications,
   listSubmissions,
   settle,
 } from '@/lib/backend/api';
@@ -73,6 +74,7 @@ export default async function LecturerWorkPage({
   const addEditable = !!addSheet && EDITABLE_STATUSES.includes(addSheet.status);
   // The rubric of that round's version, to pick the item and show which fields it needs
   const addForm = addRound && addEditable ? await getRubricForm(addRound.rubric_version_id) : null;
+  const myPublications = own && addForm ? (await listMyPublications(own, { limit: MAX_PAGE })).items : [];
   const [lecturers, rounds, categories, work] = await Promise.all([
     own ? Promise.resolve(null) : listLecturers({ limit: MAX_PAGE }),
     listRounds(),
@@ -191,7 +193,7 @@ export default async function LecturerWorkPage({
                     submitLabel="เพิ่มเข้าใบภาระงาน"
                     resetOnSuccess
                   >
-                    <EntryFields form={addForm} />
+                    <EntryFields form={addForm} publications={myPublications} />
                   </ActionForm>
                 </>
               ) : addSheet ? (
