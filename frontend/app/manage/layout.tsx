@@ -1,0 +1,72 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+
+import { signOut } from '@/app/manage/actions/session';
+import { ManageSidebar } from '@/components/manage/sidebar';
+import { secondaryButtonClass } from '@/components/manage/ui';
+import { getLecturer } from '@/lib/backend/api';
+import { BackendError, currentLecturerId } from '@/lib/backend/client';
+
+export const metadata: Metadata = {
+  title: { default: 'ระบบจัดการ', template: '%s | ระบบจัดการ' },
+  robots: { index: false },
+};
+
+/** Who the user is acting as, shown on every /manage page */
+async function CurrentUserBar() {
+  const lecturerId = await currentLecturerId();
+  let name: string | null = null;
+  let problem: string | null = null;
+  if (lecturerId) {
+    try {
+      name = (await getLecturer(lecturerId))?.name_th ?? null;
+    } catch (error) {
+      problem = error instanceof BackendError ? error.message : 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ';
+    }
+  }
+
+  return (
+    <div className="border-b border-line bg-surface-alt">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm sm:px-6">
+        <p className="text-ink-muted">
+          {problem ? (
+            <span className="text-brand">{problem}</span>
+          ) : name ? (
+            <>
+              กำลังใช้งานในชื่อ <strong className="text-ink">{name}</strong>
+            </>
+          ) : (
+            'ยังไม่ได้เลือกผู้ใช้งาน'
+          )}
+        </p>
+        <div className="flex gap-2">
+          <Link href="/manage/switch-user" className={secondaryButtonClass}>
+            {name ? 'สลับผู้ใช้' : 'เลือกผู้ใช้งาน'}
+          </Link>
+          {name ? (
+            <form action={signOut}>
+              <button type="submit" className={secondaryButtonClass}>
+                ออกจากระบบ
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ManageLayout({ children }: { children: ReactNode }) {
+  return (
+    <div>
+      <CurrentUserBar />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-8 lg:py-10">
+        <aside className="mb-6 lg:mb-0">
+          <ManageSidebar />
+        </aside>
+        <div className="min-w-0">{children}</div>
+      </div>
+    </div>
+  );
+}

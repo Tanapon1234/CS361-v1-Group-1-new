@@ -14,7 +14,8 @@ interface NavItem {
 }
 
 /**
- * Main nav per design #30 — V1 only ships the "Faculties" destination.
+ * Main nav per design #30 — ships "Faculties" (public directory) and "ระบบจัดการ"
+ * (/manage: workload and lecturer data, backed by the FastAPI backend).
  * Items without a page render as <button aria-disabled>, which stays
  * Tab-reachable, instead of a <span> that looks like a link but is
  * unreachable by keyboard.
@@ -26,6 +27,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'คณาจารย์', href: '/faculties' },
   { label: 'ข่าวสาร', href: null },
   { label: 'ติดต่อ', href: null },
+  { label: 'ระบบจัดการ', href: '/manage' },
 ];
 
 const COMING_SOON = 'อยู่ระหว่างพัฒนา';
@@ -62,7 +64,7 @@ export function Header() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isFacultiesActive = pathname === '/faculties' || pathname.startsWith('/faculties/');
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   // Escape closes the mobile menu
   useEffect(() => {
@@ -94,9 +96,9 @@ export function Header() {
               <Link
                 key={item.label}
                 href={item.href}
-                aria-current={isFacultiesActive ? 'page' : undefined}
+                aria-current={isActive(item.href) ? 'page' : undefined}
                 className={
-                  isFacultiesActive
+                  isActive(item.href)
                     ? 'relative py-7 text-sm font-bold text-brand after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-full after:bg-brand after:content-[""]'
                     : 'py-7 text-sm font-semibold text-ink-muted transition-colors hover:text-brand'
                 }
@@ -140,7 +142,7 @@ export function Header() {
                 key={item.label}
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
-                aria-current={isFacultiesActive ? 'page' : undefined}
+                aria-current={isActive(item.href) ? 'page' : undefined}
                 className="flex items-center gap-2 border-b border-line-soft py-3 text-sm font-bold text-brand last:border-b-0"
               >
                 <span className="h-4 w-1 rounded-full bg-brand" aria-hidden="true" />

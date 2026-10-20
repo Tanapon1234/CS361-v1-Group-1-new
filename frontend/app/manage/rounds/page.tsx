@@ -1,0 +1,66 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+
+import { createRound } from '@/app/manage/actions/workload';
+import { ActionForm } from '@/components/manage/action-form';
+import { RoundFields } from '@/components/manage/round-fields';
+import { Badge, EmptyNote, Notice, PageHeader, Section, Table, Td, linkClass } from '@/components/manage/ui';
+import { listRounds, listRubricVersions } from '@/lib/backend/api';
+import { formatDate, formatDateTime } from '@/lib/backend/labels';
+
+export const metadata: Metadata = { title: 'รอบประเมิน' };
+
+export default async function RoundsPage() {
+  const [rounds, versions] = await Promise.all([listRounds(), listRubricVersions()]);
+  const versionCode = new Map(versions.items.map((v) => [v.id, v.code]));
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="รอบประเมิน" description="เปิด/ปิดรอบ ดูใบภาระงานในรอบ และสรุปคะแนน" />
+
+      <Section title="รอบทั้งหมด">
+        {rounds.items.length === 0 ? (
+          <EmptyNote>ยังไม่มีรอบ</EmptyNote>
+        ) : (
+          <Table head={['รอบ', 'ช่วงผลงาน', 'เกณฑ์', 'กำหนดส่ง', 'สถานะ', '']}>
+            {rounds.items.map((round) => (
+              <tr key={round.id}>
+                <Td className="font-medium text-ink">{round.name_th}</Td>
+                <Td>
+                  {formatDate(round.period_start)} – {formatDate(round.period_end)}
+                </Td>
+                <Td>{versionCode.get(round.rubric_version_id) ?? '–'}</Td>
+                <Td>{formatDateTime(round.submit_due_at)}</Td>
+                <Td>
+                  {round.is_open ? (
+                    <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">เปิดกรอก</Badge>
+                  ) : (
+                    <Badge>ปิด</Badge>
+                  )}
+                </Td>
+                <Td>
+                  <Link href={`/manage/rounds/${round.id}`} className={linkClass}>
+                    เปิด
+                  </Link>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Section>
+
+      <Section title="เปิดรอบใหม่">
+        {versions.items.length === 0 ? (
+          <Notice>
+            ต้องมีเกณฑ์ภาระงานก่อน สร้างได้ที่{' '}
+            <Link href="/manage/rubrics" className={linkClass}>เกณฑ์ภาระงาน</Link>
+          </Notice>
+        ) : (
+          <ActionForm action={createRound} submitLabel="สร้างรอบ">
+            <RoundFields versions={versions.items} />
+          </ActionForm>
+        )}
+      </Section>
+    </div>
+  );
+}
