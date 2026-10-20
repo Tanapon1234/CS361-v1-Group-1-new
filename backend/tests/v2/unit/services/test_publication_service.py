@@ -530,3 +530,30 @@ def test_list_lecturer_publications_database_unavailable(
 
     with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
         service.list_lecturer_publications(lecturer_id, PublicationListQuery())
+
+
+def test_create_publication_saves_authors_in_order(
+    service: PublicationService, publication_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    first, second = uuid4(), uuid4()
+    lecturer_dao.get_by_id.side_effect = lambda lecturer_id: Lecturer(
+        lecturer_id=lecturer_id, name_th="สมชาย", email=f"{lecturer_id}@example.ac.th"
+    )
+    publication_dao.get_by_doi.return_value = None
+    publication_dao.add.return_value = publication(publication_id=5)
+
+    service.create_publication(PublicationCreateRequest(title="T", lecturer_ids=[first, second]))
+
+    assert "lecturer_ids" not in publication_dao.add.call_args.args[0].model_dump()
+    publication_dao.set_authors.assert_called_once_with(5, [first, second])
+
+
+def test_create_publication_with_unknown_author_saves_nothing(
+    service: PublicationService, publication_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    publication_dao.get_by_doi.return_value = None
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError):
+        service.create_publication(PublicationCreateRequest(title="T", lecturer_ids=[uuid4()]))
+    publication_dao.add.assert_not_called()
