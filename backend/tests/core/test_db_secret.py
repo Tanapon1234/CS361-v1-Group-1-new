@@ -65,3 +65,18 @@ def test_engine_reads_the_secret_on_connect(monkeypatch: pytest.MonkeyPatch) -> 
         database.get_engine.cache_clear()
 
     assert cparams == {"user": "app", "password": "from-secret"}
+
+
+def test_iam_token_is_used_as_password_and_cached() -> None:
+    from app.core.db_secret import IamTokenCredentials
+
+    client = MagicMock()
+    client.generate_db_auth_token.return_value = "token-1"
+    credentials = IamTokenCredentials("db.example", 5432, "postgres", "ap-southeast-1", 600, client)
+
+    assert credentials.connect_params() == {"user": "postgres", "password": "token-1"}
+    credentials.connect_params()
+
+    client.generate_db_auth_token.assert_called_once_with(
+        DBHostname="db.example", Port=5432, DBUsername="postgres"
+    )

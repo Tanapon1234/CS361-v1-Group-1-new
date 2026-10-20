@@ -89,12 +89,33 @@ Parameters:
     AllowedValues: ["true", "false"]
     Description: Create the S3 and Secrets Manager endpoints (false if the VPC has them or a NAT).
 
+  AttachToVpc:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      false runs the Lambda outside the VPC (Aurora Express Configuration, which has no VPC
+      placement). The Lambda signs in with an IAM token, so DBClusterResourceId is required.
+
+  DBClusterResourceId:
+    Type: String
+    Default: ""
+    Description: Aurora DbClusterResourceId (cluster-XXXX); allows rds-db:connect when AttachToVpc is false.
+
+  DBUser:
+    Type: String
+    Default: postgres
+    Description: Database user for IAM sign-in when AttachToVpc is false.
+
   LogRetentionDays:
     Type: Number
     Default: 14
 
 Conditions:
-  MakeEndpoints: !Equals [!Ref CreateVpcEndpoints, "true"]
+  InVpc: !Equals [!Ref AttachToVpc, "true"]
+  MakeEndpoints: !And
+    - !Condition InVpc
+    - !Equals [!Ref CreateVpcEndpoints, "true"]
   MakeS3Endpoint: !And
     - !Condition MakeEndpoints
     - !Not [!Equals [!Join ["", !Ref PrivateRouteTableIds], ""]]
@@ -102,6 +123,7 @@ Conditions:
 Resources:
   BackendSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: InVpc
     Properties:
       GroupDescription: !Sub "${ProjectName}-${Environment} backend Lambda"
       VpcId: !Ref VpcId
@@ -111,6 +133,7 @@ Resources:
 
   DBIngressFromBackend:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: InVpc
     Properties:
       GroupId: !Ref DBSecurityGroupId
       IpProtocol: tcp
@@ -171,6 +194,13 @@ Resources:
                 Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref DBSecretArn
+              - Sid: ConnectWithIamToken
+                Effect: Allow
+                Action: rds-db:connect
+                Resource: !If
+                  - InVpc
+                  - !Sub "arn:${AWS::Partition}:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/${DBUser}"
+                  - !Sub "arn:${AWS::Partition}:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBClusterResourceId}/${DBUser}"
               - Sid: LecturerFilesAndEvidence
                 Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
@@ -203,9 +233,11 @@ Resources:
       Code:
         S3Bucket: !Ref CodeS3Bucket
         S3Key: !Ref CodeS3Key
-      VpcConfig:
-        SubnetIds: !Ref PrivateSubnetIds
-        SecurityGroupIds: [!Ref BackendSecurityGroup]
+      VpcConfig: !If
+        - InVpc
+        - SubnetIds: !Ref PrivateSubnetIds
+          SecurityGroupIds: [!Ref BackendSecurityGroup]
+        - !Ref AWS::NoValue
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
@@ -214,7 +246,9 @@ Resources:
           DB_PORT: "5432"
           DB_NAME: !Ref DBName
           DB_SSLMODE: require
-          DB_SECRET_ARN: !Ref DBSecretArn
+          DB_SECRET_ARN: !If [InVpc, !Ref DBSecretArn, ""]
+          DB_IAM_AUTH: !If [InVpc, "false", "true"]
+          DB_USER: !Ref DBUser
           # One warm container serves one request at a time
           DB_POOL_SIZE: "1"
           DB_MAX_OVERFLOW: "0"

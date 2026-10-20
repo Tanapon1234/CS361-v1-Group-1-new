@@ -9,7 +9,7 @@ from sqlalchemy import Engine, event
 from sqlmodel import Session, create_engine
 
 from app.core.config import get_settings
-from app.core.db_secret import SecretCredentials
+from app.core.db_secret import IamTokenCredentials, SecretCredentials
 
 
 @lru_cache
@@ -25,13 +25,19 @@ def get_engine() -> Engine:
         pool_timeout=settings.db_pool_timeout_seconds,
         pool_recycle=settings.db_pool_recycle_seconds,
     )
-    if settings.db_secret_arn:
+    credentials: SecretCredentials | IamTokenCredentials | None = None
+    if settings.db_iam_auth:
+        credentials = IamTokenCredentials(
+            settings.db_host, settings.db_port, settings.db_user, settings.aws_region
+        )
+    elif settings.db_secret_arn:
         credentials = SecretCredentials(
             settings.db_secret_arn, settings.aws_region, settings.db_secret_cache_seconds
         )
+    if credentials is not None:
 
         @event.listens_for(engine, "do_connect")
-        def _use_secret(dialect, conn_rec, cargs, cparams) -> None:
+        def _use_credentials(dialect, conn_rec, cargs, cparams) -> None:
             cparams.update(credentials.connect_params())
 
     return engine
