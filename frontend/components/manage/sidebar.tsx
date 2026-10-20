@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
     title: 'ข้อมูลอาจารย์',
     items: [
       { href: '/manage/lecturers', label: 'อาจารย์' },
+      { href: '/manage/work', label: 'ผลงานรายปี' },
       { href: '/manage/departments', label: 'สาขาวิชา' },
       { href: '/manage/publications', label: 'ผลงานตีพิมพ์' },
       { href: '/manage/research-interests', label: 'หัวข้อวิจัย' },
