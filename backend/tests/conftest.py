@@ -23,6 +23,7 @@ from app.core.database import get_session
 from app.main import create_app
 from app.v2.dependencies import authorize, get_actor
 from app.v2.security import Actor, Role
+from app.v3 import dependencies as v3_dependencies
 
 
 def contract_test_actor(x_lecturer_id: Annotated[UUID | None, Header()] = None) -> Actor:
@@ -42,6 +43,8 @@ def app(session: MagicMock) -> Iterator[FastAPI]:
     app.dependency_overrides[get_session] = lambda: session
     app.dependency_overrides[get_actor] = contract_test_actor
     app.dependency_overrides[authorize] = lambda: None
+    app.dependency_overrides[v3_dependencies.get_actor] = contract_test_actor
+    app.dependency_overrides[v3_dependencies.authorize] = lambda: None
     yield app
     app.dependency_overrides.clear()
 

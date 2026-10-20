@@ -129,6 +129,10 @@ uv run ruff check . && uv run ruff format --check .
 
 ---
 
+## API v3 (`/api/v3`)
+
+`app/v3/` คือสำเนาของ `app/v2/` ทั้งชุด (router, controller, service, DAO, DTO, เกณฑ์สิทธิ์, caller) ที่ใช้ prefix `/api/v3` มี `tests/v3/` คู่กัน ทั้งสองเวอร์ชันรันใน app เดียวกัน (`app/main.py`) และใช้ตารางเดียวกัน จึงใช้ model ของ `app/v2/models` และ `app/v2/audit.py` ร่วมกัน (ไม่สำเนา เพราะ SQLModel ลงทะเบียนตารางซ้ำไม่ได้ และ audit จะบันทึกซ้ำ) ถ้าแก้ schema แก้ที่ `app/v2/models` ที่เดียว ส่วนเวอร์ชันที่ต่างกันแก้ในโฟลเดอร์ของเวอร์ชันนั้น operation id ของ v3 ขึ้นต้นด้วย `v3_`
+
 ## โครงสร้าง
 
 ```text
