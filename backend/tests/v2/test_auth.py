@@ -17,8 +17,17 @@ from app.core.cognito import CognitoTokenVerifier
 from app.core.config import Environment, Settings, get_settings
 from app.core.error_handlers import register_exception_handlers
 from app.v2.daos.lecturer_dao import LecturerDAO
-from app.v2.dependencies import CurrentActorDep, get_lecturer_dao, get_token_verifier
+from app.v2.daos.member_position_dao import MemberPositionDAO
+from app.v2.dependencies import (
+    CurrentActorDep,
+    get_lecturer_dao,
+    get_member_position_dao,
+    get_token_verifier,
+)
+from app.v2.models.enums import PositionCode
 from app.v2.models.lecturer import Lecturer
+from app.v2.models.member_position import MemberPosition
+from app.v2.security import Actor, HeldPosition, Role
 
 ISSUER = "https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_test"
 CLIENT_ID = "web-client"
@@ -55,6 +64,10 @@ def lecturer_dao() -> MagicMock:
     return dao
 
 
+POSITION_DAO = create_autospec(MemberPositionDAO, instance=True)
+POSITION_DAO.list_active.return_value = []
+
+
 def make_client(lecturer_dao: MagicMock, **settings: Any) -> TestClient:
     app = FastAPI()
     register_exception_handlers(app)
@@ -63,9 +76,14 @@ def make_client(lecturer_dao: MagicMock, **settings: Any) -> TestClient:
     def who(actor: CurrentActorDep) -> dict[str, Any]:
         return {"lecturer_id": actor.lecturer_id, "roles": sorted(actor.roles)}
 
+    @app.get("/positions")
+    def positions(actor: CurrentActorDep) -> list[list[Any]]:
+        return sorted([held.position, held.department_id] for held in actor.positions)
+
     values = {"_env_file": None, "db_password": "x"} | settings
     app.dependency_overrides[get_settings] = lambda: Settings(**values)
     app.dependency_overrides[get_lecturer_dao] = lambda: lecturer_dao
+    app.dependency_overrides[get_member_position_dao] = lambda: POSITION_DAO
     app.dependency_overrides[get_token_verifier] = lambda: CognitoTokenVerifier(
         issuer=ISSUER, client_id=CLIENT_ID, jwks_json=JWKS
     )
@@ -210,3 +228,49 @@ def test_email_of_a_lecturer_linked_to_another_account_is_403(
 
     assert client.get("/who", headers=bearer(login)).status_code == 403
     linking_dao.update.assert_not_called()
+
+
+# --- positions and role helpers (#215) ------------------------------------------------
+
+
+def test_positions_held_today_are_on_the_actor(client: TestClient) -> None:
+    POSITION_DAO.list_active.return_value = [
+        MemberPosition(
+            lecturer_id=LECTURER.lecturer_id,
+            position=PositionCode.DEPT_CHAIR,
+            department_id=3,
+            start_date="2024-01-01",
+        ),
+    ]
+    try:
+        response = client.get("/positions", headers=bearer(token()))
+    finally:
+        POSITION_DAO.list_active.return_value = []
+
+    assert response.json() == [["dept_chair", 3]]
+
+
+def test_admin_counts_as_every_role() -> None:
+    admin = Actor(None, frozenset({Role.ADMIN}))
+    lecturer = Actor(uuid4(), frozenset({Role.LECTURER}))
+
+    assert admin.has_any(Role.STAFF) and admin.views_all
+    assert not lecturer.has_any(Role.STAFF, Role.REVIEWER) and not lecturer.views_all
+
+
+def test_position_helpers() -> None:
+    actor = Actor(
+        uuid4(),
+        frozenset({Role.LECTURER}),
+        frozenset(
+            {
+                HeldPosition(PositionCode.DEPT_CHAIR, 3),
+                HeldPosition(PositionCode.EXEC_COMMITTEE, None),
+            }
+        ),
+    )
+
+    assert actor.holds(PositionCode.DEPT_CHAIR, 3)
+    assert not actor.holds(PositionCode.DEPT_CHAIR, 4)
+    assert actor.holds(PositionCode.EXEC_COMMITTEE)
+    assert actor.department_ids_with(PositionCode.DEPT_CHAIR, PositionCode.DEPT_COMMITTEE) == {3}
