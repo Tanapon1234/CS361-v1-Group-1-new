@@ -40,13 +40,20 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=10, ge=0)
     db_pool_timeout_seconds: int = Field(default=30, ge=1)
     db_pool_recycle_seconds: int = Field(default=1800, ge=-1)
+    # Secrets Manager secret (JSON with username / password, and host / port if present).
+    # When set it replaces DB_USER / DB_PASSWORD and is re-read every few minutes, so a
+    # rotated password keeps working (see docs/v2/backend-db-connection-decision.md).
+    db_secret_arn: str = ""
+    db_secret_cache_seconds: int = Field(default=300, ge=0)
 
     # Object storage (S3)
     aws_region: str = "ap-southeast-1"
     data_bucket_name: str = ""
     s3_presign_expires_seconds: int = Field(default=900, ge=60, le=3600)
     profile_image_max_bytes: int = Field(default=5 * 1024 * 1024, gt=0)
+    profile_image_allowed_mime_types: list[str] = ["image/jpeg", "image/png", "image/webp"]
     cv_max_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
+    cv_allowed_mime_types: list[str] = ["application/pdf"]
     evidence_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     evidence_allowed_mime_types: list[str] = [
         "application/pdf",
@@ -54,22 +61,38 @@ class Settings(BaseSettings):
         "image/png",
     ]
 
-    # Auth. Cognito is not wired yet: until it is, the caller is taken from the
-    # `X-Lecturer-Id` header (see app/v2/dependencies.py). Always off in prod.
+    # Auth (docs/v2/permissions.md). With COGNITO_USER_POOL_ID set, the caller is the
+    # lecturer linked to the Cognito ID token in `Authorization: Bearer <token>`.
+    # COGNITO_JWKS_JSON (the pool's public keys) lets a Lambda without internet access
+    # verify tokens; empty means fetch them from the pool.
+    cognito_region: str = ""
+    cognito_user_pool_id: str = ""
+    cognito_client_id: str = ""
+    cognito_jwks_json: str = ""
+    # Until then, and in local tests / scripts, the X-Lecturer-Id and X-Dev-Roles headers
+    # stand in for a token. Never accepted when ENVIRONMENT=prod.
     dev_auth_header_enabled: bool = True
 
     @model_validator(mode="after")
     def _require_real_secrets_outside_local(self) -> Self:
         if (
             self.environment is not Environment.LOCAL
+            and not self.db_secret_arn
             and self.db_password.get_secret_value() in _PLACEHOLDER_PASSWORDS
         ):
-            raise ValueError(f"DB_PASSWORD must be set when ENVIRONMENT={self.environment}")
+            raise ValueError(
+                f"DB_PASSWORD or DB_SECRET_ARN must be set when ENVIRONMENT={self.environment}"
+            )
         return self
 
     @property
     def is_production(self) -> bool:
         return self.environment is Environment.PROD
+
+    @property
+    def cognito_issuer(self) -> str:
+        region = self.cognito_region or self.aws_region
+        return f"https://cognito-idp.{region}.amazonaws.com/{self.cognito_user_pool_id}"
 
     @property
     def allows_dev_auth_header(self) -> bool:

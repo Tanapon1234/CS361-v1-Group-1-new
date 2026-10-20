@@ -1,0 +1,6 @@
+email,group,password
+demo.lecturer@example.com,,ChangeMe-Lecturer1
+demo.staff@example.com,staff,ChangeMe-Staff1
+demo.reviewer@example.com,reviewer,ChangeMe-Reviewer1
+demo.executive@example.com,executive,ChangeMe-Executive1
+demo.admin@example.com,admin,ChangeMe-Admin1

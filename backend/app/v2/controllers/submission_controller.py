@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Response, status
 
 from app.v2.controllers.params import SubmissionId
-from app.v2.dependencies import CurrentLecturerIdDep, SubmissionServiceDep
+from app.v2.dependencies import CurrentActorDep, CurrentLecturerIdDep, SubmissionServiceDep
 from app.v2.dtos.common import ListResponse, PageResponse
 from app.v2.dtos.submission_dto import (
     ApprovalCreateRequest,
@@ -22,10 +22,11 @@ router = APIRouter(prefix="/submissions", tags=["submissions"])
 @router.get("")
 def list_submissions(
     query: Annotated[SubmissionListQuery, Query()],
-    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
     service: SubmissionServiceDep,
 ) -> PageResponse[SubmissionResponse]:
-    return service.list_submissions(actor_id, query)
+    """Your own; a department's for its chair / committee; all for viewers."""
+    return service.list_submissions(actor, query)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -38,10 +39,10 @@ def create_submission(
 
 @router.get("/{submission_id}")
 def get_submission(
-    submission_id: SubmissionId, service: SubmissionServiceDep
+    submission_id: SubmissionId, actor: CurrentActorDep, service: SubmissionServiceDep
 ) -> SubmissionDetailResponse:
     """The submission with all its entries."""
-    return service.get_submission(submission_id)
+    return service.get_submission(submission_id, actor)
 
 
 @router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -54,18 +55,18 @@ def delete_submission(
 
 @router.get("/{submission_id}/summary")
 def get_submission_summary(
-    submission_id: SubmissionId, service: SubmissionServiceDep
+    submission_id: SubmissionId, actor: CurrentActorDep, service: SubmissionServiceDep
 ) -> SubmissionSummaryResponse:
     """Totals computed now from the entries, with the minimum-requirement checks."""
-    return service.get_summary(submission_id)
+    return service.get_summary(submission_id, actor)
 
 
 @router.get("/{submission_id}/totals")
 def get_submission_totals(
-    submission_id: SubmissionId, service: SubmissionServiceDep
+    submission_id: SubmissionId, actor: CurrentActorDep, service: SubmissionServiceDep
 ) -> SubmissionTotalsResponse:
     """Category totals frozen when the submission was sent."""
-    return service.get_totals(submission_id)
+    return service.get_totals(submission_id, actor)
 
 
 @router.get(
@@ -73,24 +74,27 @@ def get_submission_totals(
     response_class=Response,
     responses={200: {"content": {"application/pdf": {}}, "description": "The form as PDF"}},
 )
-def get_submission_pdf(submission_id: SubmissionId, service: SubmissionServiceDep) -> Response:
-    return Response(service.get_pdf(submission_id), media_type="application/pdf")
+def get_submission_pdf(
+    submission_id: SubmissionId, actor: CurrentActorDep, service: SubmissionServiceDep
+) -> Response:
+    return Response(service.get_pdf(submission_id, actor), media_type="application/pdf")
 
 
 @router.get("/{submission_id}/approvals")
 def list_submission_approvals(
-    submission_id: SubmissionId, service: SubmissionServiceDep
+    submission_id: SubmissionId, actor: CurrentActorDep, service: SubmissionServiceDep
 ) -> ListResponse[ApprovalResponse]:
     """Every send, return and sign-off, oldest first."""
-    return service.list_approvals(submission_id)
+    return service.list_approvals(submission_id, actor)
 
 
 @router.post("/{submission_id}/approvals", status_code=status.HTTP_201_CREATED)
 def create_submission_approval(
     submission_id: SubmissionId,
     data: ApprovalCreateRequest,
-    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
     service: SubmissionServiceDep,
 ) -> ApprovalResponse:
-    """Send / accept / return / approve. The signer's role comes from the current status."""
-    return service.create_approval(submission_id, actor_id, data)
+    """Send / accept / return / approve. The step (from the current status) decides who may
+    sign: the owner, staff (receiver), or the chair / committee of the department."""
+    return service.create_approval(submission_id, actor, data)

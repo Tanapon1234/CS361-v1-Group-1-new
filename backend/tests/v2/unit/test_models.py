@@ -1,4 +1,4 @@
-"""Models must mirror database/migrations/ 002 + 003 (no database needed).
+"""Models must mirror database/migrations/ 002 + 003 + 005 + 006 (no database needed).
 
 If you change the SQL, change the model too (and the other way round).
 """
@@ -19,6 +19,8 @@ MIGRATIONS_DIR = Path(__file__).parents[4] / "database" / "migrations"
 MIGRATIONS = [
     MIGRATIONS_DIR / "002_lecturer_profile.sql",
     MIGRATIONS_DIR / "003_faculty_workload.sql",
+    MIGRATIONS_DIR / "005_verification.sql",
+    MIGRATIONS_DIR / "006_audit_log.sql",
 ]
 
 

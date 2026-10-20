@@ -18,6 +18,7 @@ from app.v2.models.enums import (
     PositionCode,
     SignerRole,
     SubmissionStatus,
+    VerificationStatus,
 )
 
 
@@ -134,6 +135,25 @@ class EntryEvidence(SQLModel, table=True):
     )
     uploaded_by: uuid.UUID = Field(sa_column_args=[fk("lecturer.lecturer_id", cascade=False)])
     created_at: datetime = timestamp_field()
+    # 005_verification.sql: a reviewer's verdict
+    verification_status: VerificationStatus = Field(
+        default=VerificationStatus.PENDING,
+        sa_type=pg_enum(VerificationStatus, "verification_status"),
+        sa_column_kwargs={"server_default": "pending"},
+    )
+    verified_by: uuid.UUID | None = Field(
+        default=None,
+        sa_column_args=[
+            sa.ForeignKey(
+                "lecturer.lecturer_id",
+                ondelete="SET NULL",
+                deferrable=True,
+                initially="IMMEDIATE",
+            )
+        ],
+    )
+    verified_at: datetime | None = Field(default=None, sa_type=sa.DateTime(timezone=True))
+    verification_note: str | None = Field(default=None, sa_type=sa.Text)
 
 
 class SubmissionCategoryTotal(SQLModel, table=True):

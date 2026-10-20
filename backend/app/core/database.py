@@ -5,17 +5,18 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import Engine
+from sqlalchemy import Engine, event
 from sqlmodel import Session, create_engine
 
 from app.core.config import get_settings
+from app.core.db_secret import SecretCredentials
 
 
 @lru_cache
 def get_engine() -> Engine:
     """Create the engine lazily so importing the app never opens a DB connection."""
     settings = get_settings()
-    return create_engine(
+    engine = create_engine(
         settings.database_url,
         echo=settings.db_echo,
         pool_pre_ping=True,
@@ -24,6 +25,16 @@ def get_engine() -> Engine:
         pool_timeout=settings.db_pool_timeout_seconds,
         pool_recycle=settings.db_pool_recycle_seconds,
     )
+    if settings.db_secret_arn:
+        credentials = SecretCredentials(
+            settings.db_secret_arn, settings.aws_region, settings.db_secret_cache_seconds
+        )
+
+        @event.listens_for(engine, "do_connect")
+        def _use_secret(dialect, conn_rec, cargs, cparams) -> None:
+            cparams.update(credentials.connect_params())
+
+    return engine
 
 
 def get_session() -> Iterator[Session]:

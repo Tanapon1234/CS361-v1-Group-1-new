@@ -19,7 +19,10 @@ from app.v2.dtos.lecturer_dto import (
     LecturerUpdateRequest,
 )
 from app.v2.models.lecturer import Lecturer
+from app.v2.security import Actor, Role
 from app.v2.services.lecturer_service import LecturerService
+
+STAFF = Actor(uuid4(), frozenset({Role.LECTURER, Role.STAFF}))
 
 
 @pytest.fixture
@@ -310,6 +313,7 @@ def test_update_lecturer_success(service: LecturerService, lecturer_dao: MagicMo
     result = service.update_lecturer(
         lecturer_id,
         LecturerUpdateRequest(name_en=None, office="SC-201"),
+        actor=STAFF,
     )
 
     assert result.name_th == "สมชาย"
@@ -329,7 +333,7 @@ def test_update_lecturer_empty_body_is_noop(
         email="somchai@example.ac.th",
     )
 
-    result = service.update_lecturer(lecturer_id, LecturerUpdateRequest())
+    result = service.update_lecturer(lecturer_id, LecturerUpdateRequest(), actor=STAFF)
 
     assert result.name_th == "สมชาย"
     lecturer_dao.update.assert_not_called()
@@ -342,7 +346,7 @@ def test_update_unknown_lecturer_raises_not_found(
     lecturer_dao.get_by_id.return_value = None
 
     with pytest.raises(NotFoundError, match="Lecturer not found"):
-        service.update_lecturer(uuid4(), LecturerUpdateRequest(office="SC-201"))
+        service.update_lecturer(uuid4(), LecturerUpdateRequest(office="SC-201"), actor=STAFF)
 
     lecturer_dao.update.assert_not_called()
 
@@ -365,6 +369,7 @@ def test_update_lecturer_duplicate_email_raises_conflict(
         service.update_lecturer(
             lecturer_id,
             LecturerUpdateRequest(email="somying@example.ac.th"),
+            actor=STAFF,
         )
 
     lecturer_dao.get_by_email.assert_called_once_with("somying@example.ac.th")
@@ -386,6 +391,7 @@ def test_update_lecturer_same_email_skips_duplicate_lookup(
     service.update_lecturer(
         lecturer_id,
         LecturerUpdateRequest(email="somchai@example.ac.th"),
+        actor=STAFF,
     )
 
     lecturer_dao.get_by_email.assert_not_called()
@@ -410,6 +416,7 @@ def test_update_lecturer_unique_race_raises_conflict(
         service.update_lecturer(
             lecturer_id,
             LecturerUpdateRequest(email="somying@example.ac.th"),
+            actor=STAFF,
         )
 
 
@@ -428,4 +435,5 @@ def test_update_lecturer_propagates_unexpected_write_error(
         service.update_lecturer(
             lecturer_id,
             LecturerUpdateRequest(office="SC-201"),
+            actor=STAFF,
         )

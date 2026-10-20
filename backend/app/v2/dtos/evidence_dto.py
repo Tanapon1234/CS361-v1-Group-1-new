@@ -12,7 +12,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.v2.dtos.base import RequestDTO, ResponseDTO
-from app.v2.models.enums import EvidenceStatus
+from app.v2.models.enums import EvidenceStatus, VerificationStatus
 
 
 class EvidenceCreateRequest(RequestDTO):
@@ -47,6 +47,9 @@ class EvidenceResponse(ResponseDTO):
     status: EvidenceStatus
     uploaded_by: UUID
     created_at: datetime
+    # A reviewer's verdict (005); see /evidence/{id}/verification
+    verification_status: VerificationStatus = VerificationStatus.PENDING
+    verification_note: str | None = None
 
 
 def evidence_etag(evidence: EvidenceResponse) -> str:

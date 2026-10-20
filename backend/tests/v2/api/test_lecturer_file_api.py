@@ -109,3 +109,15 @@ def test_get_cv(client: TestClient, service: MagicMock) -> None:
 
     assert response.status_code == 200
     assert response.json()["download_url"].startswith("https://")
+
+
+def test_get_profile_image(client: TestClient, service: MagicMock) -> None:
+    service.get_profile_image.return_value = FileDownloadResponse(
+        download_url="https://bucket.s3.amazonaws.com/img.png?sig=abc",
+        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+    )
+
+    response = client.get(f"/api/v2/lecturers/{uuid4()}/profile-image")
+
+    assert response.status_code == 200
+    assert response.json()["download_url"].startswith("https://")

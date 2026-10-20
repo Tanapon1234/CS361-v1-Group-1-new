@@ -6,7 +6,7 @@ backend สำหรับ API อาจารย์ (lecturer, education, resea
 
 - **พร้อมใช้แล้ว**: database schema, model, controller ทุก endpoint, validation, error format, transaction, config
 - **Workload API ทำงานจริงแล้ว** (ดู [Workload API](#workload-api-semesterreport)) ยกเว้น `GET /submissions/{id}/pdf` ที่ยังตอบ 501
-- **ฝั่ง Lecturer API บางส่วนยังเป็น stub** (`raise NotImplementedError  # TODO`) เช่น education, expertise, profile image, CV จะตอบ **501 Not Implemented** จนกว่าจะเขียน logic
+- **Lecturer API ทำงานจริงครบทุก endpoint** (education, expertise, publication, profile image, CV ฯลฯ)
 - method ของ DAO เป็นแค่จุดเริ่มต้น เพิ่ม ลบ หรือเปลี่ยนชื่อได้ตามที่ service ต้องใช้
 
 ---
@@ -38,6 +38,8 @@ Schema อยู่ใน migration ตามลำดับ **ไฟล์เ�
 - [002_lecturer_profile.sql](../database/migrations/002_lecturer_profile.sql): ข้อมูลอาจารย์และผลงานวิชาการ (Academic Portfolio)
 - [003_faculty_workload.sql](../database/migrations/003_faculty_workload.sql): ภาระงานประจำภาค (SemesterReport) ทำตาม design รวม [FacultyPortfolioWorkload.dbml](../database/data_schema/FacultyPortfolioWorkload/FacultyPortfolioWorkload.dbml) และเพิ่ม `cognito_sub` กับ `department_id` ให้ `lecturer`
 - [004_workload_entry_lock.sql](../database/migrations/004_workload_entry_lock.sql): ปรับ trigger ของ 003 ให้แก้ entry ได้ตอนใบถูกตีกลับ (`returned`) และให้ผู้ประเมินอัปเดตคะแนนได้ตอน `assessing`
+- [005_verification.sql](../database/migrations/005_verification.sql): สถานะการรับรอง (`pending` / `verified` / `rejected`) ของผลงานตีพิมพ์และไฟล์หลักฐาน พร้อมผู้รับรอง เวลา และหมายเหตุ
+- [006_audit_log.sql](../database/migrations/006_audit_log.sql): ตาราง `audit_log` บันทึกทุกแถวที่ API เพิ่ม แก้ หรือลบ (ใคร บทบาท request และค่าที่เปลี่ยน) เขียนโดย `app/v2/audit.py` ใน transaction เดียวกับการเปลี่ยน อ่านได้ที่ `GET /api/v2/audit-log` (admin)
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
@@ -46,7 +48,24 @@ createdb cs361v2
 psql -d cs361v2 -f ../database/migrations/002_lecturer_profile.sql
 psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้องรันหลัง 002
 psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
+psql -d cs361v2 -f ../database/migrations/005_verification.sql
+psql -d cs361v2 -f ../database/migrations/006_audit_log.sql
 ```
+
+หรือใช้ `scripts/apply_migrations.py` ซึ่งจำว่าไฟล์ไหนรันไปแล้ว (ตาราง `schema_migration`) และรันแต่ละไฟล์ใน transaction เดียว
+
+```bash
+uv run python -m scripts.apply_migrations --database-url postgresql://postgres@localhost/cs361v2
+
+# Aurora (อยู่ใน private subnet จึงยิงผ่าน RDS Data API ต้องมี AWS credentials)
+# 001_base รันไปแล้วตอนย้ายข้อมูล V1 จึง baseline ไว้ ไม่รันซ้ำ
+uv run python -m scripts.apply_migrations --cluster-arn <DBClusterArn> --secret-arn <DBSecretArn> \
+    --database cs361v2 --baseline 001_base --dry-run      # ดูก่อนว่าจะรันอะไร
+uv run python -m scripts.apply_migrations --cluster-arn <DBClusterArn> --secret-arn <DBSecretArn> \
+    --database cs361v2 --baseline 001_base
+```
+
+ค่า ARN ดูจาก output ของ stack `cs361-v2-aws-foundation-dev` (ดู `docs/v2/deployment-env.md`) ตาราง 001 กับ 002-004 อยู่ร่วมกันได้ ไม่มีชื่อซ้ำ
 
 | ตาราง | Primary key | หมายเหตุ |
 |---|---|---|
@@ -70,6 +89,26 @@ psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 - trigger (003 + 004) ไม่ให้เพิ่ม แก้ หรือลบ `submission_entry` เมื่อใบไม่ได้อยู่ในสถานะ `draft` หรือ `returned` (DB จะตอบ error `check_violation`) ยกเว้นการอัปเดตแค่ `score` / `weight_applied` และมี view `v_section_total` ที่คิดยอดรายข้อย่อยหลังตัดเพดานแล้ว
 - ถ้าจะแก้ schema: แก้ไฟล์ SQL และ model ให้ตรงกัน เทสต์ `tests/v2/unit/test_models.py` จะ fail ถ้าชื่อตารางหรือ column ไม่ตรงกัน
 
+### ข้อมูลตั้งต้น
+
+script ใน `scripts/` เรียก API (`/api/v2`) เหมือนคนกรอก จึงผ่าน validation และสูตรคะแนนเดียวกัน ค่าเริ่มต้นรันในตัว (in-process) กับ database ใน `.env` หรือใส่ `--base-url` เพื่อยิงไปที่ backend ที่รันอยู่ (เช่น API ที่ deploy แล้ว) รันซ้ำได้ไม่เกิดข้อมูลซ้ำ
+
+```bash
+uv run python -m scripts.import_v1_lecturers    # อาจารย์ 22 คนจาก V1 (build/v1/serving/faculties/)
+```
+
+- จับคู่อาจารย์ด้วย email ถ้ามีอยู่แล้วจะไม่สร้างใหม่ education และโปรไฟล์ภายนอกจะเพิ่มเฉพาะตอนที่ยังไม่มี ส่วนหัวข้อวิจัยและความเชี่ยวชาญจะแทนด้วยชุดจาก V1
+- ไม่ได้นำเข้ารูปจาก V1 (API รับเฉพาะไฟล์ที่อัปโหลด) ต้องอัปโหลดใหม่ใน `/manage`
+- ตารางของ `001_base.sql` (`faculty`, `faculty_education`, `work_item` ฯลฯ) ไม่ได้ลบ ปล่อยให้ V1 และ Master Data API เดิมอ่านต่อ แต่ข้อมูลอาจารย์ของ V2 ใช้ตาราง `lecturer` (002) อย่างเดียว
+
+```bash
+uv run python -m scripts.seed_workload_demo     # ภาระงานตัวอย่างปีการศึกษา 2566-2568 (ต้องนำเข้าอาจารย์ V1 ก่อน)
+```
+
+- สร้างเกณฑ์ `2567-r1` (ตาม `database/data_schema/SemesterReport/schema-reference.md` ยกเว้นข้อ 3.1 / 3.2 ที่ต้องรอผู้บริหารประเมิน), สาขา CS, รอบประเมิน 3 ปี, ใบภาระงาน 9 ใบ และผลงานตีพิมพ์ 4 ชิ้น
+- ถ้ามีเกณฑ์ `2567-r1` อยู่แล้วจะไม่ทำอะไร
+- ข้อมูลที่ตั้งใจไว้ให้ทดสอบ (TC1-TC3 ของ peer test): ปราภาพร มีงานทุกหมวดทั้ง 3 ปี, ฐาปนา ปี 2567 ไม่มีงานวิชาการ, กษิดิศ ไม่มีงานปี 2567, อาจารย์ V1 คนอื่นไม่มีภาระงานเลย ดูรายละเอียดใน docstring ของ script
+
 ## รันเทสต์และ lint
 
 ```bash
@@ -77,22 +116,22 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
 
-เทสต์ส่วนใหญ่ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` + `xfailed` (+ `skipped` 1 ตัวถ้าไม่ได้ตั้ง `TEST_DATABASE_URL`)
+เทสต์ส่วนใหญ่ไม่ต้องใช้ database จริง ผลรันตอนนี้คือ `passed` ทั้งหมด (+ `skipped` ของ integration ถ้าไม่ได้ตั้ง `TEST_DATABASE_URL`)
 
 - **passed**: เทสต์ controller (routing, validation, status code), service, สูตรคะแนน, error handler, config, transaction และความตรงกันของ model กับ SQL
-- **integration** (`tests/v2/integration/`): ทดสอบ workflow ภาระงานทั้งเส้นผ่าน HTTP กับ PostgreSQL จริง รันเฉพาะเมื่อตั้ง `TEST_DATABASE_URL` เทสต์จะ **ลบ schema `public` ทิ้งแล้วสร้างใหม่ทุกครั้ง** ห้ามชี้ไป dev/prod DB
+- **integration** (`tests/v2/integration/`): ทดสอบ workflow ภาระงานและข้อมูลอาจารย์ (education, expertise, ผู้แต่ง publication, รูป, CV) ผ่าน HTTP กับ PostgreSQL จริง รันเฉพาะเมื่อตั้ง `TEST_DATABASE_URL` เทสต์จะ **ลบ schema `public` ทิ้งแล้วสร้างใหม่ทุกครั้ง** ห้ามชี้ไป dev/prod DB
 
   ```bash
   createdb cs361_test
   TEST_DATABASE_URL=postgresql+psycopg://postgres@localhost:5432/cs361_test uv run pytest
   ```
 
-- **xfailed**: service ละ 1 เทสต์ตัวอย่างใน `tests/v2/unit/services/` ใช้เป็นแบบเวลาเขียนเทสต์ของตัวเอง
-  - ตอน service ยัง `raise NotImplementedError` จะนับเป็น XFAIL (ถือว่าผ่าน)
-  - พอ implement แล้วเทสต์ผ่าน จะขึ้นเป็น **XPASS แล้ว fail ทันที** เพื่อเตือนให้ลบบรรทัด `pytestmark = pytest.mark.xfail(...)` ออก
-  - เทสต์ตัวอย่างไม่ตรงกับวิธีที่เราออกแบบ? แก้หรือลบได้เลย
 
 ---
+
+## API v3 (`/api/v3`)
+
+`app/v3/` คือสำเนาของ `app/v2/` ทั้งชุด (router, controller, service, DAO, DTO, เกณฑ์สิทธิ์, caller) ที่ใช้ prefix `/api/v3` มี `tests/v3/` คู่กัน ทั้งสองเวอร์ชันรันใน app เดียวกัน (`app/main.py`) และใช้ตารางเดียวกัน จึงใช้ model ของ `app/v2/models` และ `app/v2/audit.py` ร่วมกัน (ไม่สำเนา เพราะ SQLModel ลงทะเบียนตารางซ้ำไม่ได้ และ audit จะบันทึกซ้ำ) ถ้าแก้ schema แก้ที่ `app/v2/models` ที่เดียว ส่วนเวอร์ชันที่ต่างกันแก้ในโฟลเดอร์ของเวอร์ชันนั้น operation id ของ v3 ขึ้นต้นด้วย `v3_`
 
 ## โครงสร้าง
 
@@ -200,6 +239,9 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 - **PATCH** อัปเดตเฉพาะ field ที่ส่งมา (`model_dump(exclude_unset=True)`) ส่วน **PUT** `/research-interests` และ `/expertise` ของอาจารย์จะแทนที่ทั้งชุด
 - **Activate / deactivate** เปลี่ยน `lecturer.is_active`
 - **Upload ไฟล์** (profile image / CV) ทำ 3 ขั้น: `presign` ได้ presigned S3 URL, client อัปโหลดตรงไป S3, แล้วเรียก `complete` ให้ server บันทึกลง `lecturer.profile_image_url` / `cv_url` (ตอบกลับเป็น lecturer)
+  - สองคอลัมน์นี้เก็บ **S3 key** (`lecturers/{id}/profile-image/...`, `lecturers/{id}/cv/...`) ไม่ใช่ URL ที่เปิดได้ตรง ๆ ให้เรียก `GET .../profile-image` หรือ `GET .../cv` เพื่อขอ URL อายุสั้น (ถ้าเป็น URL ภายนอกที่มาจาก V1 จะได้ค่าเดิมกลับไป)
+  - รูปรับ `image/jpeg`, `image/png`, `image/webp` ส่วน CV รับ `application/pdf` (ตั้งได้ใน `.env`: `PROFILE_IMAGE_*`, `CV_*`) อัปโหลดไฟล์ใหม่แล้วไฟล์เก่าใน S3 จะถูกลบ
+- **ผู้แต่ง publication**: ส่ง `lecturer_ids` ตอน `POST /publications` ได้ (ลำดับใน list = `author_order`) ดูกลับได้จาก `GET /lecturers/{id}/publications`
 
 ### Error format (RFC 9457 / RFC 7807)
 
@@ -245,12 +287,17 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 - เพิ่ม `POST /rubric-versions/{version_id}/categories` ที่ reference ไม่มี เพราะถ้าไม่มีเส้นนี้ ฉบับเกณฑ์ใหม่จะไม่มีทางเพิ่มหมวดได้
 - ยังไม่ได้ทำ: `GET /submissions/{id}/pdf` (ตอบ 501 เพราะยังไม่มีแบบฟอร์มกระดาษกับฟอนต์ไทยใน repo) และ `/course-offerings` (reference ระบุว่าเป็นงานอนาคต)
 
-### คนเรียก (ชั่วคราว จนกว่าจะต่อ Cognito)
+### คนเรียก (Cognito)
 
-endpoint ที่ต้องรู้ว่าใครเรียก (`/me`, สร้างใบ, แก้ entry, อนุมัติ, ประเมิน, แนบหลักฐาน) อ่าน lecturer_id จาก header `X-Lecturer-Id` ผ่าน `CurrentLecturerIdDep` ใน `app/v2/dependencies.py`
+ทุก endpoint ใต้ `/api/v2` รู้ว่าใครเรียกผ่าน `CurrentActorDep` (`Actor`: `lecturer_id` + บทบาท) ใน `app/v2/dependencies.py` บทบาทและตารางสิทธิ์อยู่ใน [docs/v2/permissions.md](../docs/v2/permissions.md)
 
-- ถ้าไม่มี header จะได้ 401 และ header นี้ **ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod`**
-- การเช็คสิทธิ์ (เช่น ต้องเป็นเจ้าของใบ หรือต้องเป็นหัวหน้าสาขานั้น) ยังไม่ได้ทำ ค้นคำว่า `TODO(auth)` จะเจอทุกจุดที่ต้องเพิ่ม
+- **จริง:** ส่ง `Authorization: Bearer <Cognito ID token>` backend ตรวจลายเซ็น (RS256), client, pool, อายุ และต้องเป็น ID token แล้วหาอาจารย์ที่ `cognito_sub` ตรงกับ `sub` บทบาทมาจาก `cognito:groups` (ทุกคนได้ `lecturer` เสมอ) ตั้งค่าด้วย `COGNITO_*` ใน `.env`
+- token ไม่ถูกต้องหรือหมดอายุได้ 401, บัญชีที่ยังไม่ผูกกับอาจารย์หรืออาจารย์ที่ปิดใช้งานได้ 403
+- **login ครั้งแรก:** ถ้ายังไม่มีอาจารย์ที่ `cognito_sub` ตรง ระบบหาอาจารย์ที่ email ตรงกับ email ของบัญชี (ต้อง verified, ไม่สนตัวพิมพ์) ที่ยังไม่ผูกกับบัญชีอื่น แล้วบันทึก `cognito_sub` ให้ ถ้าไม่เจอได้ 403 เจ้าหน้าที่ / ผู้บริหารที่ไม่ใช่อาจารย์ก็ต้องมีแถวใน `lecturer` (ใช้เป็นตัวตนในระบบ) หรือ staff ตั้ง `cognito_sub` ให้เองผ่าน `PATCH /lecturers/{id}`
+- **ตอนพัฒนา / เทสต์ / script (ไม่ใช่ prod):** `X-Lecturer-Id` แทนตัวอาจารย์ และ `X-Dev-Roles: staff,admin` เพิ่มบทบาท ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod` หรือ `DEV_AUTH_HEADER_ENABLED=false`
+- endpoint ที่ทำในนามคน (สร้างใบ, อนุมัติ, ประเมิน) ใช้ `CurrentLecturerIdDep` ซึ่งต้องเป็นอาจารย์ (ไม่ใช่ script ที่มีแค่บทบาท)
+- **สิทธิ์:** router ของ `/api/v2` เช็คทุก request กับ `ROUTE_RULES` ใน `app/v2/permissions.py` (ตารางเดียวกับ `docs/v2/permissions.md`) route ที่ไม่มีในตารางถูกปฏิเสธ เรื่องที่ต้องดูข้อมูลก่อน (เจ้าของใบ, สาขาของใบ, ผู้แต่งผลงาน) อยู่ใน service ผ่าน `app/v2/services/access.py`
+- **เพิ่ม endpoint ใหม่:** ต้องเพิ่ม rule ใน `ROUTE_RULES` ด้วย ไม่อย่างนั้นทุกคนได้ 403 และ `tests/v2/test_permissions.py` จะ fail
 - ข้อยกเว้นคือการประเมิน ระบบเช็คแล้วว่าผู้ให้ค่าถือตำแหน่งตาม `assessor_position` ของ item และไม่ใช่เจ้าของใบ เพราะต้องบันทึก `position_used` ลงตาราง
 
 ### ลำดับสถานะของใบ
@@ -301,7 +348,7 @@ endpoint ที่ต้องรู้ว่าใครเรียก (`/me`,
 ## เรื่องที่ยังค้างอยู่
 
 1. **ยังไม่มี authentication**: endpoint ที่แก้ข้อมูล (POST/PATCH/PUT/DELETE) ควรจำกัดให้ admin ผ่าน Cognito JWT เพิ่มเป็น dependency ระดับ router ได้ ฝั่ง workload ให้เปลี่ยน `get_current_lecturer_id` ไปอ่าน JWT แล้วเติมจุด `TODO(auth)`
-2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (`backend/v2/`) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
-3. **DAO integration test** มีแล้วสำหรับ workload (`tests/v2/integration/`) ฝั่ง lecturer profile ยังไม่มี
+2. **การต่อ database**: โครงนี้ต่อ PostgreSQL ตรงผ่าน psycopg ขณะที่ V2 Lambda เดิม (ลบออกไปแล้ว) ใช้ RDS Data API ถ้าจะใช้ Data API ให้เขียน DAO implementation ชุดใหม่แล้วเปลี่ยนใน `app/v2/dependencies.py` ได้เลย โดยไม่ต้องแก้ service
+3. **DAO integration test** มีแล้วสำหรับ workload และ lecturer profile (`tests/v2/integration/`) ยังขาด research interest และ publication profile
 4. **Migration 002-004 ยังไม่ได้รันบน Aurora** ต้องให้คนที่ดูแล database รันเอง
 5. **Workload ที่ยังไม่ได้ทำ**: PDF ของใบ, `/course-offerings` (ทะเบียน), job ลบหลักฐานที่ค้าง `pending` เกิน 24 ชม., `receiver` ยังไม่มีตำแหน่งใน schema (ตอนนี้ใครก็เซ็นเป็น receiver ได้)

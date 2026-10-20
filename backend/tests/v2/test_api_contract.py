@@ -18,6 +18,7 @@ EXPECTED_ENDPOINTS = {
     # profile image
     ("POST", "/api/v2/lecturers/{lecturer_id}/profile-image/presign"),
     ("POST", "/api/v2/lecturers/{lecturer_id}/profile-image/complete"),
+    ("GET", "/api/v2/lecturers/{lecturer_id}/profile-image"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/profile-image"),
     # cv
     ("POST", "/api/v2/lecturers/{lecturer_id}/cv/presign"),
@@ -60,6 +61,17 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("PUT", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/expertise/{expertise_id}"),
+    # audit log (V3, migration 006)
+    ("GET", "/api/v2/audit-log"),
+    # verification (V3, migration 005)
+    ("GET", "/api/v2/publications/{publication_id}/verification"),
+    ("PUT", "/api/v2/publications/{publication_id}/verification"),
+    ("GET", "/api/v2/evidence/{evidence_id}/verification"),
+    ("PUT", "/api/v2/evidence/{evidence_id}/verification"),
+    ("GET", "/api/v2/verifications/publications"),
+    ("GET", "/api/v2/verifications/evidence"),
+    # lecturer work by year / category (peer test TC1-TC3)
+    ("GET", "/api/v2/lecturers/{lecturer_id}/work"),
     # --- workload (database/data_schema/SemesterReport/api-reference.md) ---
     # me
     ("GET", "/api/v2/me"),

@@ -32,6 +32,8 @@ from app.v2.models.lecturer import Lecturer
 from app.v2.models.member_position import MemberPosition
 from app.v2.models.rubric import RubricItem
 from app.v2.models.submission import EntryAssessment, Submission, SubmissionEntry
+from app.v2.security import Actor
+from app.v2.services.access import can_view_submission
 from app.v2.services.score_keeper import ScoreKeeper
 from app.v2.services.scoring import needs_assessment, validate_assessment_value
 
@@ -84,9 +86,18 @@ class AssessmentService:
             items=items, meta=PageMeta(total=total, limit=query.limit, offset=query.offset)
         )
 
-    def list_entry_assessments(self, entry_id: UUID) -> ListResponse[AssessmentResponse]:
-        self._require_entry(entry_id)
-        # TODO(auth): assessors of this entry and admins only
+    def list_entry_assessments(
+        self, entry_id: UUID, actor: Actor
+    ) -> ListResponse[AssessmentResponse]:
+        """Everyone's values on an entry: its owner, viewers, and who may assess it."""
+        entry = self._require_entry(entry_id)
+        submission = self.submission_dao.get_by_id(entry.submission_id)
+        if submission is None:
+            raise NotFoundError("Submission not found")
+        item = self.score_keeper.rubric_of(submission).items[entry.item_id]
+        may_assess = item.assessor_position is not None and actor.holds(item.assessor_position)
+        if not (may_assess or can_view_submission(actor, submission)):
+            raise ForbiddenError("You may not see the assessments of this entry")
         items = [
             AssessmentResponse.model_validate(assessment)
             for assessment in self.assessment_dao.list_by_entry(entry_id)

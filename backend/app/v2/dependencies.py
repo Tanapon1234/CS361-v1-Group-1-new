@@ -5,15 +5,18 @@ the concrete DAO / storage implementations, so tests can swap any layer with
 `app.dependency_overrides[get_xxx] = ...`.
 """
 
+from datetime import date
 from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 
+from app.core.cognito import CognitoTokenVerifier
 from app.core.config import SettingsDep, get_settings
 from app.core.database import SessionDep
-from app.core.exceptions import UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.v2 import audit
 from app.v2.daos.assessment_dao import AssessmentDAO
 from app.v2.daos.department_dao import DepartmentDAO
 from app.v2.daos.education_dao import EducationDAO
@@ -21,26 +24,35 @@ from app.v2.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v2.daos.evidence_dao import EvidenceDAO
 from app.v2.daos.expertise_dao import ExpertiseDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
+from app.v2.daos.lecturer_work_dao import LecturerWorkDAO
 from app.v2.daos.member_position_dao import MemberPositionDAO
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.daos.publication_profile_dao import PublicationProfileDAO
 from app.v2.daos.research_interest_dao import ResearchInterestDAO
 from app.v2.daos.rubric_dao import RubricDAO
 from app.v2.daos.sql.assessment_dao import SqlAssessmentDAO
+from app.v2.daos.sql.audit_log_dao import SqlAuditLogDAO
 from app.v2.daos.sql.department_dao import SqlDepartmentDAO
 from app.v2.daos.sql.education_dao import SqlEducationDAO
 from app.v2.daos.sql.evaluation_round_dao import SqlEvaluationRoundDAO
 from app.v2.daos.sql.evidence_dao import SqlEvidenceDAO
 from app.v2.daos.sql.expertise_dao import SqlExpertiseDAO
 from app.v2.daos.sql.lecturer_dao import SqlLecturerDAO
+from app.v2.daos.sql.lecturer_work_dao import SqlLecturerWorkDAO
 from app.v2.daos.sql.member_position_dao import SqlMemberPositionDAO
 from app.v2.daos.sql.publication_dao import SqlPublicationDAO
 from app.v2.daos.sql.publication_profile_dao import SqlPublicationProfileDAO
 from app.v2.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
+from app.v2.daos.sql.verification_dao import SqlVerificationDAO
 from app.v2.daos.submission_dao import SubmissionDAO
+from app.v2.daos.verification_dao import VerificationDAO
+from app.v2.models.lecturer import Lecturer
+from app.v2.permissions import rule_for
+from app.v2.security import Actor, HeldPosition, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
+from app.v2.services.audit_log_service import AuditLogService
 from app.v2.services.department_service import DepartmentService
 from app.v2.services.education_service import EducationService
 from app.v2.services.entry_service import EntryService
@@ -48,6 +60,7 @@ from app.v2.services.evidence_service import EvidenceService
 from app.v2.services.expertise_service import ExpertiseService
 from app.v2.services.lecturer_file_service import LecturerFileService
 from app.v2.services.lecturer_service import LecturerService
+from app.v2.services.lecturer_work_service import LecturerWorkService
 from app.v2.services.me_service import MeService
 from app.v2.services.position_service import PositionService
 from app.v2.services.publication_profile_service import PublicationProfileService
@@ -57,6 +70,7 @@ from app.v2.services.round_service import RoundService
 from app.v2.services.rubric_service import RubricService
 from app.v2.services.score_keeper import ScoreKeeper
 from app.v2.services.submission_service import SubmissionService
+from app.v2.services.verification_service import VerificationService
 from app.v2.storage.object_storage import ObjectStorage
 from app.v2.storage.s3_object_storage import S3ObjectStorage
 
@@ -72,27 +86,15 @@ def get_object_storage() -> ObjectStorage:
 ObjectStorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 
 
-def get_current_lecturer_id(
-    settings: SettingsDep,
-    x_lecturer_id: Annotated[
-        UUID | None,
-        Header(description="Temporary, until Cognito: the caller's lecturer_id (not in prod)"),
-    ] = None,
-) -> UUID:
-    """The caller. TODO(auth): verify the Cognito JWT and find the lecturer whose
-    `cognito_sub` is the token's `sub`; then drop the X-Lecturer-Id header."""
-    if not settings.allows_dev_auth_header or x_lecturer_id is None:
-        raise UnauthorizedError("Sign-in required")
-    return x_lecturer_id
-
-
-CurrentLecturerIdDep = Annotated[UUID, Depends(get_current_lecturer_id)]
-
 # --- DAOs -------------------------------------------------------------------------
 
 
 def get_lecturer_dao(session: SessionDep) -> LecturerDAO:
     return SqlLecturerDAO(session)
+
+
+def get_lecturer_work_dao(session: SessionDep) -> LecturerWorkDAO:
+    return SqlLecturerWorkDAO(session)
 
 
 def get_education_dao(session: SessionDep) -> EducationDAO:
@@ -143,7 +145,12 @@ def get_evidence_dao(session: SessionDep) -> EvidenceDAO:
     return SqlEvidenceDAO(session)
 
 
+def get_verification_dao(session: SessionDep) -> VerificationDAO:
+    return SqlVerificationDAO(session)
+
+
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
+LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
 ResearchInterestDAODep = Annotated[ResearchInterestDAO, Depends(get_research_interest_dao)]
 ExpertiseDAODep = Annotated[ExpertiseDAO, Depends(get_expertise_dao)]
@@ -156,6 +163,111 @@ EvaluationRoundDAODep = Annotated[EvaluationRoundDAO, Depends(get_evaluation_rou
 SubmissionDAODep = Annotated[SubmissionDAO, Depends(get_submission_dao)]
 AssessmentDAODep = Annotated[AssessmentDAO, Depends(get_assessment_dao)]
 EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
+VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
+
+# --- Caller (docs/v2/permissions.md) ------------------------------------------------
+
+
+@lru_cache
+def get_token_verifier() -> CognitoTokenVerifier | None:
+    settings = get_settings()
+    if not (settings.cognito_user_pool_id and settings.cognito_client_id):
+        return None
+    return CognitoTokenVerifier(
+        issuer=settings.cognito_issuer,
+        client_id=settings.cognito_client_id,
+        jwks_json=settings.cognito_jwks_json,
+    )
+
+
+TokenVerifierDep = Annotated[CognitoTokenVerifier | None, Depends(get_token_verifier)]
+
+
+def get_actor(
+    settings: SettingsDep,
+    verifier: TokenVerifierDep,
+    lecturer_dao: LecturerDAODep,
+    position_dao: MemberPositionDAODep,
+    authorization: Annotated[str | None, Header()] = None,
+    x_lecturer_id: Annotated[
+        UUID | None, Header(description="Dev only (not prod): act as this lecturer_id")
+    ] = None,
+    x_dev_roles: Annotated[
+        str | None, Header(description="Dev only (not prod): extra roles, e.g. staff,admin")
+    ] = None,
+) -> Actor:
+    """The caller, from the Cognito ID token, or from the dev headers outside prod."""
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not token:
+            raise UnauthorizedError("Use `Authorization: Bearer <ID token>`")
+        if verifier is None:
+            raise UnauthorizedError("Sign-in is not configured on this server")
+        claims = verifier.verify(token)
+        lecturer = lecturer_dao.get_by_cognito_sub(claims["sub"]) or _link_by_email(
+            lecturer_dao, claims
+        )
+        if not lecturer.is_active:
+            raise ForbiddenError("This lecturer account is deactivated")
+        groups = claims.get("cognito:groups") or []
+        return Actor(
+            lecturer.lecturer_id,
+            roles_from_names(groups) | {Role.LECTURER},
+            _positions_held(position_dao, lecturer.lecturer_id),
+        )
+
+    if settings.allows_dev_auth_header and (x_lecturer_id or x_dev_roles):
+        roles = roles_from_names((x_dev_roles or "").split(","))
+        if x_lecturer_id is None:
+            return Actor(None, roles)
+        return Actor(
+            x_lecturer_id, roles | {Role.LECTURER}, _positions_held(position_dao, x_lecturer_id)
+        )
+
+    raise UnauthorizedError("Sign-in required")
+
+
+def _positions_held(position_dao: MemberPositionDAO, lecturer_id: UUID) -> frozenset[HeldPosition]:
+    return frozenset(
+        HeldPosition(held.position, held.department_id)
+        for held in position_dao.list_active(lecturer_id, date.today())
+    )
+
+
+def _link_by_email(lecturer_dao: LecturerDAO, claims: dict) -> Lecturer:
+    """First sign-in: the lecturer record with the account's verified email gets its `sub`."""
+    email = claims.get("email")
+    if not email or claims.get("email_verified") not in (True, "true"):
+        raise ForbiddenError("This account is not linked to a lecturer record")
+    lecturer = lecturer_dao.get_by_email(email)
+    if lecturer is None:
+        raise ForbiddenError(f"No lecturer record has the email {email}; ask staff to add one")
+    if lecturer.cognito_sub is not None:
+        raise ForbiddenError("This lecturer is already linked to another account")
+    return lecturer_dao.update(lecturer, {"cognito_sub": claims["sub"]})
+
+
+CurrentActorDep = Annotated[Actor, Depends(get_actor)]
+
+
+def authorize(request: Request, actor: CurrentActorDep, session: SessionDep) -> None:
+    """Router-level check of docs/v2/permissions.md (ROUTE_RULES) for every /api/v2 call.
+    The caller then goes on the request's session, so every change is audited (audit.py)."""
+    route = request.scope.get("route")
+    rule = rule_for(request.method, getattr(route, "path", ""))
+    if rule is None or not rule.allows(actor, request.path_params):
+        raise ForbiddenError("You do not have permission to do this")
+    audit.attach(session, actor, f"{request.method} {request.url.path}")
+
+
+def get_current_lecturer_id(actor: CurrentActorDep) -> UUID:
+    """The calling lecturer, for endpoints that act as a person (submissions, assessments)."""
+    if actor.lecturer_id is None:
+        raise UnauthorizedError("Sign in as a lecturer")
+    return actor.lecturer_id
+
+
+CurrentLecturerIdDep = Annotated[UUID, Depends(get_current_lecturer_id)]
 
 # --- Services ---------------------------------------------------------------------
 
@@ -202,7 +314,14 @@ def get_publication_service(
     return PublicationService(publication_dao, lecturer_dao)
 
 
+def get_lecturer_work_service(
+    work_dao: LecturerWorkDAODep, lecturer_dao: LecturerDAODep
+) -> LecturerWorkService:
+    return LecturerWorkService(work_dao, lecturer_dao)
+
+
 LecturerServiceDep = Annotated[LecturerService, Depends(get_lecturer_service)]
+LecturerWorkServiceDep = Annotated[LecturerWorkService, Depends(get_lecturer_work_service)]
 LecturerFileServiceDep = Annotated[LecturerFileService, Depends(get_lecturer_file_service)]
 EducationServiceDep = Annotated[EducationService, Depends(get_education_service)]
 ResearchInterestServiceDep = Annotated[
@@ -317,3 +436,22 @@ SubmissionServiceDep = Annotated[SubmissionService, Depends(get_submission_servi
 EntryServiceDep = Annotated[EntryService, Depends(get_entry_service)]
 AssessmentServiceDep = Annotated[AssessmentService, Depends(get_assessment_service)]
 EvidenceServiceDep = Annotated[EvidenceService, Depends(get_evidence_service)]
+
+
+def get_verification_service(
+    verification_dao: VerificationDAODep,
+    publication_dao: PublicationDAODep,
+    evidence_dao: EvidenceDAODep,
+    submission_dao: SubmissionDAODep,
+) -> VerificationService:
+    return VerificationService(verification_dao, publication_dao, evidence_dao, submission_dao)
+
+
+VerificationServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
+
+
+def get_audit_log_service(session: SessionDep) -> AuditLogService:
+    return AuditLogService(SqlAuditLogDAO(session))
+
+
+AuditLogServiceDep = Annotated[AuditLogService, Depends(get_audit_log_service)]

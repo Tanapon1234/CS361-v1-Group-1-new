@@ -6,11 +6,12 @@ and is included next to this one in app/main.py.
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.core.problem import ProblemDetail
 from app.v2.controllers import (
     assessment_controller,
+    audit_log_controller,
     cv_controller,
     department_controller,
     education_controller,
@@ -21,6 +22,7 @@ from app.v2.controllers import (
     lecturer_expertise_controller,
     lecturer_publication_controller,
     lecturer_research_interest_controller,
+    lecturer_work_controller,
     me_controller,
     position_controller,
     profile_image_controller,
@@ -30,7 +32,9 @@ from app.v2.controllers import (
     round_controller,
     rubric_controller,
     submission_controller,
+    verification_controller,
 )
+from app.v2.dependencies import authorize
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ProblemDetail, "description": "Business rule violated"},
@@ -42,7 +46,10 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     422: {"model": ProblemDetail, "description": "Invalid request fields"},
 }
 
-api_v2_router = APIRouter(prefix="/api/v2", responses=ERROR_RESPONSES)
+# Every endpoint needs a signed-in caller allowed by app/v2/permissions.py
+api_v2_router = APIRouter(
+    prefix="/api/v2", responses=ERROR_RESPONSES, dependencies=[Depends(authorize)]
+)
 
 for controller in (
     lecturer_controller,
@@ -56,6 +63,7 @@ for controller in (
     lecturer_publication_controller,
     expertise_controller,
     lecturer_expertise_controller,
+    lecturer_work_controller,
     # workload (SemesterReport)
     me_controller,
     department_controller,
@@ -66,5 +74,8 @@ for controller in (
     entry_controller,
     assessment_controller,
     evidence_controller,
+    # verification (V3)
+    verification_controller,
+    audit_log_controller,
 ):
     api_v2_router.include_router(controller.router)

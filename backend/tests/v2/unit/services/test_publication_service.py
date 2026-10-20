@@ -17,7 +17,10 @@ from app.v2.dtos.publication_dto import (
 )
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
+from app.v2.security import Actor, Role
 from app.v2.services.publication_service import PublicationService
+
+STAFF = Actor(uuid4(), frozenset({Role.LECTURER, Role.STAFF}))
 
 
 @pytest.fixture
@@ -58,7 +61,7 @@ def test_update_publication_single_field(
     publication_dao.get_by_id.return_value = existing
     publication_dao.update.return_value = updated
 
-    result = service.update_publication(1, PublicationUpdateRequest(volume="9"))
+    result = service.update_publication(1, PublicationUpdateRequest(volume="9"), actor=STAFF)
 
     publication_dao.update.assert_called_once_with(existing, {"volume": "9"})
     publication_dao.get_by_doi.assert_not_called()
@@ -77,6 +80,7 @@ def test_update_publication_multiple_fields_only_updates_sent_fields(
     result = service.update_publication(
         1,
         PublicationUpdateRequest(volume="9", pages="100-110"),
+        actor=STAFF,
     )
 
     publication_dao.update.assert_called_once_with(
@@ -94,7 +98,7 @@ def test_update_unknown_publication_raises_not_found(
     publication_dao.get_by_id.return_value = None
 
     with pytest.raises(NotFoundError, match="Publication not found"):
-        service.update_publication(99, PublicationUpdateRequest(volume="9"))
+        service.update_publication(99, PublicationUpdateRequest(volume="9"), actor=STAFF)
 
     publication_dao.update.assert_not_called()
 
@@ -114,6 +118,7 @@ def test_update_publication_duplicate_doi_raises_conflict(
         service.update_publication(
             1,
             PublicationUpdateRequest(doi="10.1000/duplicate"),
+            actor=STAFF,
         )
 
     publication_dao.update.assert_not_called()
@@ -130,6 +135,7 @@ def test_update_publication_allows_same_record_doi(
     service.update_publication(
         1,
         PublicationUpdateRequest(doi="10.1542/hpeds.2018-0073"),
+        actor=STAFF,
     )
 
     publication_dao.update.assert_called_once_with(
@@ -151,6 +157,7 @@ def test_update_publication_unique_violation_raises_conflict(
         service.update_publication(
             1,
             PublicationUpdateRequest(doi="10.1000/concurrent"),
+            actor=STAFF,
         )
 
 
@@ -162,7 +169,7 @@ def test_update_publication_database_unavailable(
     )
 
     with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
-        service.update_publication(1, PublicationUpdateRequest(volume="9"))
+        service.update_publication(1, PublicationUpdateRequest(volume="9"), actor=STAFF)
 
     publication_dao.update.assert_not_called()
 
@@ -286,7 +293,7 @@ def test_create_publication_success(
         citation_text="Wantanakorn, Pornchanok & ...",
     )
 
-    result = service.create_publication(data)
+    result = service.create_publication(data, actor=STAFF)
 
     assert result.publication_id == 1
     assert result.created_at == created_at
@@ -307,7 +314,8 @@ def test_create_publication_accepts_null_optional_fields(
     )
 
     result = service.create_publication(
-        PublicationCreateRequest(title="Publication without metadata")
+        PublicationCreateRequest(title="Publication without metadata"),
+        actor=STAFF,
     )
 
     assert result.publication_year is None
@@ -332,7 +340,8 @@ def test_create_publication_duplicate_doi_raises_conflict(
             PublicationCreateRequest(
                 title="Duplicate publication",
                 doi="10.1542/hpeds.2018-0073",
-            )
+            ),
+            actor=STAFF,
         )
 
     publication_dao.add.assert_not_called()
@@ -351,7 +360,8 @@ def test_create_publication_unique_violation_raises_conflict(
             PublicationCreateRequest(
                 title="Concurrent duplicate",
                 doi="10.1542/hpeds.2018-0073",
-            )
+            ),
+            actor=STAFF,
         )
 
 
@@ -361,7 +371,9 @@ def test_create_publication_dao_error_propagates_for_rollback(
     publication_dao.add.side_effect = RuntimeError("write failed")
 
     with pytest.raises(RuntimeError, match="write failed"):
-        service.create_publication(PublicationCreateRequest(title="Failed publication"))
+        service.create_publication(
+            PublicationCreateRequest(title="Failed publication"), actor=STAFF
+        )
 
 
 def test_create_publication_database_unavailable_raises_service_unavailable(
@@ -376,7 +388,8 @@ def test_create_publication_database_unavailable_raises_service_unavailable(
             PublicationCreateRequest(
                 title="Unavailable publication",
                 doi="10.1542/hpeds.2018-0073",
-            )
+            ),
+            actor=STAFF,
         )
 
     publication_dao.add.assert_not_called()
@@ -397,7 +410,7 @@ def test_delete_existing_publication(
     publication = Publication(publication_id=7, title="A Study of Things")
     publication_dao.get_by_id.return_value = publication
 
-    result = service.delete_publication(7)
+    result = service.delete_publication(7, actor=STAFF)
 
     assert result is None
     publication_dao.get_by_id.assert_called_once_with(7)
@@ -410,7 +423,7 @@ def test_delete_unknown_publication_raises_not_found(
     publication_dao.get_by_id.return_value = None
 
     with pytest.raises(NotFoundError, match="Publication not found"):
-        service.delete_publication(99)
+        service.delete_publication(99, actor=STAFF)
 
     publication_dao.delete.assert_not_called()
 
@@ -426,7 +439,7 @@ def test_delete_database_unavailable_raises_service_unavailable(
     )
 
     with pytest.raises(ServiceUnavailableError, match="Database unavailable"):
-        service.delete_publication(7)
+        service.delete_publication(7, actor=STAFF)
 
 
 def test_get_publication_database_unavailable(
@@ -530,3 +543,34 @@ def test_list_lecturer_publications_database_unavailable(
 
     with pytest.raises(ServiceUnavailableError, match="Database is unreachable"):
         service.list_lecturer_publications(lecturer_id, PublicationListQuery())
+
+
+def test_create_publication_saves_authors_in_order(
+    service: PublicationService, publication_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    first, second = uuid4(), uuid4()
+    lecturer_dao.get_by_id.side_effect = lambda lecturer_id: Lecturer(
+        lecturer_id=lecturer_id, name_th="สมชาย", email=f"{lecturer_id}@example.ac.th"
+    )
+    publication_dao.get_by_doi.return_value = None
+    publication_dao.add.return_value = publication(publication_id=5)
+
+    service.create_publication(
+        PublicationCreateRequest(title="T", lecturer_ids=[first, second]), actor=STAFF
+    )
+
+    assert "lecturer_ids" not in publication_dao.add.call_args.args[0].model_dump()
+    publication_dao.set_authors.assert_called_once_with(5, [first, second])
+
+
+def test_create_publication_with_unknown_author_saves_nothing(
+    service: PublicationService, publication_dao: MagicMock, lecturer_dao: MagicMock
+) -> None:
+    publication_dao.get_by_doi.return_value = None
+    lecturer_dao.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundError):
+        service.create_publication(
+            PublicationCreateRequest(title="T", lecturer_ids=[uuid4()]), actor=STAFF
+        )
+    publication_dao.add.assert_not_called()

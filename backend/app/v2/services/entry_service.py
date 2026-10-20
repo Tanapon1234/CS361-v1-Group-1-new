@@ -27,6 +27,8 @@ from app.v2.dtos.submission_dto import (
 )
 from app.v2.models.rubric import RubricItem
 from app.v2.models.submission import Submission, SubmissionEntry
+from app.v2.security import Actor
+from app.v2.services.access import require_owner, require_view_submission
 from app.v2.services.score_keeper import Rubric, ScoreKeeper
 from app.v2.services.scoring import ENTRY_COLUMNS, validate_entry
 from app.v2.services.workflow import EDITABLE_STATUSES
@@ -51,9 +53,10 @@ class EntryService:
         self.score_keeper = score_keeper
 
     def list_entries(
-        self, submission_id: UUID, query: EntryListQuery
+        self, submission_id: UUID, actor: Actor, query: EntryListQuery
     ) -> ListResponse[EntryResponse]:
         submission = self._require_submission(submission_id)
+        require_view_submission(actor, submission)
         section_id = None
         if query.section is not None:
             version_id = self.score_keeper.rubric_of(submission).version.id
@@ -82,8 +85,10 @@ class EntryService:
         self.score_keeper.refresh(submission, rubric, freeze=False)
         return EntryResponse.model_validate(entry)
 
-    def get_entry(self, entry_id: UUID) -> EntryResponse:
-        return EntryResponse.model_validate(self._require_entry(entry_id))
+    def get_entry(self, entry_id: UUID, actor: Actor) -> EntryResponse:
+        entry = self._require_entry(entry_id)
+        require_view_submission(actor, self._require_submission(entry.submission_id))
+        return EntryResponse.model_validate(entry)
 
     def update_entry(
         self, entry_id: UUID, actor_id: UUID, data: EntryUpdateRequest, if_match: str | None
@@ -171,7 +176,7 @@ class EntryService:
         actor = self.lecturer_dao.get_by_id(actor_id)
         if actor is None or not actor.is_active:
             raise UnauthorizedError("Unknown or inactive lecturer")
-        # TODO(auth): only the owner (submission.lecturer_id == actor_id)
+        require_owner(actor_id, submission)
         if submission.status not in EDITABLE_STATUSES:
             raise ConflictError(f"The submission is {submission.status} and can no longer change")
         return submission

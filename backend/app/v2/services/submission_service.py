@@ -1,7 +1,7 @@
 """Workload submissions (one per lecturer per round), their totals and approval history.
 
-Auth is not wired yet: `actor_id` is the caller (see `CurrentLecturerIdDep`). Checks of
-*who may* do something are marked `TODO(auth)`.
+`actor_id` is the lecturer acting in person (CurrentLecturerIdDep); `actor` is the caller
+with roles, for who may see what (app/v2/services/access.py, docs/v2/permissions.md).
 """
 
 from datetime import UTC, datetime
@@ -9,7 +9,13 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import BadRequestError, ConflictError, NotFoundError, UnauthorizedError
+from app.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+)
 from app.v2.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v2.daos.evidence_dao import EvidenceDAO
 from app.v2.daos.lecturer_dao import LecturerDAO
@@ -30,6 +36,13 @@ from app.v2.dtos.submission_dto import (
 from app.v2.models.enums import AcademicRank, ApprovalDecision, SubmissionStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.submission import Submission, SubmissionApproval
+from app.v2.security import Actor
+from app.v2.services.access import (
+    require_owner,
+    require_signer,
+    require_view_submission,
+    signer_departments,
+)
 from app.v2.services.db_errors import is_unique_violation
 from app.v2.services.score_keeper import ScoreKeeper
 from app.v2.services.scoring import ZERO
@@ -78,15 +91,22 @@ class SubmissionService:
     # --- submissions --------------------------------------------------------------
 
     def list_submissions(
-        self, actor_id: UUID, query: SubmissionListQuery
+        self, actor: Actor, query: SubmissionListQuery
     ) -> PageResponse[SubmissionResponse]:
-        self._require_actor(actor_id)
-        # TODO(auth): limit to what the caller may see (own submissions, or their
-        # department's when they hold a position there, or all for the faculty).
+        # Everyone sees their own; department signers their department's; viewers all
+        lecturer_id, department_id = query.lecturer_id, None
+        if not actor.views_all and not (lecturer_id and actor.is_lecturer(lecturer_id)):
+            departments = signer_departments(actor)
+            if len(departments) == 1:
+                department_id = next(iter(departments))
+            elif actor.lecturer_id is None:
+                raise ForbiddenError("Sign in as a lecturer")
+            else:
+                lecturer_id = actor.lecturer_id
         items, total = self.submission_dao.find_page(
             round_id=query.round_id,
-            lecturer_id=query.lecturer_id,
-            department_id=None,
+            lecturer_id=lecturer_id,
+            department_id=department_id,
             status=query.status,
             limit=query.limit,
             offset=query.offset,
@@ -124,8 +144,8 @@ class SubmissionService:
             raise
         return SubmissionResponse.model_validate(submission)
 
-    def get_submission(self, submission_id: UUID) -> SubmissionDetailResponse:
-        submission = self._require_submission(submission_id)
+    def get_submission(self, submission_id: UUID, actor: Actor) -> SubmissionDetailResponse:
+        submission = self._require_viewable(submission_id, actor)
         entries = self.submission_dao.list_entries(submission_id)
         return SubmissionDetailResponse(
             **SubmissionResponse.model_validate(submission).model_dump(),
@@ -135,7 +155,7 @@ class SubmissionService:
     def delete_submission(self, submission_id: UUID, actor_id: UUID) -> None:
         submission = self._require_submission(submission_id)
         self._require_actor(actor_id)
-        # TODO(auth): only the owner (submission.lecturer_id == actor_id)
+        require_owner(actor_id, submission)
         if submission.status is not SubmissionStatus.DRAFT:
             raise ConflictError("Only a draft submission can be deleted")
         keys = [evidence.s3_key for evidence in self.evidence_dao.list_by_submission(submission_id)]
@@ -143,8 +163,8 @@ class SubmissionService:
         for key in keys:
             self.storage.delete_object(key)
 
-    def get_summary(self, submission_id: UUID) -> SubmissionSummaryResponse:
-        submission = self._require_submission(submission_id)
+    def get_summary(self, submission_id: UUID, actor: Actor) -> SubmissionSummaryResponse:
+        submission = self._require_viewable(submission_id, actor)
         rubric = self.score_keeper.rubric_of(submission)
         totals = self.score_keeper.totals(submission, rubric)
         version = rubric.version
@@ -173,8 +193,8 @@ class SubmissionService:
             pending_assessments=self.score_keeper.pending_assessments(submission.id, rubric),
         )
 
-    def get_totals(self, submission_id: UUID) -> SubmissionTotalsResponse:
-        submission = self._require_submission(submission_id)
+    def get_totals(self, submission_id: UUID, actor: Actor) -> SubmissionTotalsResponse:
+        submission = self._require_viewable(submission_id, actor)
         frozen = {t.category_id: t for t in self.submission_dao.list_category_totals(submission_id)}
         if not frozen:
             raise ConflictError("The submission has not been sent yet; use /summary")
@@ -202,15 +222,15 @@ class SubmissionService:
             ),
         )
 
-    def get_pdf(self, submission_id: UUID) -> bytes:
-        self._require_submission(submission_id)
+    def get_pdf(self, submission_id: UUID, actor: Actor) -> bytes:
+        self._require_viewable(submission_id, actor)
         # The paper form's layout and a Thai font are not in the repo yet.
         raise NotImplementedError  # TODO: render the official form as PDF
 
     # --- approvals ----------------------------------------------------------------
 
-    def list_approvals(self, submission_id: UUID) -> ListResponse[ApprovalResponse]:
-        self._require_submission(submission_id)
+    def list_approvals(self, submission_id: UUID, actor: Actor) -> ListResponse[ApprovalResponse]:
+        self._require_viewable(submission_id, actor)
         items = [
             ApprovalResponse.model_validate(approval)
             for approval in self.submission_dao.list_approvals(submission_id)
@@ -218,16 +238,17 @@ class SubmissionService:
         return ListResponse(items=items, meta=ListMeta(count=len(items)))
 
     def create_approval(
-        self, submission_id: UUID, actor_id: UUID, data: ApprovalCreateRequest
+        self, submission_id: UUID, actor: Actor, data: ApprovalCreateRequest
     ) -> ApprovalResponse:
         submission = self._require_submission(submission_id)
+        if actor.lecturer_id is None:
+            raise UnauthorizedError("Sign in as a lecturer: signatures are personal")
+        actor_id = actor.lecturer_id
         self._require_actor(actor_id)
         step = STEPS.get(submission.status)
         if step is None:
             raise ConflictError(f"A {submission.status} submission cannot change any more")
-        # TODO(auth): the caller must be able to sign as `step.role`: the owner for
-        # performer; the dept_chair / dept_committee of submission.department_snapshot;
-        # faculty staff for receiver.
+        require_signer(actor, submission, step.role)
 
         changes: dict[str, object] = {}
         if data.decision is ApprovalDecision.RETURNED:
@@ -274,6 +295,11 @@ class SubmissionService:
         submission = self.submission_dao.get_by_id(submission_id)
         if submission is None:
             raise NotFoundError("Submission not found")
+        return submission
+
+    def _require_viewable(self, submission_id: UUID, actor: Actor) -> Submission:
+        submission = self._require_submission(submission_id)
+        require_view_submission(actor, submission)
         return submission
 
     def _require_lecturer(self, lecturer_id: UUID) -> Lecturer:

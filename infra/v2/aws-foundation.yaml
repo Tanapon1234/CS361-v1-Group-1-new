@@ -99,6 +99,13 @@ Parameters:
       - 90
     Description: CloudWatch log retention for V2 Lambda log groups.
 
+  WebAllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost:3000"
+    Description: >-
+      Web origins that upload files straight to the data bucket with presigned POST
+      (the /manage pages), e.g. http://localhost:3000,https://<project>.vercel.app
+
 Conditions:
   CreateAuroraInCloudFormation: !Equals [!Ref AuroraProvisioningMode, cloudformation]
   UseAutoPause: !Equals [!Ref MinCapacity, 0]
@@ -121,6 +128,14 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
+      # Browsers upload profile images, CVs and evidence straight to S3 (presigned POST)
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [POST]
+            AllowedOrigins: !Ref WebAllowedOrigins
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
       Tags:
         - Key: Project
           Value: !Ref ProjectName

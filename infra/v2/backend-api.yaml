@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  CS361 V2 FastAPI backend (backend/app) on Lambda inside the Aurora VPC, behind an
+  API Gateway HTTP API. See docs/v2/backend-db-connection-decision.md.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cs361-v2
+    AllowedPattern: "^[a-z][a-z0-9-]{2,30}$"
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, demo, prod]
+
+  CodeS3Bucket:
+    Type: String
+    Description: Bucket holding the packaged backend zip.
+
+  CodeS3Key:
+    Type: String
+    Description: Key of the packaged backend zip (scripts/deploy-v2-backend-api.sh builds it).
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC of the Aurora cluster.
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets that can reach Aurora (two AZs).
+
+  PrivateRouteTableIds:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: Route tables of those subnets, for the S3 gateway endpoint.
+
+  DBSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Aurora security group; the stack allows 5432 from the Lambda into it.
+
+  DBHost:
+    Type: String
+    Description: Aurora cluster (writer) endpoint.
+
+  DBName:
+    Type: String
+    Default: cs361v2
+
+  DBSecretArn:
+    Type: String
+    Description: Secrets Manager secret with username / password for Aurora.
+
+  DataBucketName:
+    Type: String
+    Description: S3 bucket for profile images, CVs and evidence files.
+
+  CorsAllowOrigins:
+    Type: String
+    Default: '["http://localhost:3000"]'
+    Description: JSON list of web origins allowed to call the API (CORS_ALLOW_ORIGINS).
+
+  DevAuthHeaderEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Accept the X-Lecturer-Id header until Cognito is wired. Ignored in prod.
+
+  CognitoUserPoolId:
+    Type: String
+    Default: ""
+    Description: Output UserPoolId of infra/v2/cognito.yaml (empty = sign-in off).
+
+  CognitoClientId:
+    Type: String
+    Default: ""
+    Description: Output WebClientId of infra/v2/cognito.yaml.
+
+  CognitoJwksJson:
+    Type: String
+    Default: ""
+    Description: >-
+      The pool's public keys (JWKS JSON) so the Lambda can verify tokens without internet
+      access; scripts/deploy-v2-backend-api.sh fetches it.
+
+  CreateVpcEndpoints:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Create the S3 and Secrets Manager endpoints (false if the VPC has them or a NAT).
+
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+
+Conditions:
+  MakeEndpoints: !Equals [!Ref CreateVpcEndpoints, "true"]
+  MakeS3Endpoint: !And
+    - !Condition MakeEndpoints
+    - !Not [!Equals [!Join ["", !Ref PrivateRouteTableIds], ""]]
+
+Resources:
+  BackendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Environment} backend Lambda"
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  DBIngressFromBackend:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DBSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref BackendSecurityGroup
+      Description: PostgreSQL from the backend Lambda
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: MakeEndpoints
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Environment} interface endpoints"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref BackendSecurityGroup
+
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: MakeEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds: !Ref PrivateSubnetIds
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: MakeS3Endpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds: !Ref PrivateRouteTableIds
+
+  BackendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: backend-runtime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadDatabaseSecret
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DBSecretArn
+              - Sid: LecturerFilesAndEvidence
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}/lecturers/*"
+                  - !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}/submissions/*"
+              - Sid: HeadObjectNeedsListForMissingKeys
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}"
+
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}-backend"
+      RetentionInDays: !Ref LogRetentionDays
+
+  BackendFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: BackendLogGroup
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-backend"
+      Description: CS361 V2 FastAPI backend (/api/v2)
+      Runtime: python3.12
+      Architectures: [x86_64]
+      Handler: app.lambda_handler.handler
+      Role: !GetAtt BackendRole.Arn
+      Timeout: 30
+      MemorySize: 1024
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      VpcConfig:
+        SubnetIds: !Ref PrivateSubnetIds
+        SecurityGroupIds: [!Ref BackendSecurityGroup]
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          LOG_LEVEL: INFO
+          DB_HOST: !Ref DBHost
+          DB_PORT: "5432"
+          DB_NAME: !Ref DBName
+          DB_SSLMODE: require
+          DB_SECRET_ARN: !Ref DBSecretArn
+          # One warm container serves one request at a time
+          DB_POOL_SIZE: "1"
+          DB_MAX_OVERFLOW: "0"
+          DATA_BUCKET_NAME: !Ref DataBucketName
+          CORS_ALLOW_ORIGINS: !Ref CorsAllowOrigins
+          DEV_AUTH_HEADER_ENABLED: !Ref DevAuthHeaderEnabled
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          COGNITO_CLIENT_ID: !Ref CognitoClientId
+          COGNITO_JWKS_JSON: !Ref CognitoJwksJson
+
+  BackendHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-backend-api"
+      ProtocolType: HTTP
+
+  BackendIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BackendHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt BackendFunction.Arn
+      PayloadFormatVersion: "2.0"
+      TimeoutInMillis: 30000
+
+  BackendDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BackendHttpApi
+      RouteKey: "$default"
+      Target: !Sub "integrations/${BackendIntegration}"
+
+  BackendStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref BackendHttpApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  BackendInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BackendFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${BackendHttpApi}/*"
+
+Outputs:
+  BackendApiEndpoint:
+    Description: Base URL for BACKEND_API_BASE_URL (routes are under /api/v2)
+    Value: !GetAtt BackendHttpApi.ApiEndpoint
+  BackendFunctionName:
+    Value: !Ref BackendFunction
+  BackendLogGroupName:
+    Value: !Ref BackendLogGroup

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Header, Response, status
 from fastapi.responses import RedirectResponse
 
 from app.v2.controllers.params import EntryId, EvidenceId
-from app.v2.dependencies import CurrentLecturerIdDep, EvidenceServiceDep
+from app.v2.dependencies import CurrentActorDep, CurrentLecturerIdDep, EvidenceServiceDep
 from app.v2.dtos.common import ListResponse
 from app.v2.dtos.evidence_dto import (
     EvidenceCreateRequest,
@@ -18,8 +18,10 @@ router = APIRouter(tags=["evidence"])
 
 
 @router.get("/entries/{entry_id}/evidence")
-def list_evidence(entry_id: EntryId, service: EvidenceServiceDep) -> ListResponse[EvidenceResponse]:
-    return service.list_evidence(entry_id)
+def list_evidence(
+    entry_id: EntryId, actor: CurrentActorDep, service: EvidenceServiceDep
+) -> ListResponse[EvidenceResponse]:
+    return service.list_evidence(entry_id, actor)
 
 
 @router.post("/entries/{entry_id}/evidence", status_code=status.HTTP_201_CREATED)
@@ -54,8 +56,10 @@ def update_evidence(
     response_class=RedirectResponse,
     responses={302: {"description": "Redirect to a short-lived S3 download URL"}},
 )
-def get_evidence_content(evidence_id: EvidenceId, service: EvidenceServiceDep) -> RedirectResponse:
-    download = service.get_download(evidence_id)
+def get_evidence_content(
+    evidence_id: EvidenceId, actor: CurrentActorDep, service: EvidenceServiceDep
+) -> RedirectResponse:
+    download = service.get_download(evidence_id, actor)
     return RedirectResponse(download.url, status_code=status.HTTP_302_FOUND)
 
 
