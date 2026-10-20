@@ -61,6 +61,8 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("PUT", "/api/v2/lecturers/{lecturer_id}/expertise"),
     ("DELETE", "/api/v2/lecturers/{lecturer_id}/expertise/{expertise_id}"),
+    # audit log (V3, migration 006)
+    ("GET", "/api/v2/audit-log"),
     # verification (V3, migration 005)
     ("GET", "/api/v2/publications/{publication_id}/verification"),
     ("PUT", "/api/v2/publications/{publication_id}/verification"),

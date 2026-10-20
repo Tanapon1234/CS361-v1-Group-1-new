@@ -169,6 +169,8 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("PUT", "/evidence/{evidence_id}/verification"): REVIEWERS,
     ("GET", "/verifications/publications"): REVIEWERS,
     ("GET", "/verifications/evidence"): REVIEWERS,
+    # audit log (006)
+    ("GET", "/audit-log"): ADMIN,
 }
 
 

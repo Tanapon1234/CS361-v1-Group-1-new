@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from app.core.problem import ProblemDetail
 from app.v2.controllers import (
     assessment_controller,
+    audit_log_controller,
     cv_controller,
     department_controller,
     education_controller,
@@ -75,5 +76,6 @@ for controller in (
     evidence_controller,
     # verification (V3)
     verification_controller,
+    audit_log_controller,
 ):
     api_v2_router.include_router(controller.router)

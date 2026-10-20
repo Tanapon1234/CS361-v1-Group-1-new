@@ -1,9 +1,10 @@
 """Table models (the "M" in MVC), mirroring database/migrations/
-(002_lecturer_profile.sql + 003_faculty_workload.sql).
+(002_lecturer_profile.sql + 003_faculty_workload.sql + 005 / 006).
 
 Every table module is imported here so `SQLModel.metadata` knows about all tables.
 """
 
+from app.v2.models.audit_log import AuditLog
 from app.v2.models.department import Department
 from app.v2.models.education import Education
 from app.v2.models.expertise import Expertise, FacultyExpertise
@@ -24,6 +25,7 @@ from app.v2.models.submission import (
 )
 
 __all__ = [
+    "AuditLog",
     "Department",
     "Education",
     "EntryAssessment",
