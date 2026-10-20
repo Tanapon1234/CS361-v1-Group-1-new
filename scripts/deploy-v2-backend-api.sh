@@ -69,6 +69,19 @@ PRIVATE_ROUTE_TABLE_IDS="${PRIVATE_ROUTE_TABLE_IDS:-$(aws ec2 describe-route-tab
 CORS_ALLOW_ORIGINS="${CORS_ALLOW_ORIGINS:-[\"http://localhost:3000\"]}"
 CREATE_VPC_ENDPOINTS="${CREATE_VPC_ENDPOINTS:-true}"
 DEV_AUTH_HEADER_ENABLED="${DEV_AUTH_HEADER_ENABLED:-true}"
+COGNITO_STACK="${COGNITO_STACK:-cs361-v2-cognito-dev}"
+cognito_output() {
+  aws cloudformation describe-stacks --region "${REGION}" --stack-name "${COGNITO_STACK}" \
+    --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue | [0]" --output text 2>/dev/null || true
+}
+COGNITO_USER_POOL_ID="${COGNITO_USER_POOL_ID:-$(cognito_output UserPoolId)}"
+COGNITO_CLIENT_ID="${COGNITO_CLIENT_ID:-$(cognito_output WebClientId)}"
+[[ "${COGNITO_USER_POOL_ID}" == "None" ]] && COGNITO_USER_POOL_ID="" && COGNITO_CLIENT_ID=""
+COGNITO_JWKS_JSON=""
+if [[ -n "${COGNITO_USER_POOL_ID}" ]]; then
+  # The Lambda runs in private subnets without internet, so it gets the public keys up front
+  COGNITO_JWKS_JSON="$(curl -fsS "https://cognito-idp.${REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json")"
+fi
 
 aws s3 cp "${ZIP_FILE}" "s3://${CODE_S3_BUCKET}/${CODE_S3_KEY}" --region "${REGION}"
 
@@ -92,7 +105,10 @@ aws cloudformation deploy \
     DataBucketName="${DATA_BUCKET_NAME}" \
     CorsAllowOrigins="${CORS_ALLOW_ORIGINS}" \
     CreateVpcEndpoints="${CREATE_VPC_ENDPOINTS}" \
-    DevAuthHeaderEnabled="${DEV_AUTH_HEADER_ENABLED}"
+    DevAuthHeaderEnabled="${DEV_AUTH_HEADER_ENABLED}" \
+    CognitoUserPoolId="${COGNITO_USER_POOL_ID}" \
+    CognitoClientId="${COGNITO_CLIENT_ID}" \
+    CognitoJwksJson="${COGNITO_JWKS_JSON}"
 
 ENDPOINT="$(aws cloudformation describe-stacks --region "${REGION}" --stack-name "${API_STACK}" \
   --query "Stacks[0].Outputs[?OutputKey=='BackendApiEndpoint'].OutputValue | [0]" --output text)"

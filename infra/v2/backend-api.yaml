@@ -66,6 +66,23 @@ Parameters:
     AllowedValues: ["true", "false"]
     Description: Accept the X-Lecturer-Id header until Cognito is wired. Ignored in prod.
 
+  CognitoUserPoolId:
+    Type: String
+    Default: ""
+    Description: Output UserPoolId of infra/v2/cognito.yaml (empty = sign-in off).
+
+  CognitoClientId:
+    Type: String
+    Default: ""
+    Description: Output WebClientId of infra/v2/cognito.yaml.
+
+  CognitoJwksJson:
+    Type: String
+    Default: ""
+    Description: >-
+      The pool's public keys (JWKS JSON) so the Lambda can verify tokens without internet
+      access; scripts/deploy-v2-backend-api.sh fetches it.
+
   CreateVpcEndpoints:
     Type: String
     Default: "true"
@@ -204,6 +221,9 @@ Resources:
           DATA_BUCKET_NAME: !Ref DataBucketName
           CORS_ALLOW_ORIGINS: !Ref CorsAllowOrigins
           DEV_AUTH_HEADER_ENABLED: !Ref DevAuthHeaderEnabled
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          COGNITO_CLIENT_ID: !Ref CognitoClientId
+          COGNITO_JWKS_JSON: !Ref CognitoJwksJson
 
   BackendHttpApi:
     Type: AWS::ApiGatewayV2::Api

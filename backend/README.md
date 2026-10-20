@@ -264,12 +264,14 @@ Transaction: `get_session` เปิด transaction 1 ครั้งต่อ r
 - เพิ่ม `POST /rubric-versions/{version_id}/categories` ที่ reference ไม่มี เพราะถ้าไม่มีเส้นนี้ ฉบับเกณฑ์ใหม่จะไม่มีทางเพิ่มหมวดได้
 - ยังไม่ได้ทำ: `GET /submissions/{id}/pdf` (ตอบ 501 เพราะยังไม่มีแบบฟอร์มกระดาษกับฟอนต์ไทยใน repo) และ `/course-offerings` (reference ระบุว่าเป็นงานอนาคต)
 
-### คนเรียก (ชั่วคราว จนกว่าจะต่อ Cognito)
+### คนเรียก (Cognito)
 
-endpoint ที่ต้องรู้ว่าใครเรียก (`/me`, สร้างใบ, แก้ entry, อนุมัติ, ประเมิน, แนบหลักฐาน) อ่าน lecturer_id จาก header `X-Lecturer-Id` ผ่าน `CurrentLecturerIdDep` ใน `app/v2/dependencies.py`
+ทุก endpoint ใต้ `/api/v2` รู้ว่าใครเรียกผ่าน `CurrentActorDep` (`Actor`: `lecturer_id` + บทบาท) ใน `app/v2/dependencies.py` บทบาทและตารางสิทธิ์อยู่ใน [docs/v2/permissions.md](../docs/v2/permissions.md)
 
-- ถ้าไม่มี header จะได้ 401 และ header นี้ **ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod`**
-- การเช็คสิทธิ์ (เช่น ต้องเป็นเจ้าของใบ หรือต้องเป็นหัวหน้าสาขานั้น) ยังไม่ได้ทำ ค้นคำว่า `TODO(auth)` จะเจอทุกจุดที่ต้องเพิ่ม
+- **จริง:** ส่ง `Authorization: Bearer <Cognito ID token>` backend ตรวจลายเซ็น (RS256), client, pool, อายุ และต้องเป็น ID token แล้วหาอาจารย์ที่ `cognito_sub` ตรงกับ `sub` บทบาทมาจาก `cognito:groups` (ทุกคนได้ `lecturer` เสมอ) ตั้งค่าด้วย `COGNITO_*` ใน `.env`
+- token ไม่ถูกต้องหรือหมดอายุได้ 401, บัญชีที่ยังไม่ผูกกับอาจารย์หรืออาจารย์ที่ปิดใช้งานได้ 403
+- **ตอนพัฒนา / เทสต์ / script (ไม่ใช่ prod):** `X-Lecturer-Id` แทนตัวอาจารย์ และ `X-Dev-Roles: staff,admin` เพิ่มบทบาท ใช้ไม่ได้เมื่อ `ENVIRONMENT=prod` หรือ `DEV_AUTH_HEADER_ENABLED=false`
+- endpoint ที่ทำในนามคน (สร้างใบ, อนุมัติ, ประเมิน) ใช้ `CurrentLecturerIdDep` ซึ่งต้องเป็นอาจารย์ (ไม่ใช่ script ที่มีแค่บทบาท)
 - ข้อยกเว้นคือการประเมิน ระบบเช็คแล้วว่าผู้ให้ค่าถือตำแหน่งตาม `assessor_position` ของ item และไม่ใช่เจ้าของใบ เพราะต้องบันทึก `position_used` ลงตาราง
 
 ### ลำดับสถานะของใบ

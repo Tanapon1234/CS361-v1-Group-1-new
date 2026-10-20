@@ -11,9 +11,10 @@ from uuid import UUID
 
 from fastapi import Depends, Header
 
+from app.core.cognito import CognitoTokenVerifier
 from app.core.config import SettingsDep, get_settings
 from app.core.database import SessionDep
-from app.core.exceptions import UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.v2.daos.assessment_dao import AssessmentDAO
 from app.v2.daos.department_dao import DepartmentDAO
 from app.v2.daos.education_dao import EducationDAO
@@ -42,6 +43,7 @@ from app.v2.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v2.daos.sql.rubric_dao import SqlRubricDAO
 from app.v2.daos.sql.submission_dao import SqlSubmissionDAO
 from app.v2.daos.submission_dao import SubmissionDAO
+from app.v2.security import Actor, Role, roles_from_names
 from app.v2.services.assessment_service import AssessmentService
 from app.v2.services.department_service import DepartmentService
 from app.v2.services.education_service import EducationService
@@ -74,22 +76,6 @@ def get_object_storage() -> ObjectStorage:
 
 ObjectStorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 
-
-def get_current_lecturer_id(
-    settings: SettingsDep,
-    x_lecturer_id: Annotated[
-        UUID | None,
-        Header(description="Temporary, until Cognito: the caller's lecturer_id (not in prod)"),
-    ] = None,
-) -> UUID:
-    """The caller. TODO(auth): verify the Cognito JWT and find the lecturer whose
-    `cognito_sub` is the token's `sub`; then drop the X-Lecturer-Id header."""
-    if not settings.allows_dev_auth_header or x_lecturer_id is None:
-        raise UnauthorizedError("Sign-in required")
-    return x_lecturer_id
-
-
-CurrentLecturerIdDep = Annotated[UUID, Depends(get_current_lecturer_id)]
 
 # --- DAOs -------------------------------------------------------------------------
 
@@ -164,6 +150,73 @@ EvaluationRoundDAODep = Annotated[EvaluationRoundDAO, Depends(get_evaluation_rou
 SubmissionDAODep = Annotated[SubmissionDAO, Depends(get_submission_dao)]
 AssessmentDAODep = Annotated[AssessmentDAO, Depends(get_assessment_dao)]
 EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
+
+# --- Caller (docs/v2/permissions.md) ------------------------------------------------
+
+
+@lru_cache
+def get_token_verifier() -> CognitoTokenVerifier | None:
+    settings = get_settings()
+    if not (settings.cognito_user_pool_id and settings.cognito_client_id):
+        return None
+    return CognitoTokenVerifier(
+        issuer=settings.cognito_issuer,
+        client_id=settings.cognito_client_id,
+        jwks_json=settings.cognito_jwks_json,
+    )
+
+
+TokenVerifierDep = Annotated[CognitoTokenVerifier | None, Depends(get_token_verifier)]
+
+
+def get_actor(
+    settings: SettingsDep,
+    verifier: TokenVerifierDep,
+    lecturer_dao: LecturerDAODep,
+    authorization: Annotated[str | None, Header()] = None,
+    x_lecturer_id: Annotated[
+        UUID | None, Header(description="Dev only (not prod): act as this lecturer_id")
+    ] = None,
+    x_dev_roles: Annotated[
+        str | None, Header(description="Dev only (not prod): extra roles, e.g. staff,admin")
+    ] = None,
+) -> Actor:
+    """The caller, from the Cognito ID token, or from the dev headers outside prod."""
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not token:
+            raise UnauthorizedError("Use `Authorization: Bearer <ID token>`")
+        if verifier is None:
+            raise UnauthorizedError("Sign-in is not configured on this server")
+        claims = verifier.verify(token)
+        lecturer = lecturer_dao.get_by_cognito_sub(claims["sub"])
+        if lecturer is None:
+            raise ForbiddenError("This account is not linked to a lecturer record")
+        if not lecturer.is_active:
+            raise ForbiddenError("This lecturer account is deactivated")
+        groups = claims.get("cognito:groups") or []
+        return Actor(lecturer.lecturer_id, roles_from_names(groups) | {Role.LECTURER})
+
+    if settings.allows_dev_auth_header and (x_lecturer_id or x_dev_roles):
+        roles = roles_from_names((x_dev_roles or "").split(","))
+        if x_lecturer_id is not None:
+            roles |= {Role.LECTURER}
+        return Actor(x_lecturer_id, roles)
+
+    raise UnauthorizedError("Sign-in required")
+
+
+CurrentActorDep = Annotated[Actor, Depends(get_actor)]
+
+
+def get_current_lecturer_id(actor: CurrentActorDep) -> UUID:
+    """The calling lecturer, for endpoints that act as a person (submissions, assessments)."""
+    if actor.lecturer_id is None:
+        raise UnauthorizedError("Sign in as a lecturer")
+    return actor.lecturer_id
+
+
+CurrentLecturerIdDep = Annotated[UUID, Depends(get_current_lecturer_id)]
 
 # --- Services ---------------------------------------------------------------------
 

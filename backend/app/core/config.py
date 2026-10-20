@@ -61,8 +61,16 @@ class Settings(BaseSettings):
         "image/png",
     ]
 
-    # Auth. Cognito is not wired yet: until it is, the caller is taken from the
-    # `X-Lecturer-Id` header (see app/v2/dependencies.py). Always off in prod.
+    # Auth (docs/v2/permissions.md). With COGNITO_USER_POOL_ID set, the caller is the
+    # lecturer linked to the Cognito ID token in `Authorization: Bearer <token>`.
+    # COGNITO_JWKS_JSON (the pool's public keys) lets a Lambda without internet access
+    # verify tokens; empty means fetch them from the pool.
+    cognito_region: str = ""
+    cognito_user_pool_id: str = ""
+    cognito_client_id: str = ""
+    cognito_jwks_json: str = ""
+    # Until then, and in local tests / scripts, the X-Lecturer-Id and X-Dev-Roles headers
+    # stand in for a token. Never accepted when ENVIRONMENT=prod.
     dev_auth_header_enabled: bool = True
 
     @model_validator(mode="after")
@@ -80,6 +88,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment is Environment.PROD
+
+    @property
+    def cognito_issuer(self) -> str:
+        region = self.cognito_region or self.aws_region
+        return f"https://cognito-idp.{region}.amazonaws.com/{self.cognito_user_pool_id}"
 
     @property
     def allows_dev_auth_header(self) -> bool:
