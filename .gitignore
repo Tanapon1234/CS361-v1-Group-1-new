@@ -7,3 +7,4 @@ __pycache__/
 !.env.example
 infra/v2/*.local.json
 build/v2/backend-api/
+infra/v2/*.local.csv
