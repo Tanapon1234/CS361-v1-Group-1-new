@@ -2,8 +2,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, or_
-from sqlmodel import select
+from sqlalchemy import delete, func, or_
+from sqlmodel import col, select
 
 from app.v2.daos.publication_dao import PublicationDAO
 from app.v2.daos.sql.base import SqlDAO
@@ -125,7 +125,21 @@ class SqlPublicationDAO(SqlDAO, PublicationDAO):
         self.session.flush()
 
     def get_author_ids(self, publication_id: int) -> list[UUID]:
-        raise NotImplementedError
+        statement = (
+            select(FacultyPublication.lecturer_id)
+            .where(FacultyPublication.publication_id == publication_id)
+            .order_by(col(FacultyPublication.author_order).asc().nulls_last())
+        )
+        return list(self.session.exec(statement).all())
 
     def set_authors(self, publication_id: int, lecturer_ids: Sequence[UUID]) -> None:
-        raise NotImplementedError
+        self.session.exec(
+            delete(FacultyPublication).where(FacultyPublication.publication_id == publication_id)
+        )
+        self.session.add_all(
+            FacultyPublication(
+                lecturer_id=lecturer_id, publication_id=publication_id, author_order=order
+            )
+            for order, lecturer_id in enumerate(lecturer_ids, start=1)
+        )
+        self.session.flush()
