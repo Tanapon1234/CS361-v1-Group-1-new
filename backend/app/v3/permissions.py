@@ -110,6 +110,9 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/departments"): SIGNED_IN,
     ("POST", "/departments"): STAFF,
     ("PATCH", "/departments/{department_id}"): STAFF,
+    # staff/reviewer narrowed to their own department in the service (access.py); not a
+    # plain-lecturer endpoint (V4 FR8: staff/executive summary, not self-service)
+    ("GET", "/departments/{department_id}/report"): VIEWERS,
     ("GET", "/lecturers/{lecturer_id}/positions"): SIGNED_IN,
     ("POST", "/lecturers/{lecturer_id}/positions"): STAFF,
     ("PATCH", "/lecturers/{lecturer_id}/positions/{position_id}"): STAFF,

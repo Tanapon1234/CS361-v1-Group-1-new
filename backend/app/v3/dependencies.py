@@ -357,8 +357,13 @@ def get_me_service(
     return MeService(lecturer_dao, position_dao, round_dao)
 
 
-def get_department_service(department_dao: DepartmentDAODep) -> DepartmentService:
-    return DepartmentService(department_dao)
+def get_department_service(
+    department_dao: DepartmentDAODep,
+    lecturer_dao: LecturerDAODep,
+    submission_dao: SubmissionDAODep,
+    round_dao: EvaluationRoundDAODep,
+) -> DepartmentService:
+    return DepartmentService(department_dao, lecturer_dao, submission_dao, round_dao)
 
 
 def get_position_service(
