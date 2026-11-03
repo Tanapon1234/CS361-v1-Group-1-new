@@ -10,10 +10,12 @@ export function hasRole(me: Me | null, ...roles: Role[]): boolean {
   return !!me && (me.roles.includes('admin') || roles.some((role) => me.roles.includes(role)));
 }
 
-/** Master data, lecturers, rubrics, rounds */
-export const canManage = (me: Me | null) => hasRole(me, 'staff');
-export const canReview = (me: Me | null) => hasRole(me, 'reviewer');
 export const isAdmin = (me: Me | null) => hasRole(me, 'admin');
+/** Master data, lecturers, rubrics, rounds — admin only (V4 #291: staff lost this) */
+export const canManage = (me: Me | null) => isAdmin(me);
+/** Any publication, not just their own — backend kept this for staff (PublicationService) */
+export const canManageAnyPublication = (me: Me | null) => hasRole(me, 'staff');
+export const canReview = (me: Me | null) => hasRole(me, 'reviewer');
 /** Sees everyone's submissions and reports */
 export const viewsAll = (me: Me | null) => hasRole(me, 'staff', 'reviewer', 'executive');
 

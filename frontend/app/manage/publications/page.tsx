@@ -19,7 +19,7 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
-import { canManage, isLecturerOnly } from '@/lib/auth/permissions';
+import { canManageAnyPublication, isLecturerOnly } from '@/lib/auth/permissions';
 import {
   MAX_PAGE,
   PAGE_SIZE,
@@ -50,7 +50,7 @@ export default async function PublicationsPage({
       : listPublications({ q, publication_year: year, limit: PAGE_SIZE, offset }),
     listLecturers({ is_active: true, limit: MAX_PAGE }),
   ]);
-  const manage = canManage(me);
+  const manage = canManageAnyPublication(me);
 
   return (
     <div className="space-y-6">

@@ -36,7 +36,7 @@ from app.v3.dtos.submission_dto import (
     SubmissionSummaryResponse,
     SubmissionTotalsResponse,
 )
-from app.v3.security import Actor
+from app.v3.security import Actor, Role
 from app.v3.services.access import (
     can_sign,
     require_owner,
@@ -96,12 +96,19 @@ class SubmissionService:
     def list_submissions(
         self, actor: Actor, query: SubmissionListQuery
     ) -> PageResponse[SubmissionResponse]:
-        # Everyone sees their own; department signers their department's; viewers all
+        # Everyone sees their own; department signers/staff/reviewer their department;
+        # executive/admin see all (V4: staff and reviewer stopped seeing every department, #291)
         lecturer_id, department_id = query.lecturer_id, None
-        if not actor.views_all and not (lecturer_id and actor.is_lecturer(lecturer_id)):
+        if actor.has_any(Role.EXECUTIVE):
+            pass
+        elif not (lecturer_id and actor.is_lecturer(lecturer_id)):
             departments = signer_departments(actor)
             if len(departments) == 1:
                 department_id = next(iter(departments))
+            elif actor.has_any(Role.STAFF, Role.REVIEWER):
+                department_id = self._caller_department_id(actor)
+                if department_id is None:
+                    raise ForbiddenError("You have no department to view")
             elif actor.lecturer_id is None:
                 raise ForbiddenError("Sign in as a lecturer")
             else:
@@ -325,3 +332,9 @@ class SubmissionService:
         if lecturer is None or not lecturer.is_active:
             raise UnauthorizedError("Unknown or inactive lecturer")
         return lecturer
+
+    def _caller_department_id(self, actor: Actor) -> int | None:
+        if actor.lecturer_id is None:
+            return None
+        lecturer = self.lecturer_dao.get_by_id(actor.lecturer_id)
+        return lecturer.department_id if lecturer is not None else None

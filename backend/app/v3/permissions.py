@@ -36,10 +36,11 @@ class Rule:
 
 
 SIGNED_IN = Rule(anyone=True)
-STAFF = Rule(roles=frozenset({Role.STAFF}))
-SELF_OR_STAFF = Rule(roles=frozenset({Role.STAFF}), self_param="lecturer_id")
 REVIEWERS = Rule(roles=frozenset({Role.REVIEWER}))
 ADMIN = Rule(roles=frozenset({Role.ADMIN}))
+# STAFF has no master-data create/edit rights (view-only, department-scoped in services);
+# that leaves only admin, or the lecturer acting on their own record
+SELF_OR_ADMIN = Rule(self_param="lecturer_id")
 # See everyone's data; department signers too, but services narrow them to their department
 VIEWERS = Rule(roles=VIEW_ALL_ROLES, positions=DEPARTMENT_SIGNERS)
 SELF_OR_VIEWERS = Rule(roles=VIEW_ALL_ROLES, positions=DEPARTMENT_SIGNERS, self_param="lecturer_id")
@@ -48,45 +49,45 @@ SELF_OR_VIEWERS = Rule(roles=VIEW_ALL_ROLES, positions=DEPARTMENT_SIGNERS, self_
 ROUTE_RULES: dict[tuple[str, str], Rule] = {
     # lecturer
     ("GET", "/lecturers"): SIGNED_IN,
-    ("POST", "/lecturers"): STAFF,
+    ("POST", "/lecturers"): ADMIN,
     ("GET", "/lecturers/{lecturer_id}"): SIGNED_IN,
     # self may edit contact fields only (LecturerService.update_lecturer)
-    ("PATCH", "/lecturers/{lecturer_id}"): SELF_OR_STAFF,
-    ("POST", "/lecturers/{lecturer_id}/activate"): STAFF,
-    ("POST", "/lecturers/{lecturer_id}/deactivate"): STAFF,
+    ("PATCH", "/lecturers/{lecturer_id}"): SELF_OR_ADMIN,
+    ("POST", "/lecturers/{lecturer_id}/activate"): ADMIN,
+    ("POST", "/lecturers/{lecturer_id}/deactivate"): ADMIN,
     # profile image / cv
     ("GET", "/lecturers/{lecturer_id}/profile-image"): SIGNED_IN,
-    ("POST", "/lecturers/{lecturer_id}/profile-image/presign"): SELF_OR_STAFF,
-    ("POST", "/lecturers/{lecturer_id}/profile-image/complete"): SELF_OR_STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/profile-image"): SELF_OR_STAFF,
+    ("POST", "/lecturers/{lecturer_id}/profile-image/presign"): SELF_OR_ADMIN,
+    ("POST", "/lecturers/{lecturer_id}/profile-image/complete"): SELF_OR_ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/profile-image"): SELF_OR_ADMIN,
     ("GET", "/lecturers/{lecturer_id}/cv"): SIGNED_IN,
-    ("POST", "/lecturers/{lecturer_id}/cv/presign"): SELF_OR_STAFF,
-    ("POST", "/lecturers/{lecturer_id}/cv/complete"): SELF_OR_STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/cv"): SELF_OR_STAFF,
+    ("POST", "/lecturers/{lecturer_id}/cv/presign"): SELF_OR_ADMIN,
+    ("POST", "/lecturers/{lecturer_id}/cv/complete"): SELF_OR_ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/cv"): SELF_OR_ADMIN,
     # education
     ("GET", "/lecturers/{lecturer_id}/educations"): SIGNED_IN,
-    ("POST", "/lecturers/{lecturer_id}/educations"): SELF_OR_STAFF,
-    ("PATCH", "/lecturers/{lecturer_id}/educations/{education_id}"): SELF_OR_STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/educations/{education_id}"): SELF_OR_STAFF,
+    ("POST", "/lecturers/{lecturer_id}/educations"): SELF_OR_ADMIN,
+    ("PATCH", "/lecturers/{lecturer_id}/educations/{education_id}"): SELF_OR_ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/educations/{education_id}"): SELF_OR_ADMIN,
     # research interests: anyone may add a topic to the master list
     ("GET", "/research-interests"): SIGNED_IN,
     ("POST", "/research-interests"): SIGNED_IN,
-    ("PATCH", "/research-interests/{research_interest_id}"): STAFF,
-    ("DELETE", "/research-interests/{research_interest_id}"): STAFF,
+    ("PATCH", "/research-interests/{research_interest_id}"): ADMIN,
+    ("DELETE", "/research-interests/{research_interest_id}"): ADMIN,
     ("GET", "/lecturers/{lecturer_id}/research-interests"): SIGNED_IN,
-    ("PUT", "/lecturers/{lecturer_id}/research-interests"): SELF_OR_STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/research-interests/{research_interest_id}"): SELF_OR_STAFF,
+    ("PUT", "/lecturers/{lecturer_id}/research-interests"): SELF_OR_ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/research-interests/{research_interest_id}"): SELF_OR_ADMIN,
     # publication profiles
     ("GET", "/lecturers/{lecturer_id}/publication-profiles"): SIGNED_IN,
-    ("POST", "/lecturers/{lecturer_id}/publication-profiles"): SELF_OR_STAFF,
+    ("POST", "/lecturers/{lecturer_id}/publication-profiles"): SELF_OR_ADMIN,
     (
         "PATCH",
         "/lecturers/{lecturer_id}/publication-profiles/{publication_profile_id}",
-    ): SELF_OR_STAFF,
+    ): SELF_OR_ADMIN,
     (
         "DELETE",
         "/lecturers/{lecturer_id}/publication-profiles/{publication_profile_id}",
-    ): SELF_OR_STAFF,
+    ): SELF_OR_ADMIN,
     # publications: authors or staff edit (PublicationService)
     ("GET", "/publications"): SIGNED_IN,
     ("POST", "/publications"): SIGNED_IN,
@@ -105,46 +106,46 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/expertise"): SIGNED_IN,
     ("POST", "/expertise"): SIGNED_IN,
     ("GET", "/expertise/{expertise_id}"): SIGNED_IN,
-    ("PATCH", "/expertise/{expertise_id}"): STAFF,
-    ("DELETE", "/expertise/{expertise_id}"): STAFF,
+    ("PATCH", "/expertise/{expertise_id}"): ADMIN,
+    ("DELETE", "/expertise/{expertise_id}"): ADMIN,
     ("GET", "/lecturers/{lecturer_id}/expertise"): SIGNED_IN,
-    ("PUT", "/lecturers/{lecturer_id}/expertise"): SELF_OR_STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/expertise/{expertise_id}"): SELF_OR_STAFF,
+    ("PUT", "/lecturers/{lecturer_id}/expertise"): SELF_OR_ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/expertise/{expertise_id}"): SELF_OR_ADMIN,
     # a lecturer's work by year: department signers only for their department (service)
     ("GET", "/lecturers/{lecturer_id}/work"): SELF_OR_VIEWERS,
     # --- workload ---
     ("GET", "/me"): SIGNED_IN,
     ("GET", "/departments"): SIGNED_IN,
-    ("POST", "/departments"): STAFF,
-    ("PATCH", "/departments/{department_id}"): STAFF,
+    ("POST", "/departments"): ADMIN,
+    ("PATCH", "/departments/{department_id}"): ADMIN,
     # staff/reviewer narrowed to their own department in the service (access.py); not a
     # plain-lecturer endpoint (V4 FR8: staff/executive summary, not self-service)
     ("GET", "/departments/{department_id}/report"): VIEWERS,
     ("GET", "/lecturers/{lecturer_id}/positions"): SIGNED_IN,
-    ("POST", "/lecturers/{lecturer_id}/positions"): STAFF,
-    ("PATCH", "/lecturers/{lecturer_id}/positions/{position_id}"): STAFF,
-    ("DELETE", "/lecturers/{lecturer_id}/positions/{position_id}"): STAFF,
+    ("POST", "/lecturers/{lecturer_id}/positions"): ADMIN,
+    ("PATCH", "/lecturers/{lecturer_id}/positions/{position_id}"): ADMIN,
+    ("DELETE", "/lecturers/{lecturer_id}/positions/{position_id}"): ADMIN,
     # rubric
     ("GET", "/rubric-versions"): SIGNED_IN,
-    ("POST", "/rubric-versions"): STAFF,
+    ("POST", "/rubric-versions"): ADMIN,
     ("GET", "/rubric-versions/{version_id}"): SIGNED_IN,
-    ("PATCH", "/rubric-versions/{version_id}"): STAFF,
+    ("PATCH", "/rubric-versions/{version_id}"): ADMIN,
     ("GET", "/rubric-versions/{version_id}/form"): SIGNED_IN,
     ("GET", "/rubric-versions/{version_id}/categories"): SIGNED_IN,
-    ("POST", "/rubric-versions/{version_id}/categories"): STAFF,
+    ("POST", "/rubric-versions/{version_id}/categories"): ADMIN,
     ("GET", "/rubric-categories/{category_id}/sections"): SIGNED_IN,
-    ("POST", "/rubric-categories/{category_id}/sections"): STAFF,
-    ("PATCH", "/rubric-sections/{section_id}"): STAFF,
-    ("DELETE", "/rubric-sections/{section_id}"): STAFF,
+    ("POST", "/rubric-categories/{category_id}/sections"): ADMIN,
+    ("PATCH", "/rubric-sections/{section_id}"): ADMIN,
+    ("DELETE", "/rubric-sections/{section_id}"): ADMIN,
     ("GET", "/rubric-sections/{section_id}/items"): SIGNED_IN,
-    ("POST", "/rubric-sections/{section_id}/items"): STAFF,
-    ("PATCH", "/rubric-items/{item_id}"): STAFF,
-    ("DELETE", "/rubric-items/{item_id}"): STAFF,
+    ("POST", "/rubric-sections/{section_id}/items"): ADMIN,
+    ("PATCH", "/rubric-items/{item_id}"): ADMIN,
+    ("DELETE", "/rubric-items/{item_id}"): ADMIN,
     # rounds
     ("GET", "/rounds"): SIGNED_IN,
-    ("POST", "/rounds"): STAFF,
+    ("POST", "/rounds"): ADMIN,
     ("GET", "/rounds/{round_id}"): SIGNED_IN,
-    ("PATCH", "/rounds/{round_id}"): STAFF,
+    ("PATCH", "/rounds/{round_id}"): ADMIN,
     ("GET", "/rounds/{round_id}/submissions"): VIEWERS,
     ("GET", "/rounds/{round_id}/report"): VIEWERS,
     # submissions, entries, evidence: owner / viewers decided per submission (access.py)

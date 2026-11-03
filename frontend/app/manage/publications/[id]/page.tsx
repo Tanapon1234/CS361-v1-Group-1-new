@@ -12,7 +12,7 @@ import { ActionForm } from '@/components/manage/action-form';
 import { FileUpload } from '@/components/manage/file-upload';
 import { PublicationFields } from '@/components/manage/publication-fields';
 import { Badge, Notice, PageHeader, Section } from '@/components/manage/ui';
-import { canManage } from '@/lib/auth/permissions';
+import { canManageAnyPublication } from '@/lib/auth/permissions';
 import {
   getPublication,
   getPublicationVerification,
@@ -49,7 +49,7 @@ export default async function PublicationPage({ params }: { params: Promise<{ id
   const status = verification.data?.verification_status;
   const isAuthor = !!mine?.data?.items.some((p) => p.publication_id === publicationId);
   // docs/v2/permissions.md: authors or staff; a verified publication only staff
-  const editable = canManage(me) || (isAuthor && status !== 'verified');
+  const editable = canManageAnyPublication(me) || (isAuthor && status !== 'verified');
 
   return (
     <div className="space-y-6">
