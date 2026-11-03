@@ -12,7 +12,12 @@ from app.v3.daos.sql.base import SqlDAO
 
 class SqlLecturerWorkDAO(SqlDAO, LecturerWorkDAO):
     def list_entries(
-        self, lecturer_id: UUID, *, academic_year: int | None, category_code: str | None
+        self,
+        lecturer_id: UUID,
+        *,
+        academic_year_from: int | None,
+        academic_year_to: int | None,
+        category_code: str | None,
     ) -> Sequence[WorkEntryRow]:
         statement = (
             select(
@@ -30,8 +35,10 @@ class SqlLecturerWorkDAO(SqlDAO, LecturerWorkDAO):
             .join(RubricCategory, RubricCategory.id == RubricSection.category_id)
             .where(Submission.lecturer_id == lecturer_id)
         )
-        if academic_year is not None:
-            statement = statement.where(EvaluationRound.academic_year == academic_year)
+        if academic_year_from is not None:
+            statement = statement.where(col(EvaluationRound.academic_year) >= academic_year_from)
+        if academic_year_to is not None:
+            statement = statement.where(col(EvaluationRound.academic_year) <= academic_year_to)
         if category_code is not None:
             statement = statement.where(RubricCategory.code == category_code)
 
@@ -46,15 +53,21 @@ class SqlLecturerWorkDAO(SqlDAO, LecturerWorkDAO):
         return [WorkEntryRow(*row) for row in self.session.exec(statement).all()]
 
     def list_publications(
-        self, lecturer_id: UUID, *, publication_year: int | None
+        self,
+        lecturer_id: UUID,
+        *,
+        publication_year_from: int | None,
+        publication_year_to: int | None,
     ) -> Sequence[tuple[Publication, int | None]]:
         statement = (
             select(Publication, FacultyPublication.author_order)
             .join(FacultyPublication)
             .where(FacultyPublication.lecturer_id == lecturer_id)
         )
-        if publication_year is not None:
-            statement = statement.where(Publication.publication_year == publication_year)
+        if publication_year_from is not None:
+            statement = statement.where(col(Publication.publication_year) >= publication_year_from)
+        if publication_year_to is not None:
+            statement = statement.where(col(Publication.publication_year) <= publication_year_to)
         statement = statement.order_by(
             col(Publication.publication_year).desc().nulls_last(),
             col(Publication.title).asc(),
