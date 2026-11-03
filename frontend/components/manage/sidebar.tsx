@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 export interface SidebarAccess {
   assess: boolean;
   review: boolean;
+  executive: boolean;
   admin: boolean;
   /** Plain lecturer: a shorter menu about their own data only */
   lecturerOnly: boolean;
@@ -38,6 +39,7 @@ const GROUPS: Group[] = [
     title: 'ตรวจสอบ',
     items: [
       { href: '/manage/review', label: 'ตรวจสอบและรับรอง', needs: 'review' },
+      { href: '/manage/review-assignments', label: 'มอบหมายผู้ตรวจ', needs: 'executive' },
       { href: '/manage/audit', label: 'ประวัติการแก้ไข', needs: 'admin' },
     ],
   },

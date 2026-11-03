@@ -548,6 +548,17 @@ export interface EvidenceQueueItem {
   created_at: string;
 }
 
+/** Who reviews whom (V4 #293) */
+export interface ReviewerAssignment {
+  id: string;
+  reviewer_id: string;
+  reviewer_name_th: string;
+  reviewee_id: string;
+  reviewee_name_th: string;
+  assigned_by: string;
+  created_at: string;
+}
+
 export interface AuditLogEntry {
   id: number;
   occurred_at: string;

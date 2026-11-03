@@ -11,6 +11,7 @@ export function hasRole(me: Me | null, ...roles: Role[]): boolean {
 }
 
 export const isAdmin = (me: Me | null) => hasRole(me, 'admin');
+export const isExecutive = (me: Me | null) => hasRole(me, 'executive');
 /** Master data, lecturers, rubrics, rounds — admin only (V4 #291: staff lost this) */
 export const canManage = (me: Me | null) => isAdmin(me);
 /** Any publication, not just their own — backend kept this for staff (PublicationService) */
