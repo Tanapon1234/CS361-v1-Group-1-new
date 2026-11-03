@@ -410,6 +410,27 @@ export interface EvidenceUpload {
   expires_at: string;
 }
 
+/** A publication's own evidence (not tied to a workload entry), same shape as Evidence */
+export interface PublicationEvidence {
+  id: string;
+  publication_id: number;
+  label: string | null;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  checksum: string | null;
+  status: EvidenceStatus;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface PublicationEvidenceUpload {
+  evidence: PublicationEvidence;
+  upload_url: string;
+  fields: Record<string, string>;
+  expires_at: string;
+}
+
 export type VerificationStatus = 'pending' | 'verified' | 'rejected';
 
 export interface Verification {

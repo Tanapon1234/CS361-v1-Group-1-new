@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { deletePublication, updatePublication } from '@/app/manage/actions/academic';
+import {
+  deletePublication,
+  deletePublicationEvidence,
+  finishPublicationEvidenceUpload,
+  startPublicationEvidenceUpload,
+  updatePublication,
+} from '@/app/manage/actions/academic';
 import { ActionForm } from '@/components/manage/action-form';
+import { FileUpload } from '@/components/manage/file-upload';
 import { PublicationFields } from '@/components/manage/publication-fields';
 import { Badge, Notice, PageHeader, Section } from '@/components/manage/ui';
 import { canManage } from '@/lib/auth/permissions';
@@ -10,10 +17,11 @@ import {
   getPublication,
   getPublicationVerification,
   listLecturerPublications,
+  listPublicationEvidence,
   settle,
 } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
-import { VERIFICATION_LABEL, formatDateTime } from '@/lib/backend/labels';
+import { VERIFICATION_LABEL, formatBytes, formatDateTime } from '@/lib/backend/labels';
 import type { VerificationStatus } from '@/types/backend';
 
 export const metadata: Metadata = { title: 'แก้ไขผลงาน' };
@@ -33,9 +41,10 @@ export default async function PublicationPage({ params }: { params: Promise<{ id
   ]);
   if (!publication) notFound();
 
-  const [verification, mine] = await Promise.all([
+  const [verification, mine, evidence] = await Promise.all([
     settle(getPublicationVerification(publicationId)),
     me ? settle(listLecturerPublications(me.lecturer.lecturer_id)) : null,
+    settle(listPublicationEvidence(publicationId)),
   ]);
   const status = verification.data?.verification_status;
   const isAuthor = !!mine?.data?.items.some((p) => p.publication_id === publicationId);
@@ -86,6 +95,53 @@ export default async function PublicationPage({ params }: { params: Promise<{ id
             <PublicationFields publication={publication} />
           </fieldset>
         )}
+      </Section>
+
+      <Section title="หลักฐานประกอบ" description="เช่นไฟล์ฉบับตีพิมพ์ หรือหน้าปกวารสาร">
+        {evidence.error ? (
+          <p className="text-sm text-brand">{evidence.error}</p>
+        ) : evidence.data?.items.length ? (
+          <ul className="mb-3 space-y-1 text-sm">
+            {evidence.data.items.map((file) => (
+              <li key={file.id} className="flex flex-wrap items-center gap-2">
+                {file.status === 'uploaded' ? (
+                  <a
+                    href={`/manage/publication-evidence/${file.id}?publication_id=${publicationId}`}
+                    className="font-semibold text-brand hover:underline"
+                  >
+                    {file.file_name}
+                  </a>
+                ) : (
+                  <span className="text-ink-muted">{file.file_name}</span>
+                )}
+                <span className="text-xs text-ink-muted">
+                  {[file.label, formatBytes(file.size_bytes)].filter(Boolean).join(' · ')}
+                </span>
+                {file.status === 'pending' ? <Badge>ยังอัปโหลดไม่เสร็จ</Badge> : null}
+                {editable ? (
+                  <ActionForm
+                    inline
+                    variant="danger"
+                    submitLabel="ลบ"
+                    confirmText={`ลบไฟล์ ${file.file_name}?`}
+                    action={deletePublicationEvidence.bind(null, publicationId, file.id)}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-3 text-sm text-ink-muted">ยังไม่มีไฟล์</p>
+        )}
+        {editable ? (
+          <FileUpload
+            withLabel
+            accept="application/pdf,image/jpeg,image/png"
+            start={startPublicationEvidenceUpload.bind(null, publicationId)}
+            finish={finishPublicationEvidenceUpload.bind(null, publicationId)}
+            submitLabel="แนบไฟล์"
+          />
+        ) : null}
       </Section>
     </div>
   );
