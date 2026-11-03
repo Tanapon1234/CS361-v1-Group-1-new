@@ -1,7 +1,9 @@
-from pydantic import Field, field_validator
+from uuid import UUID
 
-from app.v3.dtos.base import RequestDTO, ResponseDTO
-from app.v3.dtos.common import PageQuery
+from pydantic import BaseModel, Field, field_validator
+
+from app.v3.dtos.base import QueryDTO, RequestDTO, ResponseDTO
+from app.v3.dtos.common import Number, PageQuery
 
 
 class DepartmentCreateRequest(RequestDTO):
@@ -32,3 +34,36 @@ class DepartmentResponse(ResponseDTO):
     code: str
     name_th: str
     is_active: bool
+
+
+class DepartmentReportQuery(QueryDTO):
+    academic_year_from: int = Field(ge=2400, le=2800, examples=[2566])
+    academic_year_to: int = Field(ge=2400, le=2800, examples=[2568])
+
+
+class DepartmentReportCategoryRow(BaseModel):
+    """One lecturer's frozen category total (submission_category_total) for one year."""
+
+    lecturer_id: UUID
+    name_th: str
+    academic_year: int
+    category_code: str
+    category_name_th: str
+    raw_score: Number
+    capped_score: Number
+
+
+class DepartmentReportMissingRow(BaseModel):
+    """An active lecturer of the department with no submitted data for this year."""
+
+    lecturer_id: UUID
+    name_th: str
+    academic_year: int
+
+
+class DepartmentReportResponse(BaseModel):
+    department: DepartmentResponse
+    academic_year_from: int
+    academic_year_to: int
+    rows: list[DepartmentReportCategoryRow]
+    missing: list[DepartmentReportMissingRow]

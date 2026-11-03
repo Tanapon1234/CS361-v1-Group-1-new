@@ -84,6 +84,7 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v3/departments"),
     ("POST", "/api/v3/departments"),
     ("PATCH", "/api/v3/departments/{department_id}"),
+    ("GET", "/api/v3/departments/{department_id}/report"),
     # position (the reference's /faculty-members/{id}/positions, under /lecturers)
     ("GET", "/api/v3/lecturers/{lecturer_id}/positions"),
     ("POST", "/api/v3/lecturers/{lecturer_id}/positions"),

@@ -34,6 +34,15 @@ class SqlEvaluationRoundDAO(SqlDAO, EvaluationRoundDAO):
             self.session.exec(select(exists().where(Submission.round_id == round_id))).one()
         )
 
+    def list_academic_years(self, academic_year_from: int, academic_year_to: int) -> Sequence[int]:
+        statement = (
+            select(EvaluationRound.academic_year)
+            .where(col(EvaluationRound.academic_year) >= academic_year_from)
+            .where(col(EvaluationRound.academic_year) <= academic_year_to)
+            .distinct()
+        )
+        return self.session.exec(statement).all()
+
     def add(self, evaluation_round: EvaluationRound) -> EvaluationRound:
         return self._add(evaluation_round)
 

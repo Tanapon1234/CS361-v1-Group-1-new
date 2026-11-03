@@ -7,8 +7,9 @@ from sqlmodel import col, select
 
 from app.v2.models.enums import SubmissionStatus
 from app.v2.models.lecturer import Lecturer
-from app.v2.models.rubric import RubricItem
+from app.v2.models.rubric import RubricCategory, RubricItem
 from app.v2.models.submission import (
+    EvaluationRound,
     Submission,
     SubmissionApproval,
     SubmissionCategoryTotal,
@@ -68,6 +69,45 @@ class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
         if department_id is not None:
             statement = statement.where(Submission.department_snapshot == department_id)
         return self.session.exec(statement.order_by(col(Lecturer.name_th))).all()
+
+    def list_department_category_totals(
+        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+    ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
+        statement = (
+            select(
+                SubmissionCategoryTotal,
+                Lecturer,
+                EvaluationRound.academic_year,
+                RubricCategory.code,
+                RubricCategory.name_th,
+            )
+            .join(Submission, Submission.id == SubmissionCategoryTotal.submission_id)
+            .join(Lecturer, col(Lecturer.lecturer_id) == Submission.lecturer_id)
+            .join(EvaluationRound, EvaluationRound.id == Submission.round_id)
+            .join(RubricCategory, RubricCategory.id == SubmissionCategoryTotal.category_id)
+            .where(Submission.department_snapshot == department_id)
+            .where(col(EvaluationRound.academic_year) >= academic_year_from)
+            .where(col(EvaluationRound.academic_year) <= academic_year_to)
+            .order_by(
+                col(EvaluationRound.academic_year).desc(),
+                col(Lecturer.name_th),
+                col(RubricCategory.sort_order),
+            )
+        )
+        return self.session.exec(statement).all()
+
+    def find_lecturers_with_department_data(
+        self, department_id: int, academic_year: int
+    ) -> Sequence[UUID]:
+        statement = (
+            select(Submission.lecturer_id)
+            .join(SubmissionCategoryTotal, SubmissionCategoryTotal.submission_id == Submission.id)
+            .join(EvaluationRound, EvaluationRound.id == Submission.round_id)
+            .where(Submission.department_snapshot == department_id)
+            .where(EvaluationRound.academic_year == academic_year)
+            .distinct()
+        )
+        return self.session.exec(statement).all()
 
     # --- entries ---
 

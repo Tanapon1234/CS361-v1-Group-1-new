@@ -52,6 +52,20 @@ def require_department_view(actor: Actor, department_id: int | None) -> int | No
     return department_id
 
 
+def require_department_report_access(
+    actor: Actor, department_id: int, caller_department_id: int | None
+) -> None:
+    """V4 department report (FR8): executive/admin see every department; staff/reviewer
+    and department signers see only their own department, not every one."""
+    if actor.has_any(Role.EXECUTIVE):  # admin counts as every role (Actor.has_any)
+        return
+    if department_id in signer_departments(actor):
+        return
+    if actor.has_any(Role.STAFF, Role.REVIEWER) and caller_department_id == department_id:
+        return
+    raise ForbiddenError("You may only see the report of your own department")
+
+
 def can_sign(actor: Actor, submission: Submission, role: SignerRole) -> bool:
     """Signatures are personal: admin does not stand in for the owner or a position holder."""
     department = submission.department_snapshot
