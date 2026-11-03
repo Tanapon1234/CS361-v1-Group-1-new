@@ -56,10 +56,10 @@ export const listLecturers = (query: {
 
 export const getLecturer = (id: string) => backendOrNull<Lecturer>(`/lecturers/${id}`);
 
-/** Everything one lecturer did, filtered by B.E. academic year and rubric category code */
+/** Everything one lecturer did, filtered by a B.E. academic year range and rubric category code */
 export const getLecturerWork = (
   lecturerId: string,
-  query: { academic_year?: number; category?: string }
+  query: { academic_year_from?: number; academic_year_to?: number; category?: string }
 ) => backend<LecturerWork>('GET', `/lecturers/${lecturerId}/work`, { query });
 
 export const listPositions = (lecturerId: string) =>
