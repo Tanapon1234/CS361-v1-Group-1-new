@@ -21,8 +21,19 @@ def work(api: TestClient, email: str, **params: Any) -> Any:
     return result
 
 
+def work_in_year(api: TestClient, email: str, academic_year: int, **params: Any) -> Any:
+    return work(
+        api, email, academic_year_from=academic_year, academic_year_to=academic_year, **params
+    )
+
+
 def entries(result: Any) -> list[Any]:
-    return [entry for group in result["categories"] for entry in group["entries"]]
+    return [
+        entry
+        for year in result["years"]
+        for group in year["categories"]
+        for entry in group["entries"]
+    ]
 
 
 def test_demo_data_answers_the_peer_test_cases(api: TestClient) -> None:
@@ -32,34 +43,46 @@ def test_demo_data_answers_the_peer_test_cases(api: TestClient) -> None:
     assert seed(api) is False
 
     # TC1: one lecturer, one year, several categories, all from that year
-    tc1 = work(api, "rattanat@tu.ac.th", academic_year=2567)
-    assert {group["code"] for group in tc1["categories"]} == {"1", "2", "3", "4"}
+    tc1 = work_in_year(api, "rattanat@tu.ac.th", 2567)
+    assert len(tc1["years"]) == 1
+    tc1_year = tc1["years"][0]
+    assert tc1_year["academic_year"] == 2567
+    assert {group["code"] for group in tc1_year["categories"]} == {"1", "2", "3", "4"}
     assert {entry["academic_year"] for entry in entries(tc1)} == {2567}
-    assert [p["academic_year"] for p in tc1["publications"]] == [2567]
+    assert [p["academic_year"] for p in tc1_year["publications"]] == [2567]
     assert tc1["available_years"][:3] == [2568, 2567, 2566]
 
     # TC2: research (category 2) of that year only
-    tc2 = work(api, "rattanat@tu.ac.th", academic_year=2567, category="2")
-    assert [group["code"] for group in tc2["categories"]] == ["2"]
+    tc2 = work_in_year(api, "rattanat@tu.ac.th", 2567, category="2")
+    tc2_year = tc2["years"][0]
+    assert [group["code"] for group in tc2_year["categories"]] == ["2"]
     assert {entry["academic_year"] for entry in entries(tc2)} == {2567}
     assert tc2["filters"]["category_name_th"] == "งานวิชาการ"
-    assert tc2["total"] == len(entries(tc2)) + len(tc2["publications"]) == 3
+    assert tc2["total"] == len(entries(tc2)) + len(tc2_year["publications"]) == 3
 
     # A co-author's entry on the same paper stays with the co-author
-    coauthor = work(api, "wanidap@cs.tu.ac.th", academic_year=2567, category="2")
+    coauthor = work_in_year(api, "wanidap@cs.tu.ac.th", 2567, category="2")
     assert {e["submission_id"] for e in entries(coauthor)}.isdisjoint(
         {e["submission_id"] for e in entries(tc2)}
     )
 
     # TC3: nothing in that year / category: empty, but the filters and other years are there
-    gap = work(api, "ckasidit@tu.ac.th", academic_year=2567)
-    assert (gap["total"], gap["categories"], gap["publications"]) == (0, [], [])
-    assert gap["filters"]["academic_year"] == 2567
+    gap = work_in_year(api, "ckasidit@tu.ac.th", 2567)
+    assert (gap["total"], gap["years"]) == (0, [])
+    assert gap["filters"]["academic_year_from"] == 2567
+    assert gap["filters"]["academic_year_to"] == 2567
     assert gap["available_years"] == [2568, 2566]
 
-    no_research = work(api, "thapana@cs.tu.ac.th", academic_year=2567, category="2")
+    no_research = work_in_year(api, "thapana@cs.tu.ac.th", 2567, category="2")
     assert no_research["total"] == 0
-    assert work(api, "thapana@cs.tu.ac.th", academic_year=2567)["total"] == 4
+    assert work_in_year(api, "thapana@cs.tu.ac.th", 2567)["total"] == 4
+
+    # A multi-year range groups results per year
+    multi_year = work(api, "rattanat@tu.ac.th", academic_year_from=2566, academic_year_to=2568)
+    assert [y["academic_year"] for y in multi_year["years"]] == sorted(
+        {y["academic_year"] for y in multi_year["years"]}, reverse=True
+    )
+    assert 2567 in {y["academic_year"] for y in multi_year["years"]}
 
     nothing = work(api, "wpakorn@tu.ac.th")
     assert (nothing["total"], nothing["available_years"]) == (0, [])

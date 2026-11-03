@@ -23,13 +23,22 @@ class WorkEntryRow:
 class LecturerWorkDAO(ABC):
     @abstractmethod
     def list_entries(
-        self, lecturer_id: UUID, *, academic_year: int | None, category_code: str | None
+        self,
+        lecturer_id: UUID,
+        *,
+        academic_year_from: int | None,
+        academic_year_to: int | None,
+        category_code: str | None,
     ) -> Sequence[WorkEntryRow]:
         """Entries of every submission of the lecturer, newest round first."""
 
     @abstractmethod
     def list_publications(
-        self, lecturer_id: UUID, *, publication_year: int | None
+        self,
+        lecturer_id: UUID,
+        *,
+        publication_year_from: int | None,
+        publication_year_to: int | None,
     ) -> Sequence[tuple[Publication, int | None]]:
         """Publications the lecturer authored, with their author_order."""
 
@@ -44,3 +53,7 @@ class LecturerWorkDAO(ABC):
     @abstractmethod
     def get_category_name(self, code: str) -> str | None:
         """name_th of a rubric category code, from the newest rubric version that has it."""
+
+    @abstractmethod
+    def count_evidence_by_entry(self, entry_ids: Sequence[UUID]) -> dict[UUID, int]:
+        """entry_evidence row count per entry id; entries with none are absent (not zero)."""

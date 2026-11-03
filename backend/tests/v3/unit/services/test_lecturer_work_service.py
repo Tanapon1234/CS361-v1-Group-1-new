@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.core.exceptions import ForbiddenError, NotFoundError
-from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus
+from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus, VerificationStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.models.rubric import RubricCategory, RubricItem, RubricSection
@@ -29,6 +29,7 @@ def work_dao() -> MagicMock:
     dao.list_entry_years.return_value = []
     dao.list_publication_years.return_value = []
     dao.get_category_name.return_value = None
+    dao.count_evidence_by_entry.return_value = {}
     return dao
 
 
@@ -91,34 +92,75 @@ def test_unknown_lecturer_is_not_found(
         service.get_work(uuid4(), VIEWER, LecturerWorkQuery())
 
 
-def test_entries_are_grouped_by_category_in_dao_order(
+def test_entries_are_grouped_by_year_then_category_in_dao_order(
     service: LecturerWorkService, work_dao: MagicMock
 ) -> None:
-    work_dao.list_entries.return_value = [row("1", "a"), row("1", "b"), row("4", "c")]
+    work_dao.list_entries.return_value = [
+        row("1", "a", year=2567),
+        row("1", "b", year=2567),
+        row("4", "c", year=2567),
+        row("1", "d", year=2566),
+    ]
 
-    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567))
+    result = service.get_work(
+        LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year_from=2566, academic_year_to=2567)
+    )
 
-    assert [(g.code, [e.title for e in g.entries]) for g in result.categories] == [
+    assert [y.academic_year for y in result.years] == [2567, 2566]
+    assert [(g.code, [e.title for e in g.entries]) for g in result.years[0].categories] == [
         ("1", ["a", "b"]),
         ("4", ["c"]),
     ]
-    assert result.total == 3
+    assert result.years[0].total_score == Decimal(30)  # 3 entries x score 10
+    assert result.years[1].total_score == Decimal(10)
+    assert result.total == 4
     work_dao.list_entries.assert_called_once_with(
-        LECTURER_ID, academic_year=2567, category_code=None
+        LECTURER_ID, academic_year_from=2566, academic_year_to=2567, category_code=None
     )
 
 
-def test_publications_use_the_ce_year_and_report_be(
+def test_each_entry_reports_its_own_evidence_count(
+    service: LecturerWorkService, work_dao: MagicMock
+) -> None:
+    with_evidence = row("1", "has evidence", year=2567)
+    without_evidence = row("1", "no evidence", year=2567)
+    work_dao.list_entries.return_value = [with_evidence, without_evidence]
+    work_dao.count_evidence_by_entry.return_value = {with_evidence.entry.id: 3}
+
+    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery())
+
+    entries = {e.title: e.evidence_count for e in result.years[0].categories[0].entries}
+    assert entries == {"has evidence": 3, "no evidence": 0}
+    work_dao.count_evidence_by_entry.assert_called_once_with(
+        [with_evidence.entry.id, without_evidence.entry.id]
+    )
+
+
+def test_publications_use_the_ce_year_range_and_report_be(
     service: LecturerWorkService, work_dao: MagicMock
 ) -> None:
     work_dao.list_publications.return_value = [
-        (Publication(publication_id=1, title="Paper", publication_year=2024), 1)
+        (
+            Publication(
+                publication_id=1,
+                title="Paper",
+                publication_year=2024,
+                verification_status=VerificationStatus.VERIFIED,
+            ),
+            1,
+        )
     ]
 
-    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567))
+    result = service.get_work(
+        LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year_from=2567, academic_year_to=2567)
+    )
 
-    work_dao.list_publications.assert_called_once_with(LECTURER_ID, publication_year=2024)
-    assert result.publications[0].academic_year == 2567
+    work_dao.list_publications.assert_called_once_with(
+        LECTURER_ID, publication_year_from=2024, publication_year_to=2024
+    )
+    assert result.years[0].academic_year == 2567
+    assert result.years[0].publications[0].academic_year == 2567
+    assert result.years[0].publications[0].verification_status is VerificationStatus.VERIFIED
 
 
 def test_publications_are_left_out_for_other_categories(
@@ -127,7 +169,7 @@ def test_publications_are_left_out_for_other_categories(
     result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery(category="1"))
 
     work_dao.list_publications.assert_not_called()
-    assert result.publications == []
+    assert result.years == []
 
 
 def test_empty_result_still_describes_the_search(
@@ -138,12 +180,16 @@ def test_empty_result_still_describes_the_search(
     work_dao.list_publication_years.return_value = [2023]
 
     result = service.get_work(
-        LECTURER_ID, VIEWER, LecturerWorkQuery(academic_year=2567, category="2")
+        LECTURER_ID,
+        VIEWER,
+        LecturerWorkQuery(academic_year_from=2567, academic_year_to=2567, category="2"),
     )
 
     assert result.total == 0
+    assert result.years == []
     assert result.filters.model_dump() == {
-        "academic_year": 2567,
+        "academic_year_from": 2567,
+        "academic_year_to": 2567,
         "category": "2",
         "category_name_th": "งานวิชาการ",
     }

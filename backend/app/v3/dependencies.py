@@ -28,6 +28,7 @@ from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.lecturer_work_dao import LecturerWorkDAO
 from app.v3.daos.member_position_dao import MemberPositionDAO
 from app.v3.daos.publication_dao import PublicationDAO
+from app.v3.daos.publication_evidence_dao import PublicationEvidenceDAO
 from app.v3.daos.publication_profile_dao import PublicationProfileDAO
 from app.v3.daos.research_interest_dao import ResearchInterestDAO
 from app.v3.daos.rubric_dao import RubricDAO
@@ -42,6 +43,7 @@ from app.v3.daos.sql.lecturer_dao import SqlLecturerDAO
 from app.v3.daos.sql.lecturer_work_dao import SqlLecturerWorkDAO
 from app.v3.daos.sql.member_position_dao import SqlMemberPositionDAO
 from app.v3.daos.sql.publication_dao import SqlPublicationDAO
+from app.v3.daos.sql.publication_evidence_dao import SqlPublicationEvidenceDAO
 from app.v3.daos.sql.publication_profile_dao import SqlPublicationProfileDAO
 from app.v3.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v3.daos.sql.rubric_dao import SqlRubricDAO
@@ -64,6 +66,7 @@ from app.v3.services.lecturer_work_service import LecturerWorkService
 from app.v3.services.me_service import MeService
 from app.v3.services.position_service import PositionService
 from app.v3.services.public_faculty_service import PublicFacultyService
+from app.v3.services.publication_evidence_service import PublicationEvidenceService
 from app.v3.services.publication_profile_service import PublicationProfileService
 from app.v3.services.publication_service import PublicationService
 from app.v3.services.research_interest_service import ResearchInterestService
@@ -146,6 +149,10 @@ def get_evidence_dao(session: SessionDep) -> EvidenceDAO:
     return SqlEvidenceDAO(session)
 
 
+def get_publication_evidence_dao(session: SessionDep) -> PublicationEvidenceDAO:
+    return SqlPublicationEvidenceDAO(session)
+
+
 def get_verification_dao(session: SessionDep) -> VerificationDAO:
     return SqlVerificationDAO(session)
 
@@ -164,6 +171,7 @@ EvaluationRoundDAODep = Annotated[EvaluationRoundDAO, Depends(get_evaluation_rou
 SubmissionDAODep = Annotated[SubmissionDAO, Depends(get_submission_dao)]
 AssessmentDAODep = Annotated[AssessmentDAO, Depends(get_assessment_dao)]
 EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
+PublicationEvidenceDAODep = Annotated[PublicationEvidenceDAO, Depends(get_publication_evidence_dao)]
 VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
@@ -379,8 +387,13 @@ def get_me_service(
     return MeService(lecturer_dao, position_dao, round_dao)
 
 
-def get_department_service(department_dao: DepartmentDAODep) -> DepartmentService:
-    return DepartmentService(department_dao)
+def get_department_service(
+    department_dao: DepartmentDAODep,
+    lecturer_dao: LecturerDAODep,
+    submission_dao: SubmissionDAODep,
+    round_dao: EvaluationRoundDAODep,
+) -> DepartmentService:
+    return DepartmentService(department_dao, lecturer_dao, submission_dao, round_dao)
 
 
 def get_position_service(
@@ -456,6 +469,15 @@ def get_evidence_service(
     return EvidenceService(evidence_dao, submission_dao, lecturer_dao, storage, settings)
 
 
+def get_publication_evidence_service(
+    evidence_dao: PublicationEvidenceDAODep,
+    publication_dao: PublicationDAODep,
+    storage: ObjectStorageDep,
+    settings: SettingsDep,
+) -> PublicationEvidenceService:
+    return PublicationEvidenceService(evidence_dao, publication_dao, storage, settings)
+
+
 MeServiceDep = Annotated[MeService, Depends(get_me_service)]
 DepartmentServiceDep = Annotated[DepartmentService, Depends(get_department_service)]
 PositionServiceDep = Annotated[PositionService, Depends(get_position_service)]
@@ -465,6 +487,9 @@ SubmissionServiceDep = Annotated[SubmissionService, Depends(get_submission_servi
 EntryServiceDep = Annotated[EntryService, Depends(get_entry_service)]
 AssessmentServiceDep = Annotated[AssessmentService, Depends(get_assessment_service)]
 EvidenceServiceDep = Annotated[EvidenceService, Depends(get_evidence_service)]
+PublicationEvidenceServiceDep = Annotated[
+    PublicationEvidenceService, Depends(get_publication_evidence_service)
+]
 
 
 def get_verification_service(

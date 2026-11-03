@@ -1,5 +1,5 @@
-"""One lecturer's work for a year: workload entries grouped by rubric category, plus the
-publications they authored.
+"""One lecturer's work across a range of academic years: workload entries grouped by
+year then rubric category, plus the publications they authored, grouped by year.
 
 Years are Buddhist Era like `evaluation_round.academic_year`; `publication.publication_year`
 is C.E., so a publication counts for academic year `publication_year + 543`.
@@ -7,6 +7,7 @@ Publications belong to the academic-work category (code 2 in rubric version 1), 
 left out when another category is asked for.
 """
 
+from decimal import Decimal
 from uuid import UUID
 
 from app.core.exceptions import ForbiddenError, NotFoundError
@@ -19,12 +20,14 @@ from app.v3.dtos.lecturer_work_dto import (
     WorkCategoryGroup,
     WorkEntryResponse,
     WorkPublicationResponse,
+    WorkYearGroup,
 )
 from app.v3.security import Actor
 from app.v3.services.access import signer_departments
 
 BUDDHIST_ERA_OFFSET = 543
 PUBLICATION_CATEGORY_CODE = "2"
+ZERO = Decimal(0)
 
 
 class LecturerWorkService:
@@ -47,36 +50,44 @@ class LecturerWorkService:
             raise ForbiddenError("You may only see the work of lecturers in your department")
 
         rows = self.work_dao.list_entries(
-            lecturer_id, academic_year=query.academic_year, category_code=query.category
+            lecturer_id,
+            academic_year_from=query.academic_year_from,
+            academic_year_to=query.academic_year_to,
+            category_code=query.category,
         )
-        groups: dict[str, WorkCategoryGroup] = {}
-        for row in rows:
-            group = groups.setdefault(
-                row.category.code,
-                WorkCategoryGroup(code=row.category.code, name_th=row.category.name_th, entries=[]),
-            )
-            group.entries.append(_entry(row))
+        evidence_counts = self.work_dao.count_evidence_by_entry([row.entry.id for row in rows])
 
-        publications: list[WorkPublicationResponse] = []
+        publications: list[tuple[WorkPublicationResponse, int]] = []
         if query.category in (None, PUBLICATION_CATEGORY_CODE):
-            year = query.academic_year
+            # B.E. and C.E. differ by a constant offset, so the bounds convert directly:
+            # a B.E. lower bound is still the lower bound once converted to C.E.
+            year_from_ce = _to_common_era(query.academic_year_from)
+            year_to_ce = _to_common_era(query.academic_year_to)
             publications = [
-                WorkPublicationResponse(
-                    publication_id=publication.publication_id,
-                    title=publication.title,
-                    publication_year=publication.publication_year,
-                    academic_year=_to_buddhist_era(publication.publication_year),
-                    venue=publication.venue,
-                    doi=publication.doi,
-                    author_order=author_order,
+                (
+                    WorkPublicationResponse(
+                        publication_id=publication.publication_id,
+                        title=publication.title,
+                        publication_year=publication.publication_year,
+                        academic_year=_to_buddhist_era(publication.publication_year),
+                        venue=publication.venue,
+                        doi=publication.doi,
+                        author_order=author_order,
+                        verification_status=publication.verification_status,
+                    ),
+                    _to_buddhist_era(publication.publication_year),
                 )
                 for publication, author_order in self.work_dao.list_publications(
                     lecturer_id,
-                    publication_year=None if year is None else year - BUDDHIST_ERA_OFFSET,
+                    publication_year_from=year_from_ce,
+                    publication_year_to=year_to_ce,
                 )
+                if publication.publication_year is not None
             ]
 
-        years = set(self.work_dao.list_entry_years(lecturer_id)) | {
+        years = self._group_by_year(rows, publications, evidence_counts)
+
+        all_years = set(self.work_dao.list_entry_years(lecturer_id)) | {
             year + BUDDHIST_ERA_OFFSET for year in self.work_dao.list_publication_years(lecturer_id)
         }
         category_name = (
@@ -86,18 +97,57 @@ class LecturerWorkService:
             lecturer_id=lecturer.lecturer_id,
             lecturer_name_th=lecturer.name_th,
             filters=LecturerWorkFilters(
-                academic_year=query.academic_year,
+                academic_year_from=query.academic_year_from,
+                academic_year_to=query.academic_year_to,
                 category=query.category,
                 category_name_th=category_name,
             ),
-            categories=list(groups.values()),
-            publications=publications,
+            years=years,
             total=len(rows) + len(publications),
-            available_years=sorted(years, reverse=True),
+            available_years=sorted(all_years, reverse=True),
         )
 
+    @staticmethod
+    def _group_by_year(
+        rows: list[WorkEntryRow],
+        publications: list[tuple[WorkPublicationResponse, int]],
+        evidence_counts: dict[UUID, int],
+    ) -> list[WorkYearGroup]:
+        year_categories: dict[int, dict[str, WorkCategoryGroup]] = {}
+        for row in rows:
+            categories = year_categories.setdefault(row.round.academic_year, {})
+            group = categories.setdefault(
+                row.category.code,
+                WorkCategoryGroup(
+                    code=row.category.code,
+                    name_th=row.category.name_th,
+                    entries=[],
+                    total_score=ZERO,
+                ),
+            )
+            entry = _entry(row, evidence_counts.get(row.entry.id, 0))
+            group.entries.append(entry)
+            group.total_score += entry.score
 
-def _entry(row: WorkEntryRow) -> WorkEntryResponse:
+        year_publications: dict[int, list[WorkPublicationResponse]] = {}
+        for publication, academic_year in publications:
+            year_publications.setdefault(academic_year, []).append(publication)
+
+        all_years = set(year_categories) | set(year_publications)
+        return [
+            WorkYearGroup(
+                academic_year=year,
+                categories=list(year_categories.get(year, {}).values()),
+                publications=year_publications.get(year, []),
+                total_score=sum(
+                    (group.total_score for group in year_categories.get(year, {}).values()), ZERO
+                ),
+            )
+            for year in sorted(all_years, reverse=True)
+        ]
+
+
+def _entry(row: WorkEntryRow, evidence_count: int) -> WorkEntryResponse:
     return WorkEntryResponse(
         entry_id=row.entry.id,
         submission_id=row.submission.id,
@@ -113,8 +163,13 @@ def _entry(row: WorkEntryRow) -> WorkEntryResponse:
         course_code=row.entry.course_code,
         quantity=row.entry.quantity,
         score=row.entry.score,
+        evidence_count=evidence_count,
     )
 
 
 def _to_buddhist_era(year: int | None) -> int | None:
     return None if year is None else year + BUDDHIST_ERA_OFFSET
+
+
+def _to_common_era(year: int | None) -> int | None:
+    return None if year is None else year - BUDDHIST_ERA_OFFSET

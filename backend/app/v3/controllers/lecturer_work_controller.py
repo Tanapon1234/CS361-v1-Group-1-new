@@ -18,6 +18,7 @@ def get_lecturer_work(
     actor: CurrentActorDep,
     service: LecturerWorkServiceDep,
 ) -> LecturerWorkResponse:
-    """Filter by `academic_year` (B.E.) and/or rubric `category` code. An empty result still
-    returns `filters` and `available_years`, so the client can say what was searched."""
+    """Filter by `academic_year_from`/`academic_year_to` (B.E., both optional) and/or rubric
+    `category` code. An empty result still returns `filters` and `available_years`, so the
+    client can say what was searched."""
     return service.get_work(lecturer_id, actor, query)

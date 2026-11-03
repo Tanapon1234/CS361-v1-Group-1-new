@@ -44,6 +44,19 @@ class SubmissionDAO(ABC):
     ) -> Sequence[tuple[Submission, Lecturer]]:
         """Every submission of a round (for the report), with its lecturer."""
 
+    @abstractmethod
+    def list_department_category_totals(
+        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+    ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
+        """Frozen category totals of the department's submissions in the year range, as
+        (total, lecturer, academic_year, category_code, category_name_th)."""
+
+    @abstractmethod
+    def find_lecturers_with_department_data(
+        self, department_id: int, academic_year: int
+    ) -> Sequence[UUID]:
+        """Lecturer ids with at least one category total in this department and year."""
+
     # --- entries ---
 
     @abstractmethod
