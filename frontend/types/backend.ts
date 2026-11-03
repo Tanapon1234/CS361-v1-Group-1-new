@@ -135,6 +135,30 @@ export interface Department {
   is_active: boolean;
 }
 
+export interface DepartmentReportCategoryRow {
+  lecturer_id: string;
+  name_th: string;
+  academic_year: number;
+  category_code: string;
+  category_name_th: string;
+  raw_score: number;
+  capped_score: number;
+}
+
+export interface DepartmentReportMissingRow {
+  lecturer_id: string;
+  name_th: string;
+  academic_year: number;
+}
+
+export interface DepartmentReport {
+  department: Department;
+  academic_year_from: number;
+  academic_year_to: number;
+  rows: DepartmentReportCategoryRow[];
+  missing: DepartmentReportMissingRow[];
+}
+
 export interface Position {
   id: string;
   lecturer_id: string;
