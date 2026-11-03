@@ -93,6 +93,13 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/publications/{publication_id}"): SIGNED_IN,
     ("PATCH", "/publications/{publication_id}"): SIGNED_IN,
     ("DELETE", "/publications/{publication_id}"): SIGNED_IN,
+    # publication evidence (V4 FR4): author or staff edit (PublicationEvidenceService),
+    # same visibility as the publication itself
+    ("GET", "/publications/{publication_id}/evidence"): SIGNED_IN,
+    ("POST", "/publications/{publication_id}/evidence"): SIGNED_IN,
+    ("PATCH", "/publications/{publication_id}/evidence/{evidence_id}"): SIGNED_IN,
+    ("DELETE", "/publications/{publication_id}/evidence/{evidence_id}"): SIGNED_IN,
+    ("GET", "/publications/{publication_id}/evidence/{evidence_id}/content"): SIGNED_IN,
     ("GET", "/lecturers/{lecturer_id}/publications"): SIGNED_IN,
     # expertise
     ("GET", "/expertise"): SIGNED_IN,
