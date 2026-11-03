@@ -19,8 +19,14 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
-import { canManage } from '@/lib/auth/permissions';
-import { MAX_PAGE, PAGE_SIZE, listLecturers, listPublications } from '@/lib/backend/api';
+import { canManage, isLecturerOnly } from '@/lib/auth/permissions';
+import {
+  MAX_PAGE,
+  PAGE_SIZE,
+  listLecturers,
+  listMyPublications,
+  listPublications,
+} from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 
 export const metadata: Metadata = { title: 'ผลงานตีพิมพ์' };
@@ -34,25 +40,37 @@ export default async function PublicationsPage({
   const q = param(params.q);
   const year = intParam(params.publication_year);
   const offset = intParam(params.offset) ?? 0;
-  const [publications, lecturers, me] = await Promise.all([
-    listPublications({ q, publication_year: year, limit: PAGE_SIZE, offset }),
+  const me = await getCurrentUser();
+  // A plain lecturer works with their own list only; the central list of everyone's works
+  // is for staff and viewers
+  const mine = isLecturerOnly(me) && me ? me.lecturer.lecturer_id : null;
+  const [publications, lecturers] = await Promise.all([
+    mine
+      ? listMyPublications(mine, { q, publication_year: year, limit: PAGE_SIZE, offset })
+      : listPublications({ q, publication_year: year, limit: PAGE_SIZE, offset }),
     listLecturers({ is_active: true, limit: MAX_PAGE }),
-    getCurrentUser(),
   ]);
   const manage = canManage(me);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="ผลงานตีพิมพ์" description="รายการผลงานกลาง (DOI ห้ามซ้ำ)" />
+      <PageHeader
+        title={mine ? 'ผลงานตีพิมพ์ของฉัน' : 'ผลงานตีพิมพ์'}
+        description={
+          mine
+            ? 'เฉพาะผลงานที่คุณเป็นผู้แต่ง เพิ่มผลงานใหม่ได้ด้านล่าง'
+            : 'รายการผลงานกลาง (DOI ห้ามซ้ำ)'
+        }
+      />
 
-      <Section title={`ผลงานทั้งหมด (${publications.meta.total})`}>
+      <Section title={`${mine ? 'ผลงานของฉัน' : 'ผลงานทั้งหมด'} (${publications.meta.total})`}>
         <form role="search" className="mb-4 grid gap-2 sm:grid-cols-[1fr_8rem_auto]">
           <input name="q" defaultValue={q} placeholder="ค้นหาชื่อ แหล่งตีพิมพ์ หรือ DOI" className={inputClass} />
           <input name="publication_year" type="number" defaultValue={year} placeholder="ปี" className={inputClass} aria-label="ปี" />
           <button type="submit" className={secondaryButtonClass}>ค้นหา</button>
         </form>
         {publications.items.length === 0 ? (
-          <EmptyNote>ไม่พบผลงาน</EmptyNote>
+          <EmptyNote>{mine ? 'ยังไม่มีผลงานของคุณ เพิ่มได้ด้านล่าง' : 'ไม่พบผลงาน'}</EmptyNote>
         ) : (
           <Table head={['ชื่อผลงาน', 'ปี', 'แหล่งตีพิมพ์', 'DOI']}>
             {publications.items.map((publication) => (
@@ -77,7 +95,7 @@ export default async function PublicationsPage({
         />
       </Section>
 
-      <Section title="เพิ่มผลงาน">
+      <Section title={mine ? 'เพิ่มผลงานของฉัน' : 'เพิ่มผลงาน'}>
         <ActionForm action={createPublication} submitLabel="เพิ่มผลงาน">
           <PublicationFields />
           <Field

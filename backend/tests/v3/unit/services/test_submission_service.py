@@ -209,9 +209,11 @@ def test_returning_needs_a_comment_and_cannot_happen_on_a_draft(
     daos["lecturer"].get_by_id.return_value = owner
     returned = ApprovalCreateRequest(decision=ApprovalDecision.RETURNED)
 
+    # A receiver (not the owner) must say why; the owner pulling a sheet back need not
+    staff = Actor(uuid4(), frozenset({Role.LECTURER, Role.STAFF}))
     daos["submission"].get_by_id.return_value = submission(SubmissionStatus.SUBMITTED, owner)
     with pytest.raises(BadRequestError, match="comment"):
-        service.create_approval(uuid4(), signs_everything(owner), returned)
+        service.create_approval(uuid4(), staff, returned)
 
     daos["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, owner)
     with pytest.raises(ConflictError):
@@ -307,3 +309,56 @@ def test_each_step_is_signed_by_its_role(
         with pytest.raises(ForbiddenError, match="signed by"):
             service.create_approval(current.id, actor, approve)
         daos["submission"].add.assert_not_called()
+
+
+def test_owner_can_pull_back_a_sent_submission_nobody_accepted(
+    service: SubmissionService, daos: dict[str, MagicMock]
+) -> None:
+    owner = lecturer()
+    current = submission(SubmissionStatus.SUBMITTED, owner)
+    daos["submission"].get_by_id.return_value = current
+    daos["lecturer"].get_by_id.return_value = owner
+
+    approval = service.create_approval(
+        current.id,
+        Actor(owner.lecturer_id, frozenset({Role.LECTURER})),
+        ApprovalCreateRequest(decision=ApprovalDecision.RETURNED),
+    )
+
+    assert current.status is SubmissionStatus.RETURNED
+    assert approval.role is SignerRole.PERFORMER
+    assert approval.comment
+
+
+def test_owner_cannot_pull_back_once_staff_accepted_it(
+    service: SubmissionService, daos: dict[str, MagicMock]
+) -> None:
+    owner = lecturer()
+    current = submission(SubmissionStatus.ASSESSING, owner)
+    daos["submission"].get_by_id.return_value = current
+    daos["lecturer"].get_by_id.return_value = owner
+
+    with pytest.raises(ForbiddenError):
+        service.create_approval(
+            current.id,
+            Actor(owner.lecturer_id, frozenset({Role.LECTURER})),
+            ApprovalCreateRequest(decision=ApprovalDecision.RETURNED, comment="อยากแก้"),
+        )
+    assert current.status is SubmissionStatus.ASSESSING
+
+
+def test_someone_else_cannot_pull_back_a_sent_submission(
+    service: SubmissionService, daos: dict[str, MagicMock]
+) -> None:
+    owner = lecturer()
+    other = lecturer()
+    current = submission(SubmissionStatus.SUBMITTED, owner)
+    daos["submission"].get_by_id.return_value = current
+    daos["lecturer"].get_by_id.return_value = other
+
+    with pytest.raises(ForbiddenError):
+        service.create_approval(
+            current.id,
+            Actor(other.lecturer_id, frozenset({Role.LECTURER})),
+            ApprovalCreateRequest(decision=ApprovalDecision.RETURNED),
+        )

@@ -40,6 +40,7 @@ Schema อยู่ใน migration ตามลำดับ **ไฟล์เ�
 - [004_workload_entry_lock.sql](../database/migrations/004_workload_entry_lock.sql): ปรับ trigger ของ 003 ให้แก้ entry ได้ตอนใบถูกตีกลับ (`returned`) และให้ผู้ประเมินอัปเดตคะแนนได้ตอน `assessing`
 - [005_verification.sql](../database/migrations/005_verification.sql): สถานะการรับรอง (`pending` / `verified` / `rejected`) ของผลงานตีพิมพ์และไฟล์หลักฐาน พร้อมผู้รับรอง เวลา และหมายเหตุ
 - [006_audit_log.sql](../database/migrations/006_audit_log.sql): ตาราง `audit_log` บันทึกทุกแถวที่ API เพิ่ม แก้ หรือลบ (ใคร บทบาท request และค่าที่เปลี่ยน) เขียนโดย `app/v2/audit.py` ใน transaction เดียวกับการเปลี่ยน อ่านได้ที่ `GET /api/v2/audit-log` (admin)
+- [007_entry_publication.sql](../database/migrations/007_entry_publication.sql): `submission_entry.publication_id` ผูกรายการในใบภาระงานกับผลงานตีพิมพ์ที่อาจารย์เป็นผู้แต่ง (API v3 เท่านั้น ตรวจที่ `EntryService`) ลบผลงานที่ถูกผูกอยู่ไม่ได้
 
 สร้างตารางใน PostgreSQL ของตัวเอง (ตัวอย่างเช่น local):
 
@@ -50,6 +51,7 @@ psql -d cs361v2 -f ../database/migrations/003_faculty_workload.sql   # ต้อ
 psql -d cs361v2 -f ../database/migrations/004_workload_entry_lock.sql
 psql -d cs361v2 -f ../database/migrations/005_verification.sql
 psql -d cs361v2 -f ../database/migrations/006_audit_log.sql
+psql -d cs361v2 -f ../database/migrations/007_entry_publication.sql
 ```
 
 หรือใช้ `scripts/apply_migrations.py` ซึ่งจำว่าไฟล์ไหนรันไปแล้ว (ตาราง `schema_migration`) และรันแต่ละไฟล์ใน transaction เดียว

@@ -23,6 +23,7 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
+import { createSubmission } from '@/app/manage/actions/workload';
 import { canManage, signsForDepartment, viewsAll } from '@/lib/auth/permissions';
 import {
   PAGE_SIZE,
@@ -32,6 +33,7 @@ import {
   listLecturers,
   listRoundSubmissions,
   listRubricVersions,
+  listSubmissions,
   MAX_PAGE,
   settle,
 } from '@/lib/backend/api';
@@ -62,6 +64,10 @@ export default async function RoundPage({
   const manage = canManage(me);
   // Scores of the whole round: viewers, or a chair / committee for their department
   const seesReport = viewsAll(me) || signsForDepartment(me);
+  // Anyone without the round report only sees where their own sheet stands in this round
+  const mySheet = !seesReport && me
+    ? (await listSubmissions({ round_id: roundId, lecturer_id: me.lecturer.lecturer_id })).items[0] ?? null
+    : null;
   const [report, submissions, departments, versions, lecturers] = await Promise.all([
     seesReport ? settle(getRoundReport(roundId, departmentId)) : null,
     seesReport
@@ -102,6 +108,7 @@ export default async function RoundPage({
         }
       />
 
+      {seesReport ? (
       <form role="search" className="flex flex-wrap gap-2">
         <select name="department_id" defaultValue={departmentId ?? ''} className={`${inputClass} sm:w-60`} aria-label="สาขา">
           <option value="">ทุกสาขา</option>
@@ -117,12 +124,27 @@ export default async function RoundPage({
         </select>
         <button type="submit" className={secondaryButtonClass}>กรอง</button>
       </form>
+      ) : null}
 
       {!seesReport ? (
-        <Notice>
-          สรุปคะแนนและรายการใบในรอบ ดูได้เฉพาะเจ้าหน้าที่ ผู้ตรวจสอบ ผู้บริหาร
-          และหัวหน้า / กรรมการสาขา (เห็นเฉพาะสาขาตัวเอง)
-        </Notice>
+        <Section title="ใบภาระงานของฉันในรอบนี้" description="รอบนี้ดูได้อย่างเดียว คุณแก้ไขได้เฉพาะใบของตัวเอง">
+          {mySheet ? (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <StatusBadge status={mySheet.status} />
+              <span className="text-ink-muted">คะแนนหลังตัดเพดาน {formatScore(mySheet.capped_total)}</span>
+              <Link href={`/manage/submissions/${mySheet.id}`} className={linkClass}>
+                เปิดใบภาระงาน
+              </Link>
+            </div>
+          ) : round.is_open ? (
+            <ActionForm action={createSubmission} submitLabel="สร้างใบภาระงานของฉัน">
+              <input type="hidden" name="round_id" value={roundId} />
+              <p className="text-sm text-ink-muted">ยังไม่มีใบของคุณในรอบนี้</p>
+            </ActionForm>
+          ) : (
+            <EmptyNote>ไม่มีใบของคุณในรอบนี้ และรอบนี้ปิดแล้ว</EmptyNote>
+          )}
+        </Section>
       ) : !reportData || !submissionsData ? (
         <Notice tone="error">{report?.error ?? submissions?.error}</Notice>
       ) : (

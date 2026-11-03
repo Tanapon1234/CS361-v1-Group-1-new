@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createRubricVersion } from '@/app/manage/actions/rubric';
 import { ActionForm } from '@/components/manage/action-form';
 import { Badge, EmptyNote, Field, PageHeader, Section, Table, Td, inputClass, linkClass } from '@/components/manage/ui';
+import { leaveIfLecturerOnly } from '@/lib/auth/guards';
 import { canManage } from '@/lib/auth/permissions';
 import { listRounds, listRubricVersions } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -12,6 +13,7 @@ import { formatDate, formatNumber } from '@/lib/backend/labels';
 export const metadata: Metadata = { title: 'เกณฑ์ภาระงาน' };
 
 export default async function RubricsPage() {
+  await leaveIfLecturerOnly();
   const [versions, rounds, me] = await Promise.all([
     listRubricVersions(),
     listRounds(),

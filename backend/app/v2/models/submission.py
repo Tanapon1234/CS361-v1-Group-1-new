@@ -81,6 +81,10 @@ class SubmissionEntry(SQLModel, table=True):
         sa_type=sa.SmallInteger, sa_column_args=[fk("rubric_item.id", cascade=False)]
     )
     title: str | None = Field(default=None, max_length=500)
+    # 007_entry_publication.sql: the publication this line claims, if any
+    publication_id: int | None = Field(
+        default=None, sa_column_args=[fk("publication.publication_id", cascade=False)]
+    )
     course_code: str | None = Field(default=None, max_length=15)
     section_no: str | None = Field(default=None, max_length=10)
     student_count: int | None = None

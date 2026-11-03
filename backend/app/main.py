@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.database import dispose_engine
 from app.core.error_handlers import register_exception_handlers
 from app.v2.router import api_v2_router
+from app.v3.public_router import public_v3_router
 from app.v3.router import api_v3_router
 
 
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(api_v2_router)
     app.include_router(api_v3_router)
+    app.include_router(public_v3_router)
     return app
 
 

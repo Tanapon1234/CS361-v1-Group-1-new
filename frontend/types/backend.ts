@@ -276,6 +276,8 @@ export interface Entry {
   submission_id: string;
   item_id: number;
   title: string | null;
+  /** The publication this line claims (API v3) */
+  publication_id?: number | null;
   course_code: string | null;
   section_no: string | null;
   student_count: number | null;

@@ -25,6 +25,7 @@ from app.v3.daos.assessment_dao import AssessmentDAO
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.member_position_dao import MemberPositionDAO
+from app.v3.daos.publication_dao import PublicationDAO
 from app.v3.daos.rubric_dao import RubricDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.assessment_dto import AssessmentPutRequest
@@ -83,6 +84,7 @@ def mocks() -> dict[str, MagicMock]:
         "assessment": create_autospec(AssessmentDAO, instance=True),
         "position": create_autospec(MemberPositionDAO, instance=True),
         "keeper": keeper,
+        "publication": create_autospec(PublicationDAO, instance=True),
     }
 
 
@@ -95,6 +97,7 @@ def entries(mocks: dict[str, MagicMock]) -> EntryService:
         create_autospec(EvidenceDAO, instance=True),
         create_autospec(ObjectStorage, instance=True),
         mocks["keeper"],
+        mocks["publication"],
     )
 
 
@@ -231,4 +234,47 @@ def test_single_item_takes_one_assessor(
     with pytest.raises(ConflictError, match="one assessor"):
         assessments.put_my_assessment(
             entry.id, ACTOR.lecturer_id, AssessmentPutRequest(value_given=Decimal("1.5"))
+        )
+
+
+def test_entry_can_claim_a_publication_the_owner_wrote(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].count_entries.return_value = 0
+    mocks["publication"].get_by_id.return_value = object()
+    mocks["publication"].get_author_ids.return_value = [ACTOR.lecturer_id]
+
+    result = entries.create_entry(
+        uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
+    )
+
+    assert result.score == Decimal(200)
+    mocks["publication"].get_author_ids.assert_called_once_with(7)
+
+
+def test_entry_cannot_claim_someone_elses_publication(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].count_entries.return_value = 0
+    mocks["publication"].get_by_id.return_value = object()
+    mocks["publication"].get_author_ids.return_value = [uuid4()]
+
+    with pytest.raises(BadRequestError):
+        entries.create_entry(
+            uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
+        )
+
+
+def test_entry_cannot_claim_a_missing_publication(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].count_entries.return_value = 0
+    mocks["publication"].get_by_id.return_value = None
+
+    with pytest.raises(BadRequestError):
+        entries.create_entry(
+            uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
         )

@@ -7,7 +7,7 @@ import { signOut } from '@/app/manage/actions/session';
 import { ManageSidebar } from '@/components/manage/sidebar';
 import { secondaryButtonClass } from '@/components/manage/ui';
 import { cognitoEnabled } from '@/lib/auth/cognito';
-import { canReview, isAdmin, mayAssess } from '@/lib/auth/permissions';
+import { canReview, isAdmin, isLecturerOnly, mayAssess } from '@/lib/auth/permissions';
 import { BackendError, getCurrentUser } from '@/lib/backend/client';
 import type { Me } from '@/types/backend';
 
@@ -93,7 +93,15 @@ export default async function ManageLayout({ children }: { children: ReactNode }
       <CurrentUserBar />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-8 lg:py-10">
         <aside className="mb-6 lg:mb-0">
-          <ManageSidebar access={{ assess: mayAssess(me), review: canReview(me), admin: isAdmin(me) }} />
+          <ManageSidebar
+            access={{
+              assess: mayAssess(me),
+              review: canReview(me),
+              admin: isAdmin(me),
+              lecturerOnly: isLecturerOnly(me),
+              selfId: me?.lecturer.lecturer_id ?? null,
+            }}
+          />
         </aside>
         <div className="min-w-0">{children}</div>
       </div>

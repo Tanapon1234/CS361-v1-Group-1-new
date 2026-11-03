@@ -51,6 +51,8 @@ class SubmissionResponse(ResponseDTO):
 class EntryCreateRequest(RequestDTO):
     item_id: int = Field(ge=1, le=32767)
     title: str | None = Field(default=None, max_length=500)
+    # A publication of the sheet's owner that this line claims
+    publication_id: int | None = Field(default=None, ge=1)
     course_code: str | None = Field(default=None, max_length=15, examples=["CS222"])
     section_no: str | None = Field(default=None, max_length=10)
     student_count: int | None = Field(default=None, ge=0)
@@ -71,6 +73,7 @@ class EntryUpdateRequest(RequestDTO):
 
     item_id: int | None = Field(default=None, ge=1, le=32767)
     title: str | None = Field(default=None, max_length=500)
+    publication_id: int | None = Field(default=None, ge=1)
     course_code: str | None = Field(default=None, max_length=15)
     section_no: str | None = Field(default=None, max_length=10)
     student_count: int | None = Field(default=None, ge=0)
@@ -102,6 +105,7 @@ class EntryResponse(ResponseDTO):
     submission_id: UUID
     item_id: int
     title: str | None
+    publication_id: int | None = None
     course_code: str | None
     section_no: str | None
     student_count: int | None

@@ -92,6 +92,15 @@ export const listLecturerPublications = (lecturerId: string) =>
     query: { limit: MAX_PAGE },
   });
 
+/** One lecturer's own works, searchable and paged (the central list holds everyone's) */
+export const listMyPublications = (
+  lecturerId: string,
+  query: { q?: string; publication_year?: number; limit?: number; offset?: number }
+) =>
+  backend<PageResponse<LecturerPublication>>('GET', `/lecturers/${lecturerId}/publications`, {
+    query,
+  });
+
 export const listResearchInterests = (query: { q?: string; limit?: number; offset?: number }) =>
   backend<PageResponse<ResearchInterest>>('GET', '/research-interests', { query });
 
