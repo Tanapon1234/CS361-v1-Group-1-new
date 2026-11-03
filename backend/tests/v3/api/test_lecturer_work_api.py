@@ -22,27 +22,40 @@ def test_get_work_passes_the_filters(client: TestClient, service: MagicMock) -> 
     service.get_work.return_value = LecturerWorkResponse(
         lecturer_id=lecturer_id,
         lecturer_name_th="สมชาย",
-        filters=LecturerWorkFilters(academic_year=2567, category="2", category_name_th=None),
-        categories=[],
-        publications=[],
+        filters=LecturerWorkFilters(
+            academic_year_from=2566, academic_year_to=2568, category="2", category_name_th=None
+        ),
+        years=[],
         total=0,
         available_years=[],
     )
 
     response = client.get(
-        f"/api/v3/lecturers/{lecturer_id}/work", params={"academic_year": 2567, "category": "2"}
+        f"/api/v3/lecturers/{lecturer_id}/work",
+        params={"academic_year_from": 2566, "academic_year_to": 2568, "category": "2"},
     )
 
     assert response.status_code == 200
-    assert response.json()["filters"]["academic_year"] == 2567
+    assert response.json()["filters"]["academic_year_from"] == 2566
+    assert response.json()["filters"]["academic_year_to"] == 2568
     called_id, _, query = service.get_work.call_args.args
-    assert (called_id, query.academic_year, query.category) == (lecturer_id, 2567, "2")
+    assert (called_id, query.academic_year_from, query.academic_year_to, query.category) == (
+        lecturer_id,
+        2566,
+        2568,
+        "2",
+    )
 
 
 @pytest.mark.parametrize(
     "params",
-    [{"academic_year": 2024}, {"academic_year": "x"}, {"category": "toolong"}],
-    ids=["ce-year", "not-a-number", "long-category"],
+    [
+        {"academic_year_from": 2024},
+        {"academic_year_to": 2024},
+        {"academic_year_from": "x"},
+        {"category": "toolong"},
+    ],
+    ids=["ce-year-from", "ce-year-to", "not-a-number", "long-category"],
 )
 def test_invalid_filters_are_422(client: TestClient, service: MagicMock, params: dict) -> None:
     response = client.get(f"/api/v3/lecturers/{uuid4()}/work", params=params)
