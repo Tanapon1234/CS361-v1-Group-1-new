@@ -36,6 +36,7 @@ import type {
   AuditLogEntry,
   EvidenceQueueItem,
   PublicationQueueItem,
+  ReviewerAssignment,
 } from '@/types/backend';
 
 /** Reads (GET) used by the /manage pages. Changes live in app/manage/actions/. */
@@ -228,6 +229,10 @@ export const listAuditLog = (query: {
   actor_id?: string;
   offset?: number;
 }) => backend<PageResponse<AuditLogEntry>>('GET', '/audit-log', { query: { ...query, limit: PAGE_SIZE } });
+
+/** Who reviews whom (V4 #293): executive/admin see everyone's; a reviewer sees their own */
+export const listReviewerAssignments = (query: { reviewer_id?: string; reviewee_id?: string } = {}) =>
+  backend<ListResponse<ReviewerAssignment>>('GET', '/reviewer-assignments', { query });
 
 /** Run reads in parallel, but keep one failing section from breaking the whole page */
 export async function settle<T>(promise: Promise<T>): Promise<{ data: T | null; error: string | null }> {

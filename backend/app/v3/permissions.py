@@ -37,6 +37,7 @@ class Rule:
 
 SIGNED_IN = Rule(anyone=True)
 REVIEWERS = Rule(roles=frozenset({Role.REVIEWER}))
+EXECUTIVE = Rule(roles=frozenset({Role.EXECUTIVE}))
 ADMIN = Rule(roles=frozenset({Role.ADMIN}))
 # STAFF has no master-data create/edit rights (view-only, department-scoped in services);
 # that leaves only admin, or the lecturer acting on their own record
@@ -184,6 +185,12 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/verifications/evidence"): REVIEWERS,
     # audit log (006)
     ("GET", "/audit-log"): ADMIN,
+    # reviewer assignment (V4 #293): executive assigns; a plain reviewer only lists
+    # their own (service, since that is not "anyone", but ROUTE_RULES cannot see roles
+    # beyond this list without granting GET to reviewers too)
+    ("GET", "/reviewer-assignments"): Rule(roles=frozenset({Role.EXECUTIVE, Role.REVIEWER})),
+    ("POST", "/reviewer-assignments"): EXECUTIVE,
+    ("DELETE", "/reviewer-assignments/{assignment_id}"): EXECUTIVE,
 }
 
 

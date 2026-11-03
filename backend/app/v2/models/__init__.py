@@ -13,6 +13,7 @@ from app.v2.models.member_position import MemberPosition
 from app.v2.models.publication import FacultyPublication, Publication, PublicationEvidence
 from app.v2.models.publication_profile import PublicationProfile
 from app.v2.models.research_interest import FacultyResearchInterest, ResearchInterest
+from app.v2.models.reviewer_assignment import ReviewerAssignment
 from app.v2.models.rubric import RubricCategory, RubricItem, RubricSection, RubricVersion
 from app.v2.models.submission import (
     EntryAssessment,
@@ -41,6 +42,7 @@ __all__ = [
     "PublicationEvidence",
     "PublicationProfile",
     "ResearchInterest",
+    "ReviewerAssignment",
     "RubricCategory",
     "RubricItem",
     "RubricSection",

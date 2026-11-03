@@ -21,9 +21,20 @@ def as_(lecturer_id: str, roles: str = "") -> dict[str, str]:
 
 def test_reviewer_verifies_and_the_author_is_locked_out(api: TestClient) -> None:
     author, reviewer = person(api, "ver-author"), person(api, "ver-reviewer")
+    executive = person(api, "ver-executive")
     body = {"title": "Edge scheduling", "publication_year": 2024, "lecturer_ids": [author]}
     pub = ok(api.post(f"{V2}/publications", json=body, headers=as_(author)), 201)
     url = f"{V2}/publications/{pub['publication_id']}"
+
+    # V4 #293: a plain reviewer only sees items of a lecturer they are assigned to
+    ok(
+        api.post(
+            f"{V2}/reviewer-assignments",
+            json={"reviewer_id": reviewer, "reviewee_id": author},
+            headers=as_(executive, "executive"),
+        ),
+        201,
+    )
 
     queue = ok(api.get(f"{V2}/verifications/publications", headers=as_(reviewer, "reviewer")))
     assert [p["publication_id"] for p in queue["items"]] == [pub["publication_id"]]

@@ -31,6 +31,7 @@ from app.v3.daos.publication_dao import PublicationDAO
 from app.v3.daos.publication_evidence_dao import PublicationEvidenceDAO
 from app.v3.daos.publication_profile_dao import PublicationProfileDAO
 from app.v3.daos.research_interest_dao import ResearchInterestDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.rubric_dao import RubricDAO
 from app.v3.daos.sql.assessment_dao import SqlAssessmentDAO
 from app.v3.daos.sql.audit_log_dao import SqlAuditLogDAO
@@ -46,6 +47,7 @@ from app.v3.daos.sql.publication_dao import SqlPublicationDAO
 from app.v3.daos.sql.publication_evidence_dao import SqlPublicationEvidenceDAO
 from app.v3.daos.sql.publication_profile_dao import SqlPublicationProfileDAO
 from app.v3.daos.sql.research_interest_dao import SqlResearchInterestDAO
+from app.v3.daos.sql.reviewer_assignment_dao import SqlReviewerAssignmentDAO
 from app.v3.daos.sql.rubric_dao import SqlRubricDAO
 from app.v3.daos.sql.submission_dao import SqlSubmissionDAO
 from app.v3.daos.sql.verification_dao import SqlVerificationDAO
@@ -70,6 +72,7 @@ from app.v3.services.publication_evidence_service import PublicationEvidenceServ
 from app.v3.services.publication_profile_service import PublicationProfileService
 from app.v3.services.publication_service import PublicationService
 from app.v3.services.research_interest_service import ResearchInterestService
+from app.v3.services.reviewer_assignment_service import ReviewerAssignmentService
 from app.v3.services.round_service import RoundService
 from app.v3.services.rubric_service import RubricService
 from app.v3.services.score_keeper import ScoreKeeper
@@ -157,6 +160,10 @@ def get_verification_dao(session: SessionDep) -> VerificationDAO:
     return SqlVerificationDAO(session)
 
 
+def get_reviewer_assignment_dao(session: SessionDep) -> ReviewerAssignmentDAO:
+    return SqlReviewerAssignmentDAO(session)
+
+
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
 LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
@@ -173,6 +180,7 @@ AssessmentDAODep = Annotated[AssessmentDAO, Depends(get_assessment_dao)]
 EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
 PublicationEvidenceDAODep = Annotated[PublicationEvidenceDAO, Depends(get_publication_evidence_dao)]
 VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
+ReviewerAssignmentDAODep = Annotated[ReviewerAssignmentDAO, Depends(get_reviewer_assignment_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
 
@@ -500,11 +508,25 @@ def get_verification_service(
     publication_dao: PublicationDAODep,
     evidence_dao: EvidenceDAODep,
     submission_dao: SubmissionDAODep,
+    assignment_dao: ReviewerAssignmentDAODep,
 ) -> VerificationService:
-    return VerificationService(verification_dao, publication_dao, evidence_dao, submission_dao)
+    return VerificationService(
+        verification_dao, publication_dao, evidence_dao, submission_dao, assignment_dao
+    )
 
 
 VerificationServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
+
+
+def get_reviewer_assignment_service(
+    assignment_dao: ReviewerAssignmentDAODep, lecturer_dao: LecturerDAODep
+) -> ReviewerAssignmentService:
+    return ReviewerAssignmentService(assignment_dao, lecturer_dao)
+
+
+ReviewerAssignmentServiceDep = Annotated[
+    ReviewerAssignmentService, Depends(get_reviewer_assignment_service)
+]
 
 
 def get_audit_log_service(session: SessionDep) -> AuditLogService:
