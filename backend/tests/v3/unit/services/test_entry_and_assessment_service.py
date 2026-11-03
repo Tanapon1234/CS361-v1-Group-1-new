@@ -30,6 +30,7 @@ from app.v3.daos.rubric_dao import RubricDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.assessment_dto import AssessmentPutRequest
 from app.v3.dtos.submission_dto import EntryCreateRequest
+from app.v3.security import Actor, Role
 from app.v3.services.assessment_service import AssessmentService
 from app.v3.services.entry_service import EntryService
 from app.v3.services.score_keeper import Rubric, ScoreKeeper
@@ -37,6 +38,7 @@ from app.v3.services.scoring import EntryScore
 from app.v3.storage.object_storage import ObjectStorage
 
 ACTOR = Lecturer(name_th="ผู้ใช้", email="u@x.th")
+CALLER = Actor(ACTOR.lecturer_id, frozenset({Role.LECTURER}))
 FIXED = RubricItem(id=1, section_id=1, label_th="x", weight=Decimal(1), unit=QuantityUnit.TOPIC)
 RANGED = RubricItem(
     id=2,
@@ -118,7 +120,7 @@ def test_entry_gets_the_server_score_and_refreshes_totals(
     mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
     mocks["submission"].count_entries.return_value = 0
 
-    result = entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+    result = entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1))
 
     assert result.score == Decimal(200)
     mocks["keeper"].refresh.assert_called_once()
@@ -130,7 +132,7 @@ def test_entries_of_a_sent_submission_are_locked(
     mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.SUBMITTED, ACTOR)
 
     with pytest.raises(ConflictError):
-        entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1))
     mocks["submission"].add.assert_not_called()
 
 
@@ -140,7 +142,7 @@ def test_entry_item_must_belong_to_the_round_rubric(
     mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
 
     with pytest.raises(BadRequestError, match="item_id"):
-        entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=99))
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=99))
 
 
 def test_section_max_entries_is_enforced(
@@ -150,15 +152,79 @@ def test_section_max_entries_is_enforced(
     mocks["submission"].count_entries.return_value = 2
 
     with pytest.raises(BadRequestError, match="at most 2"):
-        entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1))
 
 
 def test_only_the_owner_adds_entries(entries: EntryService, mocks: dict[str, MagicMock]) -> None:
     mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT)
 
     with pytest.raises(ForbiddenError, match="owner"):
-        entries.create_entry(uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1))
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1))
     mocks["submission"].add.assert_not_called()
+
+
+# --- staff drafting on behalf of a lecturer (V4 #292) -------------------------------
+
+STAFF_SAME_DEPT = Lecturer(name_th="จนท", email="staff@x.th", department_id=1)
+STAFF_OTHER_DEPT = Lecturer(name_th="จนท2", email="staff2@x.th", department_id=2)
+STAFF_CALLER = Actor(STAFF_SAME_DEPT.lecturer_id, frozenset({Role.STAFF}))
+OTHER_DEPT_STAFF_CALLER = Actor(STAFF_OTHER_DEPT.lecturer_id, frozenset({Role.STAFF}))
+
+
+def test_owner_entry_is_confirmed_by_default(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].count_entries.return_value = 0
+
+    result = entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1))
+
+    assert result.entered_by == ACTOR.lecturer_id
+    assert result.confirmed_by_owner is True
+
+
+def test_staff_in_the_same_department_may_draft_an_entry_pending_confirmation(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].count_entries.return_value = 0
+    mocks["lecturer"].get_by_id.return_value = STAFF_SAME_DEPT
+
+    result = entries.create_entry(uuid4(), STAFF_CALLER, EntryCreateRequest(item_id=1))
+
+    assert result.entered_by == STAFF_SAME_DEPT.lecturer_id
+    assert result.confirmed_by_owner is False
+
+
+def test_staff_in_another_department_cannot_draft_an_entry(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["lecturer"].get_by_id.return_value = STAFF_OTHER_DEPT
+
+    with pytest.raises(ForbiddenError, match="owner"):
+        entries.create_entry(uuid4(), OTHER_DEPT_STAFF_CALLER, EntryCreateRequest(item_id=1))
+    mocks["submission"].add.assert_not_called()
+
+
+def test_only_the_owner_confirms_a_staff_drafted_entry(
+    entries: EntryService, mocks: dict[str, MagicMock]
+) -> None:
+    entry = SubmissionEntry(
+        submission_id=uuid4(),
+        item_id=1,
+        entered_by=STAFF_SAME_DEPT.lecturer_id,
+        confirmed_by_owner=False,
+    )
+    mocks["submission"].get_entry.return_value = entry
+    mocks["submission"].get_by_id.return_value = submission(SubmissionStatus.DRAFT, ACTOR)
+    mocks["submission"].update.side_effect = lambda row, values: row.sqlmodel_update(values) or row
+
+    with pytest.raises(ForbiddenError, match="owner"):
+        entries.confirm_entry(entry.id, STAFF_CALLER)
+
+    result = entries.confirm_entry(entry.id, CALLER)
+    assert result.confirmed_by_owner is True
 
 
 def ranged_entry(mocks: dict[str, MagicMock], status: SubmissionStatus) -> SubmissionEntry:
@@ -245,9 +311,7 @@ def test_entry_can_claim_a_publication_the_owner_wrote(
     mocks["publication"].get_by_id.return_value = object()
     mocks["publication"].get_author_ids.return_value = [ACTOR.lecturer_id]
 
-    result = entries.create_entry(
-        uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
-    )
+    result = entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1, publication_id=7))
 
     assert result.score == Decimal(200)
     mocks["publication"].get_author_ids.assert_called_once_with(7)
@@ -262,9 +326,7 @@ def test_entry_cannot_claim_someone_elses_publication(
     mocks["publication"].get_author_ids.return_value = [uuid4()]
 
     with pytest.raises(BadRequestError):
-        entries.create_entry(
-            uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
-        )
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1, publication_id=7))
 
 
 def test_entry_cannot_claim_a_missing_publication(
@@ -275,6 +337,4 @@ def test_entry_cannot_claim_a_missing_publication(
     mocks["publication"].get_by_id.return_value = None
 
     with pytest.raises(BadRequestError):
-        entries.create_entry(
-            uuid4(), ACTOR.lecturer_id, EntryCreateRequest(item_id=1, publication_id=7)
-        )
+        entries.create_entry(uuid4(), CALLER, EntryCreateRequest(item_id=1, publication_id=7))

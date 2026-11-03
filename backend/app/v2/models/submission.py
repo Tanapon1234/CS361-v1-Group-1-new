@@ -100,6 +100,11 @@ class SubmissionEntry(SQLModel, table=True):
     details: dict[str, Any] | None = Field(default=None, sa_type=JSONB)
     note: str | None = Field(default=None, sa_type=sa.Text)
     sort_order: int = Field(default=0, sa_type=sa.SmallInteger)
+    # 010_staff_drafted_entries.sql: who entered this line (the owner, or staff on their
+    # behalf); confirmed_by_owner stays false on a staff-drafted entry until the owner
+    # confirms it
+    entered_by: uuid.UUID = Field(sa_column_args=[fk("lecturer.lecturer_id", cascade=False)])
+    confirmed_by_owner: bool = Field(default=True)
     created_at: datetime = timestamp_field()
     updated_at: datetime = timestamp_field(auto_update=True)
 

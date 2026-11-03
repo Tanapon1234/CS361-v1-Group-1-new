@@ -128,6 +128,7 @@ EXPECTED_ENDPOINTS = {
     ("POST", "/api/v3/submissions/{submission_id}/entries"),
     ("GET", "/api/v3/entries/{entry_id}"),
     ("PATCH", "/api/v3/entries/{entry_id}"),
+    ("POST", "/api/v3/entries/{entry_id}/confirm"),
     ("DELETE", "/api/v3/entries/{entry_id}"),
     # assessment
     ("GET", "/api/v3/assessments"),

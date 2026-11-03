@@ -63,6 +63,8 @@ def make_entry() -> EntryResponse:
         weight_applied=Decimal(1),
         credits=Decimal(3),
         score=Decimal(200),
+        entered_by=uuid4(),
+        confirmed_by_owner=True,
         details={"hours": 45},
         note=None,
         sort_order=0,

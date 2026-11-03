@@ -1,4 +1,5 @@
-"""Models must mirror database/migrations/ 002 + 003 + 005 + 006 + 007 + 009 (no database needed).
+"""Models must mirror database/migrations/ 002 + 003 + 005 + 006 + 007 + 009 + 010 (no
+database needed).
 
 If you change the SQL, change the model too (and the other way round).
 """
@@ -23,6 +24,7 @@ MIGRATIONS = [
     MIGRATIONS_DIR / "006_audit_log.sql",
     MIGRATIONS_DIR / "007_entry_publication.sql",
     MIGRATIONS_DIR / "009_publication_evidence.sql",
+    MIGRATIONS_DIR / "010_staff_drafted_entries.sql",
 ]
 
 

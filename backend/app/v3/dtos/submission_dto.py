@@ -121,6 +121,8 @@ class EntryResponse(ResponseDTO):
     details: dict[str, Any] | None
     note: str | None
     sort_order: int
+    entered_by: UUID
+    confirmed_by_owner: bool
     created_at: datetime
     updated_at: datetime
 
