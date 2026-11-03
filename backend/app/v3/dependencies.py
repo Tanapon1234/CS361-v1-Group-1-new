@@ -409,9 +409,12 @@ def get_rubric_service(rubric_dao: RubricDAODep) -> RubricService:
 
 
 def get_round_service(
-    round_dao: EvaluationRoundDAODep, rubric_dao: RubricDAODep, submission_dao: SubmissionDAODep
+    round_dao: EvaluationRoundDAODep,
+    rubric_dao: RubricDAODep,
+    submission_dao: SubmissionDAODep,
+    lecturer_dao: LecturerDAODep,
 ) -> RoundService:
-    return RoundService(round_dao, rubric_dao, submission_dao)
+    return RoundService(round_dao, rubric_dao, submission_dao, lecturer_dao)
 
 
 def get_submission_service(

@@ -39,12 +39,23 @@ def require_owner(actor_id: UUID, submission: Submission) -> None:
         raise ForbiddenError("Only the owner can change this submission")
 
 
-def require_department_view(actor: Actor, department_id: int | None) -> int | None:
-    """Department to filter a list by: any (or the asked one) for viewers of everything;
-    a department signer only gets their own department."""
-    if actor.views_all:
+def require_department_view(
+    actor: Actor, department_id: int | None, caller_department_id: int | None
+) -> int | None:
+    """Department to filter a list by: any (or the asked one) for executive/admin; a
+    department signer, staff, or reviewer only ever gets their own department (V4: staff
+    and reviewer stopped being able to see every department's data, #291)."""
+    if actor.has_any(Role.EXECUTIVE):  # admin counts as every role (Actor.has_any)
         return department_id
     allowed = signer_departments(actor)
+    if department_id is not None and department_id in allowed:
+        return department_id
+    if actor.has_any(Role.STAFF, Role.REVIEWER):
+        if caller_department_id is None:
+            raise ForbiddenError("You have no department to view")
+        if department_id is not None and department_id != caller_department_id:
+            raise ForbiddenError("You may only see your own department")
+        return caller_department_id
     if department_id is None and len(allowed) == 1:
         return next(iter(allowed))
     if department_id is None or department_id not in allowed:

@@ -74,11 +74,27 @@ def test_who_sees_a_submission(actor: Actor, allowed: bool) -> None:
 def test_department_lists_are_narrowed_for_department_signers() -> None:
     chair = lecturer(positions=[(PositionCode.DEPT_CHAIR, 7)])
 
-    assert require_department_view(chair, None) == 7
-    assert require_department_view(chair, 7) == 7
+    assert require_department_view(chair, None, None) == 7
+    assert require_department_view(chair, 7, None) == 7
     with pytest.raises(ForbiddenError):
-        require_department_view(chair, 8)
-    assert require_department_view(lecturer(None, Role.STAFF), None) is None
+        require_department_view(chair, 8, None)
+
+
+def test_staff_and_reviewer_are_narrowed_to_their_own_department() -> None:
+    staff = lecturer(None, Role.STAFF)
+
+    assert require_department_view(staff, None, 9) == 9
+    assert require_department_view(staff, 9, 9) == 9
+    with pytest.raises(ForbiddenError):
+        require_department_view(staff, 8, 9)
+    with pytest.raises(ForbiddenError):
+        require_department_view(staff, None, None)
+
+
+def test_executive_and_admin_see_any_department() -> None:
+    assert require_department_view(lecturer(None, Role.EXECUTIVE), None, None) is None
+    assert require_department_view(lecturer(None, Role.EXECUTIVE), 5, None) == 5
+    assert require_department_view(lecturer(None, Role.ADMIN), None, None) is None
 
 
 # --- submissions list ---------------------------------------------------------------
@@ -92,11 +108,16 @@ def submission_dao() -> MagicMock:
 
 
 @pytest.fixture
-def submissions(submission_dao: MagicMock) -> SubmissionService:
+def submission_lecturer_dao() -> MagicMock:
+    return create_autospec(LecturerDAO, instance=True)
+
+
+@pytest.fixture
+def submissions(submission_dao: MagicMock, submission_lecturer_dao: MagicMock) -> SubmissionService:
     return SubmissionService(
         submission_dao,
         create_autospec(EvaluationRoundDAO, instance=True),
-        create_autospec(LecturerDAO, instance=True),
+        submission_lecturer_dao,
         create_autospec(EvidenceDAO, instance=True),
         create_autospec(ObjectStorage, instance=True),
         create_autospec(ScoreKeeper, instance=True),
@@ -111,9 +132,9 @@ def submissions(submission_dao: MagicMock) -> SubmissionService:
             lecturer(positions=[(PositionCode.DEPT_CHAIR, 7)]),
             {"lecturer_id": None, "department_id": 7},
         ),
-        (lecturer(None, Role.STAFF), {"lecturer_id": None, "department_id": None}),
+        (lecturer(None, Role.EXECUTIVE), {"lecturer_id": None, "department_id": None}),
     ],
-    ids=["lecturer-sees-own", "chair-sees-department", "staff-sees-all"],
+    ids=["lecturer-sees-own", "chair-sees-department", "executive-sees-all"],
 )
 def test_submission_list_is_scoped_to_the_caller(
     submissions: SubmissionService, submission_dao: MagicMock, actor: Actor, expected: dict
@@ -122,6 +143,21 @@ def test_submission_list_is_scoped_to_the_caller(
 
     called = submission_dao.find_page.call_args.kwargs
     assert {key: called[key] for key in expected} == expected
+
+
+def test_staff_and_reviewer_see_only_their_own_department(
+    submissions: SubmissionService, submission_dao: MagicMock, submission_lecturer_dao: MagicMock
+) -> None:
+    staff = lecturer(None, Role.STAFF)
+    submission_lecturer_dao.get_by_id.return_value = Lecturer(
+        lecturer_id=staff.lecturer_id, name_th="ก", email="a@x.th", department_id=9
+    )
+
+    submissions.list_submissions(staff, SubmissionListQuery())
+
+    called = submission_dao.find_page.call_args.kwargs
+    assert called["department_id"] == 9
+    assert called["lecturer_id"] is None
 
 
 def test_lecturer_cannot_list_someone_elses_submissions(
@@ -163,10 +199,10 @@ def test_lecturer_may_change_their_contact_details(lecturers: LecturerService) -
     [{"email": "b@x.th"}, {"department_id": 2}, {"rank": "ศาสตราจารย์"}, {"cognito_sub": "x"}],
     ids=["email", "department", "rank", "account"],
 )
-def test_only_staff_change_identity_and_position_fields(
+def test_only_admin_changes_identity_and_position_fields(
     lecturers: LecturerService, lecturer_dao: MagicMock, body: dict
 ) -> None:
-    with pytest.raises(ForbiddenError, match="Only staff"):
+    with pytest.raises(ForbiddenError, match="Only an admin"):
         lecturers.update_lecturer(OWNER, LecturerUpdateRequest(**body), actor=lecturer(OWNER))
     lecturer_dao.update.assert_not_called()
 
