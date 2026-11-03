@@ -12,16 +12,41 @@ import {
   inputClass,
   intParam,
   linkClass,
+  param,
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
 import { signsForDepartment, viewsAll } from '@/lib/auth/permissions';
-import { getDepartmentReport, listDepartments, listRounds, settle } from '@/lib/backend/api';
+import {
+  getDepartmentReport,
+  listDepartments,
+  listLecturers,
+  listRounds,
+  listRubricCategories,
+  listRubricVersions,
+  MAX_PAGE,
+  settle,
+} from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatScore } from '@/lib/backend/labels';
-import type { DepartmentReport, DepartmentReportCategoryRow, DepartmentReportMissingRow } from '@/types/backend';
+import type {
+  DepartmentReport,
+  DepartmentReportCategoryRow,
+  DepartmentReportMissingRow,
+  RubricCategory,
+} from '@/types/backend';
 
 export const metadata: Metadata = { title: 'รายงานสาขา' };
+
+/** Category codes and names from the newest rubric version (codes stay the same across versions) */
+async function categoryOptions(): Promise<RubricCategory[]> {
+  const versions = await listRubricVersions();
+  const newest = versions.items.reduce<number | null>(
+    (id, version) => (id === null || version.id > id ? version.id : id),
+    null
+  );
+  return newest === null ? [] : (await listRubricCategories(newest)).items;
+}
 
 export default async function DepartmentReportPage({
   params,
@@ -43,8 +68,15 @@ export default async function DepartmentReportPage({
   const query = await searchParams;
   const yearFrom = intParam(query.year_from);
   const yearTo = intParam(query.year_to);
+  const categoryCode = param(query.category) || undefined;
+  const lecturerId = param(query.lecturer) || undefined;
 
-  const [departments, rounds] = await Promise.all([listDepartments(), listRounds()]);
+  const [departments, rounds, categories, lecturers] = await Promise.all([
+    listDepartments(),
+    listRounds(),
+    categoryOptions(),
+    listLecturers({ department_id: departmentId, is_active: true, limit: MAX_PAGE }),
+  ]);
   const department = departments.items.find((item) => item.id === departmentId);
   if (!department) notFound();
 
@@ -53,7 +85,12 @@ export default async function DepartmentReportPage({
   const report =
     yearFrom && yearTo
       ? await settle(
-          getDepartmentReport(departmentId, { academic_year_from: yearFrom, academic_year_to: yearTo })
+          getDepartmentReport(departmentId, {
+            academic_year_from: yearFrom,
+            academic_year_to: yearTo,
+            category_code: categoryCode,
+            lecturer_id: lecturerId,
+          })
         )
       : null;
 
@@ -65,8 +102,8 @@ export default async function DepartmentReportPage({
         description="สรุปคะแนนภาระงานของอาจารย์ในสาขา แยกตามปีการศึกษาและหมวดงาน"
       />
 
-      <Section title="เลือกช่วงปีการศึกษา">
-        <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <Section title="เลือกช่วงปีการศึกษา และกรอง">
+        <form className="grid gap-3 sm:grid-cols-[1fr_1fr_1.5fr_1.5fr_auto] sm:items-end">
           <Field label="ปีการศึกษา (จาก)">
             <select name="year_from" defaultValue={yearFrom ?? ''} required className={inputClass}>
               <option value="" disabled>
@@ -87,6 +124,26 @@ export default async function DepartmentReportPage({
               {years.map((year) => (
                 <option key={year} value={year}>
                   {year}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="หมวดงาน">
+            <select name="category" defaultValue={categoryCode ?? ''} className={inputClass}>
+              <option value="">ทุกหมวด</option>
+              {categories.map((option) => (
+                <option key={option.id} value={option.code}>
+                  {option.code}. {option.name_th}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="อาจารย์">
+            <select name="lecturer" defaultValue={lecturerId ?? ''} className={inputClass}>
+              <option value="">ทุกคนในสาขา</option>
+              {lecturers.items.map((lecturer) => (
+                <option key={lecturer.lecturer_id} value={lecturer.lecturer_id}>
+                  {lecturer.name_th}
                 </option>
               ))}
             </select>
@@ -125,6 +182,8 @@ function ReportResult({ report, departmentId }: { report: DepartmentReport; depa
           href={withQuery(`/manage/departments/${departmentId}/report/csv`, {
             academic_year_from: report.academic_year_from,
             academic_year_to: report.academic_year_to,
+            category_code: report.category_code,
+            lecturer_id: report.lecturer_id,
           })}
           className={linkClass}
         >

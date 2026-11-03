@@ -106,6 +106,8 @@ class DepartmentService:
                     department_id,
                     academic_year_from=query.academic_year_from,
                     academic_year_to=query.academic_year_to,
+                    category_code=query.category_code,
+                    lecturer_id=query.lecturer_id,
                 )
             )
         ]
@@ -117,6 +119,12 @@ class DepartmentService:
             limit=MAX_REPORT_LECTURERS,
             offset=0,
         )
+        if query.lecturer_id is not None:
+            lecturers = [
+                lecturer for lecturer in lecturers if lecturer.lecturer_id == query.lecturer_id
+            ]
+        # "Missing" means no submission at all that year, independent of which category
+        # was asked for, so it is not narrowed by category_code.
         years = self.round_dao.list_academic_years(query.academic_year_from, query.academic_year_to)
         missing: list[DepartmentReportMissingRow] = []
         for year in sorted(years, reverse=True):
@@ -135,6 +143,8 @@ class DepartmentService:
             department=DepartmentResponse.model_validate(department),
             academic_year_from=query.academic_year_from,
             academic_year_to=query.academic_year_to,
+            category_code=query.category_code,
+            lecturer_id=query.lecturer_id,
             rows=rows,
             missing=missing,
         )

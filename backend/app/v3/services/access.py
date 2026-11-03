@@ -43,14 +43,15 @@ def require_department_view(
     actor: Actor, department_id: int | None, caller_department_id: int | None
 ) -> int | None:
     """Department to filter a list by: any (or the asked one) for executive/admin; a
-    department signer, staff, or reviewer only ever gets their own department (V4: staff
-    and reviewer stopped being able to see every department's data, #291)."""
+    department signer or staff only ever gets their own department (V4: staff stopped
+    being able to see every department's data, #291). A plain reviewer has no
+    department-wide view at all here — see `app.v2.security.VIEW_ALL_ROLES`."""
     if actor.has_any(Role.EXECUTIVE):  # admin counts as every role (Actor.has_any)
         return department_id
     allowed = signer_departments(actor)
     if department_id is not None and department_id in allowed:
         return department_id
-    if actor.has_any(Role.STAFF, Role.REVIEWER):
+    if actor.has_any(Role.STAFF):
         if caller_department_id is None:
             raise ForbiddenError("You have no department to view")
         if department_id is not None and department_id != caller_department_id:
@@ -66,13 +67,14 @@ def require_department_view(
 def require_department_report_access(
     actor: Actor, department_id: int, caller_department_id: int | None
 ) -> None:
-    """V4 department report (FR8): executive/admin see every department; staff/reviewer
-    and department signers see only their own department, not every one."""
+    """V4 department report (FR8): executive/admin see every department; staff and
+    department signers see only their own department, not every one. A plain reviewer
+    has no access to this report at all."""
     if actor.has_any(Role.EXECUTIVE):  # admin counts as every role (Actor.has_any)
         return
     if department_id in signer_departments(actor):
         return
-    if actor.has_any(Role.STAFF, Role.REVIEWER) and caller_department_id == department_id:
+    if actor.has_any(Role.STAFF) and caller_department_id == department_id:
         return
     raise ForbiddenError("You may only see the report of your own department")
 

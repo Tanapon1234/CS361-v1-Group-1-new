@@ -76,6 +76,11 @@ function lecturerGroups(selfId: string | null): Group[] {
         { href: '/manage/work', label: 'ผลงานรายปีของฉัน' },
       ],
     },
+    {
+      // A plain reviewer is a lecturer too; this is the only "about others" thing they get
+      title: 'ตรวจสอบ',
+      items: [{ href: '/manage/review', label: 'ตรวจสอบและรับรอง', needs: 'review' }],
+    },
   ];
 }
 

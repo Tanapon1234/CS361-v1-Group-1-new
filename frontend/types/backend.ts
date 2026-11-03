@@ -155,6 +155,8 @@ export interface DepartmentReport {
   department: Department;
   academic_year_from: number;
   academic_year_to: number;
+  category_code: string | null;
+  lecturer_id: string | null;
   rows: DepartmentReportCategoryRow[];
   missing: DepartmentReportMissingRow[];
 }

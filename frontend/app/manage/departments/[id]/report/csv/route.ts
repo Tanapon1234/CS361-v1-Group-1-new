@@ -15,6 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       query: {
         academic_year_from: search.get('academic_year_from'),
         academic_year_to: search.get('academic_year_to'),
+        category_code: search.get('category_code'),
+        lecturer_id: search.get('lecturer_id'),
         format: 'csv',
       },
     });

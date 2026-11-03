@@ -96,8 +96,9 @@ class SubmissionService:
     def list_submissions(
         self, actor: Actor, query: SubmissionListQuery
     ) -> PageResponse[SubmissionResponse]:
-        # Everyone sees their own; department signers/staff/reviewer their department;
-        # executive/admin see all (V4: staff and reviewer stopped seeing every department, #291)
+        # Everyone sees their own; department signers/staff their department; executive/admin
+        # see all (V4: staff stopped seeing every department, #291). A plain reviewer has no
+        # department-wide view here — falls through to "own submissions only" like any lecturer.
         lecturer_id, department_id = query.lecturer_id, None
         if actor.has_any(Role.EXECUTIVE):
             pass
@@ -105,7 +106,7 @@ class SubmissionService:
             departments = signer_departments(actor)
             if len(departments) == 1:
                 department_id = next(iter(departments))
-            elif actor.has_any(Role.STAFF, Role.REVIEWER):
+            elif actor.has_any(Role.STAFF):
                 department_id = self._caller_department_id(actor)
                 if department_id is None:
                     raise ForbiddenError("You have no department to view")

@@ -17,15 +17,20 @@ export const canManage = (me: Me | null) => isAdmin(me);
 /** Any publication, not just their own — backend kept this for staff (PublicationService) */
 export const canManageAnyPublication = (me: Me | null) => hasRole(me, 'staff');
 export const canReview = (me: Me | null) => hasRole(me, 'reviewer');
-/** Sees everyone's submissions and reports */
-export const viewsAll = (me: Me | null) => hasRole(me, 'staff', 'reviewer', 'executive');
+/**
+ * Sees everyone's submissions and reports. A plain reviewer is NOT included here — they
+ * are a regular lecturer except for the verification queue of lecturers assigned to them
+ * (backend: app.v2.security.VIEW_ALL_ROLES).
+ */
+export const viewsAll = (me: Me | null) => hasRole(me, 'staff', 'executive');
 
 /**
- * Signed in with no role beyond "lecturer": sees and edits only their own profile, works
- * and workload sheets. Master data, the lecturer directory and the rubric are not for them.
+ * Signed in with no role beyond "lecturer" (a plain reviewer counts as this too): sees and
+ * edits only their own profile, works and workload sheets, plus the verification queue
+ * if they have the reviewer role. Master data, the lecturer directory and the rubric are
+ * not for them.
  */
-export const isLecturerOnly = (me: Me | null) =>
-  !!me && !hasRole(me, 'staff', 'reviewer', 'executive');
+export const isLecturerOnly = (me: Me | null) => !!me && !hasRole(me, 'staff', 'executive');
 
 export const isSelf = (me: Me | null, lecturerId: string) => me?.lecturer.lecturer_id === lecturerId;
 

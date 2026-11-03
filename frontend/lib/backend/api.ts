@@ -76,7 +76,12 @@ export const listDepartments = (isActive?: boolean) =>
 /** Every lecturer's category totals in the department across a B.E. academic year range */
 export const getDepartmentReport = (
   departmentId: number,
-  query: { academic_year_from: number; academic_year_to: number }
+  query: {
+    academic_year_from: number;
+    academic_year_to: number;
+    category_code?: string;
+    lecturer_id?: string;
+  }
 ) => backend<DepartmentReport>('GET', `/departments/${departmentId}/report`, { query });
 
 // --- lecturer academic profile ------------------------------------------------------
