@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { createDepartment, updateDepartment } from '@/app/manage/actions/people';
 import { ActionForm } from '@/components/manage/action-form';
-import { Checkbox, EmptyNote, Field, PageHeader, Section, inputClass } from '@/components/manage/ui';
+import { Checkbox, EmptyNote, Field, PageHeader, Section, inputClass, linkClass } from '@/components/manage/ui';
 import { leaveIfLecturerOnly } from '@/lib/auth/guards';
-import { canManage } from '@/lib/auth/permissions';
+import { canManage, signsForDepartment, viewsAll } from '@/lib/auth/permissions';
 import { listDepartments } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 
@@ -14,6 +15,8 @@ export default async function DepartmentsPage() {
   await leaveIfLecturerOnly();
   const [departments, me] = await Promise.all([listDepartments(), getCurrentUser()]);
   const manage = canManage(me);
+  // Precise per-department scoping happens on the report page itself (backend re-checks)
+  const seesReports = viewsAll(me) || signsForDepartment(me);
 
   return (
     <div className="space-y-6">
@@ -46,17 +49,32 @@ export default async function DepartmentsPage() {
                   <p className="text-sm">
                     <span className="font-semibold text-ink">{department.code}</span> {department.name_th}
                     {department.is_active ? null : <span className="text-ink-muted"> (ปิดใช้)</span>}
+                    {seesReports ? (
+                      <>
+                        {' · '}
+                        <Link href={`/manage/departments/${department.id}/report`} className={linkClass}>
+                          รายงาน
+                        </Link>
+                      </>
+                    ) : null}
                   </p>
                 ) : (
-                  <ActionForm
-                    action={updateDepartment.bind(null, department.id)}
-                    variant="secondary"
-                    className="flex flex-wrap items-center gap-3"
-                  >
-                    <input name="code" required maxLength={10} defaultValue={department.code} className={`${inputClass} w-28`} aria-label="รหัส" />
-                    <input name="name_th" required maxLength={150} defaultValue={department.name_th} className={`${inputClass} min-w-60 flex-1`} aria-label="ชื่อสาขา" />
-                    <Checkbox name="is_active" label="เปิดใช้" defaultChecked={department.is_active} />
-                  </ActionForm>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ActionForm
+                      action={updateDepartment.bind(null, department.id)}
+                      variant="secondary"
+                      className="flex flex-wrap items-center gap-3"
+                    >
+                      <input name="code" required maxLength={10} defaultValue={department.code} className={`${inputClass} w-28`} aria-label="รหัส" />
+                      <input name="name_th" required maxLength={150} defaultValue={department.name_th} className={`${inputClass} min-w-60 flex-1`} aria-label="ชื่อสาขา" />
+                      <Checkbox name="is_active" label="เปิดใช้" defaultChecked={department.is_active} />
+                    </ActionForm>
+                    {seesReports ? (
+                      <Link href={`/manage/departments/${department.id}/report`} className={linkClass}>
+                        รายงาน
+                      </Link>
+                    ) : null}
+                  </div>
                 )}
               </li>
             ))}

@@ -6,6 +6,7 @@ import type {
   Assessment,
   AssessmentQueueItem,
   Department,
+  DepartmentReport,
   Education,
   EvaluationRound,
   Evidence,
@@ -69,6 +70,12 @@ export const listDepartments = (isActive?: boolean) =>
   backend<PageResponse<Department>>('GET', '/departments', {
     query: { limit: MAX_PAGE, is_active: isActive },
   });
+
+/** Every lecturer's category totals in the department across a B.E. academic year range */
+export const getDepartmentReport = (
+  departmentId: number,
+  query: { academic_year_from: number; academic_year_to: number }
+) => backend<DepartmentReport>('GET', `/departments/${departmentId}/report`, { query });
 
 // --- lecturer academic profile ------------------------------------------------------
 
