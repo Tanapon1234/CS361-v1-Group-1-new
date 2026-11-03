@@ -1,3 +1,6 @@
+import csv
+import io
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -39,6 +42,7 @@ class DepartmentResponse(ResponseDTO):
 class DepartmentReportQuery(QueryDTO):
     academic_year_from: int = Field(ge=2400, le=2800, examples=[2566])
     academic_year_to: int = Field(ge=2400, le=2800, examples=[2568])
+    format: Literal["json", "csv"] = "json"
 
 
 class DepartmentReportCategoryRow(BaseModel):
@@ -67,3 +71,36 @@ class DepartmentReportResponse(BaseModel):
     academic_year_to: int
     rows: list[DepartmentReportCategoryRow]
     missing: list[DepartmentReportMissingRow]
+
+
+def department_report_to_csv(report: DepartmentReportResponse) -> str:
+    """`rows` and `missing` flattened into one table, for `?format=csv` (V4 TC2:
+    something staff can drop straight into the annual report)."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "lecturer_name_th",
+            "academic_year",
+            "category_code",
+            "category_name_th",
+            "raw_score",
+            "capped_score",
+            "status",
+        ]
+    )
+    for row in report.rows:
+        writer.writerow(
+            [
+                row.name_th,
+                row.academic_year,
+                row.category_code,
+                row.category_name_th,
+                row.raw_score,
+                row.capped_score,
+                "submitted",
+            ]
+        )
+    for row in report.missing:
+        writer.writerow([row.name_th, row.academic_year, "", "", "", "", "missing"])
+    return buffer.getvalue()
