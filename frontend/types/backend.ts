@@ -423,12 +423,16 @@ export interface WorkEntry {
   course_code: string | null;
   quantity: number;
   score: number;
+  /** Supporting files attached to this entry */
+  evidence_count: number;
 }
 
 export interface WorkCategoryGroup {
   code: string;
   name_th: string;
   entries: WorkEntry[];
+  /** Sum of entries' score in this category, this year */
+  total_score: number;
 }
 
 export interface WorkPublication {
@@ -440,14 +444,28 @@ export interface WorkPublication {
   venue: string | null;
   doi: string | null;
   author_order: number | null;
+  verification_status: VerificationStatus;
+}
+
+export interface WorkYearGroup {
+  academic_year: number;
+  categories: WorkCategoryGroup[];
+  publications: WorkPublication[];
+  /** Sum of every entry's score in this year */
+  total_score: number;
 }
 
 export interface LecturerWork {
   lecturer_id: string;
   lecturer_name_th: string;
-  filters: { academic_year: number | null; category: string | null; category_name_th: string | null };
-  categories: WorkCategoryGroup[];
-  publications: WorkPublication[];
+  filters: {
+    academic_year_from: number | null;
+    academic_year_to: number | null;
+    category: string | null;
+    category_name_th: string | null;
+  };
+  /** Newest academic year first */
+  years: WorkYearGroup[];
   total: number;
   /** Every B.E. year with any work, newest first */
   available_years: number[];
