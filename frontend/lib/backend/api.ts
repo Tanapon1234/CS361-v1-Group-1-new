@@ -19,6 +19,7 @@ import type {
   PageResponse,
   Position,
   Publication,
+  PublicationEvidence,
   PublicationProfile,
   ResearchInterest,
   RoundReport,
@@ -125,6 +126,9 @@ export const getPublication = (id: number) => backendOrNull<Publication>(`/publi
 
 export const getPublicationVerification = (id: number) =>
   backend<Verification>('GET', `/publications/${id}/verification`);
+
+export const listPublicationEvidence = (publicationId: number) =>
+  backend<ListResponse<PublicationEvidence>>('GET', `/publications/${publicationId}/evidence`);
 
 // --- rubric -------------------------------------------------------------------------
 
