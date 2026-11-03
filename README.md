@@ -9,10 +9,11 @@
 | เวอร์ชัน | เป้าหมาย | สถานะ |
 |---|---|---|
 | V1 | เว็บอ่านข้อมูลอาจารย์แบบสาธารณะ (read-only) | เสร็จ ใช้งานอยู่ |
-| V2 | Faculty Output Repository: FastAPI backend, Aurora, หน้า back-office | โค้ดครบ รอ deploy และทดสอบบน AWS |
-| V3 | Secure Faculty Workspace: login, role, ตรวจสอบข้อมูล, audit log | โค้ดครบ รอตั้ง Cognito และทดสอบบน AWS |
+| V2 | Faculty Output Repository: FastAPI backend, Aurora, หน้า back-office | เสร็จ deploy แล้ว (legacy ไม่พัฒนาเพิ่ม) |
+| V3 | Secure Faculty Workspace: login, role, ตรวจสอบข้อมูล, audit log | เสร็จ deploy แล้ว ใช้งานจริง (`/api/v3`, `/public/v3`) |
+| V4 | Department Reporting & Aggregation: รายงานรวมระดับสาขา, มอบหมายผู้ตรวจ, อาจารย์ยืนยันรายการที่เจ้าหน้าที่กรอกแทน | เสร็จ deploy แล้ว |
 
-ที่ยังไม่ได้ทำ (ต้องใช้ AWS credentials): รัน migration บน Aurora, deploy backend, deploy frontend, สร้าง Cognito user pool, smoke test, ซ้อม peer test ติดตามได้ที่ GitHub issues ที่ยังเปิดอยู่
+ติดตามงานที่เหลือได้ที่ GitHub issues ที่ยังเปิดอยู่
 
 ## แต่ละเวอร์ชันทำอะไร
 
@@ -30,9 +31,16 @@
 - login ด้วย Amazon Cognito backend ตรวจ ID token และเชื่อมผู้ใช้กับ record อาจารย์
 - บทบาท `lecturer`, `staff`, `reviewer`, `executive`, `admin` และตำแหน่งหัวหน้า/กรรมการสาขา ตรวจสิทธิ์ที่ router และ service ทุก endpoint
 - front-end แสดงเฉพาะปุ่มที่ผู้ใช้ทำได้
-- ผู้ตรวจ (reviewer) รับรองผลงานตีพิมพ์และไฟล์หลักฐาน (`pending` / `verified` / `rejected`) โดยรับรองงานของตัวเองไม่ได้
+- ผู้ตรวจ (reviewer) รับรองผลงานตีพิมพ์และไฟล์หลักฐาน (`pending` / `verified` / `rejected`) **เฉพาะของอาจารย์ที่ executive มอบหมายให้ตรวจ** (V4) โดยรับรองงานของตัวเองไม่ได้ และไม่เห็นข้อมูลของคนอื่นนอกจากนี้เลย — เป็นอาจารย์ธรรมดาทุกอย่าง
 - audit log บันทึกทุกการเพิ่ม แก้ ลบ (ใคร บทบาท request ค่าที่เปลี่ยน) admin เปิดดูได้
 - `/api/v3` เป็นสำเนาของ `/api/v2` เพื่อให้พัฒนา V3 ต่อโดยไม่กระทบ V2
+
+**V4**: สรุปข้อมูลระดับสาขา และกระจายงานกรอกข้อมูลได้
+
+- รายงานสาขา (`/manage/departments/{id}/report`): สรุปคะแนนภาระงานของทุกอาจารย์ในสาขา แยกตามปีการศึกษา กรองตามช่วงปี หมวดงาน หรืออาจารย์รายคนได้ บอกอาจารย์ที่ยังไม่มีข้อมูลปีนั้น ส่งออก CSV ได้
+- `staff` เห็น/ทำรายงานได้แค่สาขาตัวเอง ไม่มีสิทธิ์แก้ master data อีกต่อไป (admin เท่านั้น)
+- `staff` กรอกรายการภาระงานแทนอาจารย์ในสาขาเดียวกันได้ แต่รายการจะติดสถานะ "รอยืนยัน" จนกว่าอาจารย์เจ้าของจะกดยืนยันเอง
+- `executive` มอบหมาย `reviewer` ↔ อาจารย์ที่ต้องตรวจได้ (`/manage/review-assignments`) คิวตรวจของ reviewer จะจำกัดตามที่มอบหมาย executive/admin เห็นคิวทั้งหมดเสมอ
 
 ## สถาปัตยกรรม
 
