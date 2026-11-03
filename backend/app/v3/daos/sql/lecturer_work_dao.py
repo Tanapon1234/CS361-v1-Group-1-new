@@ -1,11 +1,12 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlmodel import col, select
 
 from app.v2.models.publication import FacultyPublication, Publication
 from app.v2.models.rubric import RubricCategory, RubricItem, RubricSection
-from app.v2.models.submission import EvaluationRound, Submission, SubmissionEntry
+from app.v2.models.submission import EntryEvidence, EvaluationRound, Submission, SubmissionEntry
 from app.v3.daos.lecturer_work_dao import LecturerWorkDAO, WorkEntryRow
 from app.v3.daos.sql.base import SqlDAO
 
@@ -104,3 +105,13 @@ class SqlLecturerWorkDAO(SqlDAO, LecturerWorkDAO):
             .limit(1)
         )
         return self.session.exec(statement).first()
+
+    def count_evidence_by_entry(self, entry_ids: Sequence[UUID]) -> dict[UUID, int]:
+        if not entry_ids:
+            return {}
+        statement = (
+            select(EntryEvidence.entry_id, func.count())
+            .where(col(EntryEvidence.entry_id).in_(entry_ids))
+            .group_by(col(EntryEvidence.entry_id))
+        )
+        return dict(self.session.exec(statement).all())

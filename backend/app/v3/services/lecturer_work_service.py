@@ -55,6 +55,7 @@ class LecturerWorkService:
             academic_year_to=query.academic_year_to,
             category_code=query.category,
         )
+        evidence_counts = self.work_dao.count_evidence_by_entry([row.entry.id for row in rows])
 
         publications: list[tuple[WorkPublicationResponse, int]] = []
         if query.category in (None, PUBLICATION_CATEGORY_CODE):
@@ -72,6 +73,7 @@ class LecturerWorkService:
                         venue=publication.venue,
                         doi=publication.doi,
                         author_order=author_order,
+                        verification_status=publication.verification_status,
                     ),
                     _to_buddhist_era(publication.publication_year),
                 )
@@ -83,7 +85,7 @@ class LecturerWorkService:
                 if publication.publication_year is not None
             ]
 
-        years = self._group_by_year(rows, publications)
+        years = self._group_by_year(rows, publications, evidence_counts)
 
         all_years = set(self.work_dao.list_entry_years(lecturer_id)) | {
             year + BUDDHIST_ERA_OFFSET for year in self.work_dao.list_publication_years(lecturer_id)
@@ -107,7 +109,9 @@ class LecturerWorkService:
 
     @staticmethod
     def _group_by_year(
-        rows: list[WorkEntryRow], publications: list[tuple[WorkPublicationResponse, int]]
+        rows: list[WorkEntryRow],
+        publications: list[tuple[WorkPublicationResponse, int]],
+        evidence_counts: dict[UUID, int],
     ) -> list[WorkYearGroup]:
         year_categories: dict[int, dict[str, WorkCategoryGroup]] = {}
         for row in rows:
@@ -121,7 +125,7 @@ class LecturerWorkService:
                     total_score=ZERO,
                 ),
             )
-            entry = _entry(row)
+            entry = _entry(row, evidence_counts.get(row.entry.id, 0))
             group.entries.append(entry)
             group.total_score += entry.score
 
@@ -143,7 +147,7 @@ class LecturerWorkService:
         ]
 
 
-def _entry(row: WorkEntryRow) -> WorkEntryResponse:
+def _entry(row: WorkEntryRow, evidence_count: int) -> WorkEntryResponse:
     return WorkEntryResponse(
         entry_id=row.entry.id,
         submission_id=row.submission.id,
@@ -159,6 +163,7 @@ def _entry(row: WorkEntryRow) -> WorkEntryResponse:
         course_code=row.entry.course_code,
         quantity=row.entry.quantity,
         score=row.entry.score,
+        evidence_count=evidence_count,
     )
 
 

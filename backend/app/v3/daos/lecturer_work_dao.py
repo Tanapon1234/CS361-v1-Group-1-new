@@ -53,3 +53,7 @@ class LecturerWorkDAO(ABC):
     @abstractmethod
     def get_category_name(self, code: str) -> str | None:
         """name_th of a rubric category code, from the newest rubric version that has it."""
+
+    @abstractmethod
+    def count_evidence_by_entry(self, entry_ids: Sequence[UUID]) -> dict[UUID, int]:
+        """entry_evidence row count per entry id; entries with none are absent (not zero)."""

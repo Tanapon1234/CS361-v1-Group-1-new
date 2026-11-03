@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.v2.models.enums import SubmissionStatus
+from app.v2.models.enums import SubmissionStatus, VerificationStatus
 from app.v3.dtos.base import QueryDTO, ResponseDTO
 from app.v3.dtos.common import Number
 
@@ -46,6 +46,7 @@ class WorkEntryResponse(ResponseDTO):
     course_code: str | None
     quantity: Number
     score: Number
+    evidence_count: int = Field(description="Supporting files attached to this entry")
 
 
 class WorkCategoryGroup(ResponseDTO):
@@ -63,6 +64,7 @@ class WorkPublicationResponse(ResponseDTO):
     venue: str | None
     doi: str | None
     author_order: int | None
+    verification_status: VerificationStatus
 
 
 class WorkYearGroup(ResponseDTO):

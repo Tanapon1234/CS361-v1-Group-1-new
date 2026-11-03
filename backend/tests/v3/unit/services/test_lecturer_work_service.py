@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.core.exceptions import ForbiddenError, NotFoundError
-from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus
+from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus, VerificationStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.models.rubric import RubricCategory, RubricItem, RubricSection
@@ -29,6 +29,7 @@ def work_dao() -> MagicMock:
     dao.list_entry_years.return_value = []
     dao.list_publication_years.return_value = []
     dao.get_category_name.return_value = None
+    dao.count_evidence_by_entry.return_value = {}
     return dao
 
 
@@ -118,11 +119,36 @@ def test_entries_are_grouped_by_year_then_category_in_dao_order(
     )
 
 
+def test_each_entry_reports_its_own_evidence_count(
+    service: LecturerWorkService, work_dao: MagicMock
+) -> None:
+    with_evidence = row("1", "has evidence", year=2567)
+    without_evidence = row("1", "no evidence", year=2567)
+    work_dao.list_entries.return_value = [with_evidence, without_evidence]
+    work_dao.count_evidence_by_entry.return_value = {with_evidence.entry.id: 3}
+
+    result = service.get_work(LECTURER_ID, VIEWER, LecturerWorkQuery())
+
+    entries = {e.title: e.evidence_count for e in result.years[0].categories[0].entries}
+    assert entries == {"has evidence": 3, "no evidence": 0}
+    work_dao.count_evidence_by_entry.assert_called_once_with(
+        [with_evidence.entry.id, without_evidence.entry.id]
+    )
+
+
 def test_publications_use_the_ce_year_range_and_report_be(
     service: LecturerWorkService, work_dao: MagicMock
 ) -> None:
     work_dao.list_publications.return_value = [
-        (Publication(publication_id=1, title="Paper", publication_year=2024), 1)
+        (
+            Publication(
+                publication_id=1,
+                title="Paper",
+                publication_year=2024,
+                verification_status=VerificationStatus.VERIFIED,
+            ),
+            1,
+        )
     ]
 
     result = service.get_work(
@@ -134,6 +160,7 @@ def test_publications_use_the_ce_year_range_and_report_be(
     )
     assert result.years[0].academic_year == 2567
     assert result.years[0].publications[0].academic_year == 2567
+    assert result.years[0].publications[0].verification_status is VerificationStatus.VERIFIED
 
 
 def test_publications_are_left_out_for_other_categories(
