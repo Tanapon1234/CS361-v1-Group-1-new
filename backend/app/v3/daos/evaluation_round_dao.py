@@ -19,6 +19,10 @@ class EvaluationRoundDAO(ABC):
     def has_submissions(self, round_id: int) -> bool: ...
 
     @abstractmethod
+    def list_academic_years(self, academic_year_from: int, academic_year_to: int) -> Sequence[int]:
+        """Distinct academic years that have at least one round in this range."""
+
+    @abstractmethod
     def add(self, evaluation_round: EvaluationRound) -> EvaluationRound: ...
 
     @abstractmethod

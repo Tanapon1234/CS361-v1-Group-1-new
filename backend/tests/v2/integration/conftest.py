@@ -27,6 +27,7 @@ def engine() -> Iterator[Engine]:
                 "004_workload_entry_lock.sql",
                 "005_verification.sql",
                 "006_audit_log.sql",
+                "007_entry_publication.sql",
             ):
                 cursor.execute((MIGRATIONS / name).read_text())
         raw.commit()

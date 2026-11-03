@@ -15,6 +15,7 @@ import {
 import { ActionForm } from '@/components/manage/action-form';
 import { LecturerHeader } from '@/components/manage/lecturer-tabs';
 import { EmptyNote, Field, Notice, Section, Table, Td, inputClass, linkClass } from '@/components/manage/ui';
+import { keepToSelf } from '@/lib/auth/guards';
 import { canEditLecturer } from '@/lib/auth/permissions';
 import {
   MAX_PAGE,
@@ -47,6 +48,7 @@ function EducationInputs({ education }: { education?: Education }) {
 
 export default async function LecturerAcademicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await keepToSelf(id);
   const [lecturer, me] = await Promise.all([getLecturer(id), getCurrentUser()]);
   if (!lecturer) notFound();
   const editable = canEditLecturer(me, id);

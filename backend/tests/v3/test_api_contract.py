@@ -50,6 +50,11 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v3/publications/{publication_id}"),
     ("PATCH", "/api/v3/publications/{publication_id}"),
     ("DELETE", "/api/v3/publications/{publication_id}"),
+    ("GET", "/api/v3/publications/{publication_id}/evidence"),
+    ("POST", "/api/v3/publications/{publication_id}/evidence"),
+    ("PATCH", "/api/v3/publications/{publication_id}/evidence/{evidence_id}"),
+    ("DELETE", "/api/v3/publications/{publication_id}/evidence/{evidence_id}"),
+    ("GET", "/api/v3/publications/{publication_id}/evidence/{evidence_id}/content"),
     ("GET", "/api/v3/lecturers/{lecturer_id}/publications"),
     # expertise (master)
     ("GET", "/api/v3/expertise"),
@@ -79,6 +84,7 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v3/departments"),
     ("POST", "/api/v3/departments"),
     ("PATCH", "/api/v3/departments/{department_id}"),
+    ("GET", "/api/v3/departments/{department_id}/report"),
     # position (the reference's /faculty-members/{id}/positions, under /lecturers)
     ("GET", "/api/v3/lecturers/{lecturer_id}/positions"),
     ("POST", "/api/v3/lecturers/{lecturer_id}/positions"),

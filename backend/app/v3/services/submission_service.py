@@ -16,7 +16,7 @@ from app.core.exceptions import (
     NotFoundError,
     UnauthorizedError,
 )
-from app.v2.models.enums import AcademicRank, ApprovalDecision, SubmissionStatus
+from app.v2.models.enums import AcademicRank, ApprovalDecision, SignerRole, SubmissionStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.submission import Submission, SubmissionApproval
 from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
@@ -38,6 +38,7 @@ from app.v3.dtos.submission_dto import (
 )
 from app.v3.security import Actor
 from app.v3.services.access import (
+    can_sign,
     require_owner,
     require_signer,
     require_view_submission,
@@ -48,6 +49,8 @@ from app.v3.services.score_keeper import ScoreKeeper
 from app.v3.services.scoring import ZERO
 from app.v3.services.workflow import STEPS
 from app.v3.storage.object_storage import ObjectStorage
+
+WITHDRAWN_COMMENT = "เจ้าของถอนใบกลับมาแก้ไข"
 
 # lecturer.rank is free text; checked in this order ("รองศาสตราจารย์" contains "ศาสตราจารย์")
 _RANK_WORDS: list[tuple[AcademicRank, tuple[str, ...]]] = [
@@ -248,13 +251,22 @@ class SubmissionService:
         step = STEPS.get(submission.status)
         if step is None:
             raise ConflictError(f"A {submission.status} submission cannot change any more")
-        require_signer(actor, submission, step.role)
+        # The owner may pull a sent submission back while nobody has accepted it yet: it goes
+        # to `returned`, signed as the performer, and the owner edits and sends it again
+        withdraws = (
+            data.decision is ApprovalDecision.RETURNED
+            and submission.status is SubmissionStatus.SUBMITTED
+            and can_sign(actor, submission, SignerRole.PERFORMER)
+        )
+        signing_role = SignerRole.PERFORMER if withdraws else step.role
+        if not withdraws:
+            require_signer(actor, submission, step.role)
 
         changes: dict[str, object] = {}
         if data.decision is ApprovalDecision.RETURNED:
             if not step.can_return:
                 raise ConflictError(f"A {submission.status} submission cannot be returned")
-            if not data.comment:
+            if not data.comment and not withdraws:
                 raise BadRequestError("Say why the submission is returned (comment)")
             changes["status"] = SubmissionStatus.RETURNED
         else:
@@ -278,9 +290,9 @@ class SubmissionService:
             SubmissionApproval(
                 submission_id=submission.id,
                 signer_id=actor_id,
-                role=step.role,
+                role=signing_role,
                 decision=data.decision,
-                comment=data.comment,
+                comment=data.comment or (WITHDRAWN_COMMENT if withdraws else None),
             )
         )
         submission = self.submission_dao.update(submission, changes)

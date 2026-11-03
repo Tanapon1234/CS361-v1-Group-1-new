@@ -24,6 +24,7 @@ import {
   Section,
   inputClass,
 } from '@/components/manage/ui';
+import { leaveIfLecturerOnly } from '@/lib/auth/guards';
 import { canManage } from '@/lib/auth/permissions';
 import { getRubricForm, listRounds } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -202,6 +203,7 @@ function SectionBlock({
 }
 
 export default async function RubricPage({ params }: { params: Promise<{ id: string }> }) {
+  await leaveIfLecturerOnly();
   const { id } = await params;
   const versionId = Number.parseInt(id, 10);
   const [form, rounds, me] = await Promise.all([

@@ -8,6 +8,10 @@ export interface SidebarAccess {
   assess: boolean;
   review: boolean;
   admin: boolean;
+  /** Plain lecturer: a shorter menu about their own data only */
+  lecturerOnly: boolean;
+  /** Own lecturer id, for the "my profile" link */
+  selfId: string | null;
 }
 
 interface Item {
@@ -17,7 +21,9 @@ interface Item {
   needs?: keyof SidebarAccess;
 }
 
-const GROUPS: { title: string; items: Item[] }[] = [
+type Group = { title: string; items: Item[] };
+
+const GROUPS: Group[] = [
   { title: '', items: [{ href: '/manage', label: 'ภาพรวมของฉัน' }] },
   {
     title: 'ภาระงานประจำภาค',
@@ -48,8 +54,32 @@ const GROUPS: { title: string; items: Item[] }[] = [
   },
 ];
 
+/** What a plain lecturer sees: their own sheets, profile and works; nothing about others */
+function lecturerGroups(selfId: string | null): Group[] {
+  return [
+    { title: '', items: [{ href: '/manage', label: 'ภาพรวมของฉัน' }] },
+    {
+      title: 'ภาระงานประจำภาค',
+      items: [
+        { href: '/manage/submissions', label: 'ใบภาระงานของฉัน' },
+        { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
+        { href: '/manage/rounds', label: 'รอบประเมิน' },
+      ],
+    },
+    {
+      title: 'ข้อมูลของฉัน',
+      items: [
+        ...(selfId ? [{ href: `/manage/lecturers/${selfId}`, label: 'โปรไฟล์ของฉัน' }] : []),
+        { href: '/manage/publications', label: 'ผลงานตีพิมพ์ของฉัน' },
+        { href: '/manage/work', label: 'ผลงานรายปีของฉัน' },
+      ],
+    },
+  ];
+}
+
 export function ManageSidebar({ access }: { access: SidebarAccess }) {
-  const groups = GROUPS.map((group) => ({
+  const source = access.lecturerOnly ? lecturerGroups(access.selfId) : GROUPS;
+  const groups = source.map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.needs || access[item.needs]),
   })).filter((group) => group.items.length > 0);

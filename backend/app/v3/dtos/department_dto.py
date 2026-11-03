@@ -1,7 +1,12 @@
-from pydantic import Field, field_validator
+import csv
+import io
+from typing import Literal
+from uuid import UUID
 
-from app.v3.dtos.base import RequestDTO, ResponseDTO
-from app.v3.dtos.common import PageQuery
+from pydantic import BaseModel, Field, field_validator
+
+from app.v3.dtos.base import QueryDTO, RequestDTO, ResponseDTO
+from app.v3.dtos.common import Number, PageQuery
 
 
 class DepartmentCreateRequest(RequestDTO):
@@ -32,3 +37,70 @@ class DepartmentResponse(ResponseDTO):
     code: str
     name_th: str
     is_active: bool
+
+
+class DepartmentReportQuery(QueryDTO):
+    academic_year_from: int = Field(ge=2400, le=2800, examples=[2566])
+    academic_year_to: int = Field(ge=2400, le=2800, examples=[2568])
+    format: Literal["json", "csv"] = "json"
+
+
+class DepartmentReportCategoryRow(BaseModel):
+    """One lecturer's frozen category total (submission_category_total) for one year."""
+
+    lecturer_id: UUID
+    name_th: str
+    academic_year: int
+    category_code: str
+    category_name_th: str
+    raw_score: Number
+    capped_score: Number
+
+
+class DepartmentReportMissingRow(BaseModel):
+    """An active lecturer of the department with no submitted data for this year."""
+
+    lecturer_id: UUID
+    name_th: str
+    academic_year: int
+
+
+class DepartmentReportResponse(BaseModel):
+    department: DepartmentResponse
+    academic_year_from: int
+    academic_year_to: int
+    rows: list[DepartmentReportCategoryRow]
+    missing: list[DepartmentReportMissingRow]
+
+
+def department_report_to_csv(report: DepartmentReportResponse) -> str:
+    """`rows` and `missing` flattened into one table, for `?format=csv` (V4 TC2:
+    something staff can drop straight into the annual report)."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "lecturer_name_th",
+            "academic_year",
+            "category_code",
+            "category_name_th",
+            "raw_score",
+            "capped_score",
+            "status",
+        ]
+    )
+    for row in report.rows:
+        writer.writerow(
+            [
+                row.name_th,
+                row.academic_year,
+                row.category_code,
+                row.category_name_th,
+                row.raw_score,
+                row.capped_score,
+                "submitted",
+            ]
+        )
+    for row in report.missing:
+        writer.writerow([row.name_th, row.academic_year, "", "", "", "", "missing"])
+    return buffer.getvalue()

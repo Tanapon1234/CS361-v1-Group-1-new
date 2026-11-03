@@ -16,6 +16,7 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
+import { leaveToOwnProfile } from '@/lib/auth/guards';
 import { canManage } from '@/lib/auth/permissions';
 import { PAGE_SIZE, listDepartments, listLecturers } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
@@ -27,6 +28,7 @@ export default async function LecturersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await leaveToOwnProfile();
   const params = await searchParams;
   const q = param(params.q);
   const departmentId = intParam(params.department_id);

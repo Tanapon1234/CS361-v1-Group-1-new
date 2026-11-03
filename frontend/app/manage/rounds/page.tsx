@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { createRound } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import { RoundFields } from '@/components/manage/round-fields';
-import { Badge, EmptyNote, Notice, PageHeader, Section, Table, Td, linkClass } from '@/components/manage/ui';
-import { canManage } from '@/lib/auth/permissions';
-import { listRounds, listRubricVersions } from '@/lib/backend/api';
+import { Badge, EmptyNote, Notice, PageHeader, Section, StatusBadge, Table, Td, linkClass } from '@/components/manage/ui';
+import { canManage, isLecturerOnly } from '@/lib/auth/permissions';
+import { listRounds, listRubricVersions, listSubmissions } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatDate, formatDateTime } from '@/lib/backend/labels';
 
@@ -19,23 +19,44 @@ export default async function RoundsPage() {
     getCurrentUser(),
   ]);
   const versionCode = new Map(versions.items.map((v) => [v.id, v.code]));
+  // A plain lecturer only looks: which rounds exist and where their own sheet stands
+  const ownOnly = isLecturerOnly(me);
+  const mine = ownOnly && me ? await listSubmissions({ lecturer_id: me.lecturer.lecturer_id }) : null;
+  const myByRound = new Map((mine?.items ?? []).map((submission) => [submission.round_id, submission]));
 
   return (
     <div className="space-y-6">
-      <PageHeader title="รอบประเมิน" description="เปิด/ปิดรอบ ดูใบภาระงานในรอบ และสรุปคะแนน" />
+      <PageHeader
+        title="รอบประเมิน"
+        description={
+          ownOnly
+            ? 'ดูว่ามีรอบไหนบ้างและใบภาระงานของคุณในแต่ละรอบ (แก้ไขรอบไม่ได้)'
+            : 'เปิด/ปิดรอบ ดูใบภาระงานในรอบ และสรุปคะแนน'
+        }
+      />
 
       <Section title="รอบทั้งหมด">
         {rounds.items.length === 0 ? (
           <EmptyNote>ยังไม่มีรอบ</EmptyNote>
         ) : (
-          <Table head={['รอบ', 'ช่วงผลงาน', 'เกณฑ์', 'กำหนดส่ง', 'สถานะ', '']}>
+          <Table head={['รอบ', 'ช่วงผลงาน', ownOnly ? 'ใบภาระงานของฉัน' : 'เกณฑ์', 'กำหนดส่ง', 'สถานะ', '']}>
             {rounds.items.map((round) => (
               <tr key={round.id}>
                 <Td className="font-medium text-ink">{round.name_th}</Td>
                 <Td>
                   {formatDate(round.period_start)} – {formatDate(round.period_end)}
                 </Td>
-                <Td>{versionCode.get(round.rubric_version_id) ?? '–'}</Td>
+                <Td>
+                  {ownOnly ? (
+                    myByRound.get(round.id) ? (
+                      <StatusBadge status={myByRound.get(round.id)!.status} />
+                    ) : (
+                      <span className="text-ink-muted">ยังไม่ได้สร้าง</span>
+                    )
+                  ) : (
+                    (versionCode.get(round.rubric_version_id) ?? '–')
+                  )}
+                </Td>
                 <Td>{formatDateTime(round.submit_due_at)}</Td>
                 <Td>
                   {round.is_open ? (
