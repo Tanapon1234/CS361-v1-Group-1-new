@@ -63,3 +63,15 @@ def test_rolls_back_when_request_fails(client: TestClient, engine: Engine) -> No
 
     assert response.status_code == 409
     assert stored_bodies(engine) == []
+
+
+def test_connect_args_time_out_and_keep_alive_for_iam() -> None:
+    from app.core.config import Settings
+    from app.core.database import _connect_args
+
+    plain = Settings(_env_file=None, db_password="x")  # type: ignore[call-arg]
+    iam = Settings(_env_file=None, db_iam_auth=True)  # type: ignore[call-arg]
+
+    assert _connect_args(plain) == {"connect_timeout": 10}
+    assert _connect_args(iam)["connect_timeout"] == 10
+    assert _connect_args(iam)["keepalives"] == 1

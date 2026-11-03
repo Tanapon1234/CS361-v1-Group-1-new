@@ -40,7 +40,16 @@ function toDetailValue(spec: FieldSpec, raw: string | boolean): unknown {
  * `field_schema` fields are sent as one JSON `details_json` hidden input.
  * The score is never entered: the backend computes it.
  */
-export function EntryFields({ form, entry }: { form: RubricForm; entry?: Entry }) {
+export function EntryFields({
+  form,
+  entry,
+  publications = [],
+}: {
+  form: RubricForm;
+  entry?: Entry;
+  /** The owner's own publications, to link a line to one */
+  publications?: { publication_id: number; title: string; publication_year: number | null }[];
+}) {
   const choices = useMemo(() => choicesOf(form), [form]);
   const [itemId, setItemId] = useState<number>(entry?.item_id ?? choices[0]?.item.id ?? 0);
   const [details, setDetails] = useState<Record<string, string | boolean>>(() =>
@@ -183,6 +192,22 @@ export function EntryFields({ form, entry }: { form: RubricForm; entry?: Entry }
         ))}
       </div>
       <input type="hidden" name="details_json" value={schema.length ? detailsJson : ''} />
+
+      <Field
+        label="ผูกกับผลงานตีพิมพ์ของฉัน (ถ้ามี)"
+        hint="ใช้กับรายการงานวิชาการ เลือกได้เฉพาะผลงานที่คุณเป็นผู้แต่ง เพิ่มผลงานใหม่ได้ที่หน้านี้ด้านบน"
+      >
+        {entry?.publication_id ? <input type="hidden" name="publication_was" value="1" /> : null}
+        <select name="publication_id" defaultValue={entry?.publication_id ?? ''} className={inputClass}>
+          <option value="">ไม่ผูกกับผลงาน</option>
+          {publications.map((publication) => (
+            <option key={publication.publication_id} value={publication.publication_id}>
+              {publication.publication_year ? `${publication.publication_year} · ` : ''}
+              {publication.title}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="หมายเหตุ">
         <textarea name="note" rows={2} maxLength={5000} defaultValue={entry?.note ?? ''} className={inputClass} />

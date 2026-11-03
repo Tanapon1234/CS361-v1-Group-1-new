@@ -22,6 +22,7 @@ from app.v3.dtos.publication_dto import (
     PublicationUpdateResponse,
 )
 from app.v3.security import Actor, Role
+from app.v3.services.db_errors import is_foreign_key_violation
 
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
@@ -141,6 +142,10 @@ class PublicationService:
             self._require_unlocked(publication, actor)
 
             self.publication_dao.delete(publication)
+        except IntegrityError as exc:
+            if is_foreign_key_violation(exc):
+                raise ConflictError("This publication is claimed on a workload sheet") from exc
+            raise
         except OperationalError as exc:
             raise ServiceUnavailableError("Database unavailable") from exc
 

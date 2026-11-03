@@ -109,8 +109,7 @@ frontend/
 
 | ตัวแปร | ใช้กับ | หมายเหตุ |
 |---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | หน้า `/faculties` (API v1) | URL ของ API Gateway |
-| `BACKEND_API_BASE_URL` | หน้า `/manage` (FastAPI ใน `backend/`) | ค่าเริ่มต้น `http://localhost:8000` ใช้ฝั่ง server เท่านั้น ไม่ต้องขึ้นต้นด้วย `NEXT_PUBLIC_` |
+| `BACKEND_API_BASE_URL` | หน้า `/faculties` (`/public/v3/faculties`, ไม่ต้อง login) และ `/manage` (FastAPI ใน `backend/`) | ค่าเริ่มต้น `http://localhost:8000` ใช้ฝั่ง server เท่านั้น ไม่ต้องขึ้นต้นด้วย `NEXT_PUBLIC_` |
 | `COGNITO_REGION`, `COGNITO_CLIENT_ID` | `/login` | output ของ `infra/v2/cognito.yaml` ใช้ฝั่ง server เท่านั้น ถ้าไม่ตั้ง `COGNITO_CLIENT_ID` จะเป็นโหมดพัฒนา (เลือกผู้ใช้ที่ `/manage/switch-user`) |
 
 ถ้าต้องเพิ่มค่าที่ใช้ฝั่ง browser ให้ขึ้นต้นด้วย `NEXT_PUBLIC_` เช่น:
@@ -126,7 +125,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 1. deploy backend ก่อน (`scripts/deploy-v2-backend-api.sh`, ดู `infra/v2/README.md`) แล้วจด output `BackendApiEndpoint`
 2. ใน Vercel project (Root Directory = `frontend`) ไปที่ Settings → Environment Variables ตั้งค่า
    - `BACKEND_API_BASE_URL` = `BackendApiEndpoint` (ไม่มี `/api/v2` ต่อท้าย) ใช้ฝั่ง server เท่านั้น browser ไม่เห็น
-   - `NEXT_PUBLIC_API_BASE_URL` = API ของ V1 สำหรับหน้า `/faculties`
+   - หน้า `/faculties` ใช้ตัวแปรเดียวกันนี้ ไม่ต้องตั้ง `NEXT_PUBLIC_API_BASE_URL` อีกแล้ว (ยังใช้เป็นค่าสำรองได้)
 3. ให้ S3 data bucket รับอัปโหลดจากโดเมนของเว็บ: ใส่ origin ของ Vercel ใน `WebAllowedOrigins` ของ foundation stack (ดู `infra/v2/README.md` หัวข้อ Data bucket CORS)
 4. redeploy แล้วเปิด `/manage` ถ้าต่อ backend ไม่ได้หน้าจะขึ้นข้อความบอก URL ที่พยายามต่อ
 

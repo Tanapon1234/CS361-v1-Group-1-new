@@ -8,8 +8,20 @@ from fastapi import Depends
 from sqlalchemy import Engine, event
 from sqlmodel import Session, create_engine
 
-from app.core.config import get_settings
-from app.core.db_secret import SecretCredentials
+from app.core.config import Settings, get_settings
+from app.core.db_secret import IamTokenCredentials, SecretCredentials
+
+
+def _connect_args(settings: Settings) -> dict[str, int]:
+    args = {"connect_timeout": settings.db_connect_timeout_seconds}
+    if settings.db_iam_auth:
+        args |= {
+            "keepalives": 1,
+            "keepalives_idle": 20,
+            "keepalives_interval": 5,
+            "keepalives_count": 3,
+        }
+    return args
 
 
 @lru_cache
@@ -23,15 +35,24 @@ def get_engine() -> Engine:
         pool_size=settings.db_pool_size,
         max_overflow=settings.db_max_overflow,
         pool_timeout=settings.db_pool_timeout_seconds,
-        pool_recycle=settings.db_pool_recycle_seconds,
+        # IAM sign-in goes over the public internet, where an idle connection can be dropped
+        # without notice while the Lambda is frozen, so recycle quickly and keep it alive
+        pool_recycle=60 if settings.db_iam_auth else settings.db_pool_recycle_seconds,
+        connect_args=_connect_args(settings),
     )
-    if settings.db_secret_arn:
+    credentials: SecretCredentials | IamTokenCredentials | None = None
+    if settings.db_iam_auth:
+        credentials = IamTokenCredentials(
+            settings.db_host, settings.db_port, settings.db_user, settings.aws_region
+        )
+    elif settings.db_secret_arn:
         credentials = SecretCredentials(
             settings.db_secret_arn, settings.aws_region, settings.db_secret_cache_seconds
         )
+    if credentials is not None:
 
         @event.listens_for(engine, "do_connect")
-        def _use_secret(dialect, conn_rec, cargs, cparams) -> None:
+        def _use_credentials(dialect, conn_rec, cargs, cparams) -> None:
             cparams.update(credentials.connect_params())
 
     return engine

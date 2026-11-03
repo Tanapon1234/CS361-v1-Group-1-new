@@ -12,7 +12,14 @@ import type {
  * This module is server-only (`server-only`), so it can never leak into the
  * browser bundle, and it never talks to S3 directly, per #26/#27.
  */
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/+$/, '');
+const API_BASE_URL = (
+  process.env.BACKEND_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  ''
+).replace(/\/+$/, '');
+
+/** Public, read-only directory of the FastAPI backend (no sign-in). */
+const PUBLIC_FACULTIES_PATH = '/public/v3/faculties';
 
 /** Cache for 5 minutes before revalidating — faculty data doesn't change often */
 const REVALIDATE_SECONDS = 300;
@@ -42,7 +49,7 @@ function requireApiBaseUrl(): string {
   if (!API_BASE_URL) {
     throw new FacultyApiError(
       'config',
-      'ยังไม่ได้ตั้งค่า NEXT_PUBLIC_API_BASE_URL จึงยังเชื่อมต่อระบบไม่ได้'
+      'ยังไม่ได้ตั้งค่า BACKEND_API_BASE_URL จึงยังเชื่อมต่อระบบไม่ได้'
     );
   }
   return API_BASE_URL;
@@ -94,7 +101,7 @@ async function getJson(path: string): Promise<unknown> {
   }
 }
 
-/** Validates the payload against contract #22; drop it rather than let null reach the screen */
+/** Validates the payload against the faculty contract; drop it rather than let null reach the screen */
 function isFacultySummary(value: unknown): value is FacultySummary {
   if (typeof value !== 'object' || value === null) return false;
 
@@ -116,11 +123,11 @@ function isFacultyDetailResponse(value: unknown): value is FacultyDetailResponse
 }
 
 /**
- * `GET {NEXT_PUBLIC_API_BASE_URL}/api/v1/faculties`
+ * `GET {BACKEND_API_BASE_URL}/public/v3/faculties`
  * Reads `{ "data": [...] }` per contract #22 and returns only the entries that pass validation.
  */
 export async function getFaculties(): Promise<FacultySummary[]> {
-  const payload = await getJson('/api/v1/faculties');
+  const payload = await getJson(PUBLIC_FACULTIES_PATH);
 
   if (
     typeof payload !== 'object' ||
@@ -135,11 +142,11 @@ export async function getFaculties(): Promise<FacultySummary[]> {
 }
 
 /**
- * `GET {NEXT_PUBLIC_API_BASE_URL}/api/v1/faculties/{id}` for the Profile page (#27).
+ * `GET {BACKEND_API_BASE_URL}/public/v3/faculties/{id}` for the Profile page (#27).
  * 400 → invalid-id, 404 → not-found, so the page can render the right state.
  */
 export async function getFacultyDetail(id: string): Promise<FacultyDetail> {
-  const payload = await getJson(`/api/v1/faculties/${encodeURIComponent(id)}`);
+  const payload = await getJson(`${PUBLIC_FACULTIES_PATH}/${encodeURIComponent(id)}`);
 
   if (!isFacultyDetailResponse(payload)) {
     throw new FacultyApiError('parse', 'รูปแบบข้อมูลอาจารย์ไม่ตรงกับที่ระบบรองรับ');
