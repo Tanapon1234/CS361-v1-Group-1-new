@@ -315,6 +315,10 @@ export interface Entry {
   details: Record<string, unknown> | null;
   note: string | null;
   sort_order: number;
+  /** Who entered this line: the owner, or staff on their behalf (V4) */
+  entered_by: string;
+  /** False while a staff-drafted entry is waiting for the owner to confirm it (V4) */
+  confirmed_by_owner: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
+  confirmEntry,
   createEntry,
   deleteEntry,
   deleteEvidence,
@@ -30,7 +31,7 @@ import {
   inputClass,
   linkClass,
 } from '@/components/manage/ui';
-import { canSign } from '@/lib/auth/permissions';
+import { canSign, hasRole } from '@/lib/auth/permissions';
 import {
   getLecturer,
   getPublication,
@@ -100,8 +101,10 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
 
   const isOwner = me?.lecturer.lecturer_id === submission.lecturer_id;
-  // Only the owner changes entries, and only while draft / returned
-  const editable = isOwner && EDITABLE_STATUSES.includes(submission.status);
+  // Staff in the same department may draft entries too, pending the owner's confirmation (V4)
+  const staffDrafts =
+    hasRole(me, 'staff') && me?.lecturer.department_id === submission.department_snapshot;
+  const editable = (isOwner || staffDrafts) && EDITABLE_STATUSES.includes(submission.status);
   const step = WORKFLOW_STEP[submission.status];
   const signs = !!step && canSign(me, step.role, submission);
 
@@ -276,7 +279,14 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
       </Section>
 
       {editable ? (
-        <Section title="เพิ่มรายการ" description="เลือกรายการตามเกณฑ์ ระบบจะคำนวณคะแนนให้เอง">
+        <Section
+          title="เพิ่มรายการ"
+          description={
+            isOwner
+              ? 'เลือกรายการตามเกณฑ์ ระบบจะคำนวณคะแนนให้เอง'
+              : 'กรอกแทนอาจารย์ได้ — รายการที่กรอกแทนต้องให้อาจารย์ยืนยันก่อนนับเป็นข้อมูลจริง'
+          }
+        >
           <ActionForm action={createEntry.bind(null, id)} submitLabel="เพิ่มรายการ" resetOnSuccess>
             <EntryFields form={form} publications={myPublications} />
           </ActionForm>
@@ -312,7 +322,14 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                           <p className="text-xs text-ink-muted">
                             {section?.code} {section?.name_th}
                           </p>
-                          <p className="font-semibold text-ink">{item?.label_th ?? `item #${entry.item_id}`}</p>
+                          <p className="font-semibold text-ink">
+                            {item?.label_th ?? `item #${entry.item_id}`}
+                            {!entry.confirmed_by_owner ? (
+                              <Badge className="ml-2 border-amber-200 bg-amber-50 text-amber-800">
+                                รอยืนยันจากอาจารย์
+                              </Badge>
+                            ) : null}
+                          </p>
                           <p className="mt-1 text-sm text-ink-muted">
                             {[
                               entry.title,
@@ -400,6 +417,18 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
                           />
                         ) : null}
                       </div>
+
+                      {isOwner &&
+                      !entry.confirmed_by_owner &&
+                      EDITABLE_STATUSES.includes(submission.status) ? (
+                        <div className="mt-3 border-t border-line-soft pt-3">
+                          <ActionForm
+                            inline
+                            submitLabel="ยืนยันรายการนี้"
+                            action={confirmEntry.bind(null, entry.id)}
+                          />
+                        </div>
+                      ) : null}
 
                       {editable ? (
                         <details className="mt-3 border-t border-line-soft pt-3">

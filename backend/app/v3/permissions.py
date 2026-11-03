@@ -162,6 +162,8 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("POST", "/submissions/{submission_id}/entries"): SIGNED_IN,
     ("GET", "/entries/{entry_id}"): SIGNED_IN,
     ("PATCH", "/entries/{entry_id}"): SIGNED_IN,
+    # V4 #292: only the owner confirms a staff-drafted entry (EntryService.confirm_entry)
+    ("POST", "/entries/{entry_id}/confirm"): SIGNED_IN,
     ("DELETE", "/entries/{entry_id}"): SIGNED_IN,
     ("GET", "/entries/{entry_id}/evidence"): SIGNED_IN,
     ("POST", "/entries/{entry_id}/evidence"): SIGNED_IN,

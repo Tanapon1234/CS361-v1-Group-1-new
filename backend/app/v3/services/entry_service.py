@@ -28,7 +28,7 @@ from app.v3.dtos.submission_dto import (
     EntryUpdateRequest,
     entry_etag,
 )
-from app.v3.security import Actor
+from app.v3.security import Actor, Role
 from app.v3.services.access import require_owner, require_view_submission
 from app.v3.services.score_keeper import Rubric, ScoreKeeper
 from app.v3.services.scoring import ENTRY_COLUMNS, validate_entry
@@ -74,15 +74,20 @@ class EntryService:
         return ListResponse(items=items, meta=ListMeta(count=len(items)))
 
     def create_entry(
-        self, submission_id: UUID, actor_id: UUID, data: EntryCreateRequest
+        self, submission_id: UUID, actor: Actor, data: EntryCreateRequest
     ) -> EntryResponse:
-        submission = self._require_editable(self._require_submission(submission_id), actor_id)
+        submission = self._require_editable(self._require_submission(submission_id), actor)
         rubric = self.score_keeper.rubric_of(submission)
         values = data.model_dump()
         item = self._check(submission, rubric, values, entry_id=None)
         self._check_publication(submission, values.get("publication_id"))
 
-        entry = SubmissionEntry(submission_id=submission_id, **values)
+        entry = SubmissionEntry(
+            submission_id=submission_id,
+            entered_by=actor.lecturer_id,
+            confirmed_by_owner=actor.is_lecturer(submission.lecturer_id),
+            **values,
+        )
         result = self.score_keeper.score(entry, item, rubric)
         entry.weight_applied, entry.score = result.weight_applied, result.score
         entry = self.submission_dao.add(entry)
@@ -95,12 +100,12 @@ class EntryService:
         return EntryResponse.model_validate(entry)
 
     def update_entry(
-        self, entry_id: UUID, actor_id: UUID, data: EntryUpdateRequest, if_match: str | None
+        self, entry_id: UUID, actor: Actor, data: EntryUpdateRequest, if_match: str | None
     ) -> EntryResponse:
         entry = self._require_entry(entry_id)
         if if_match is not None and if_match != entry_etag(EntryResponse.model_validate(entry)):
             raise PreconditionFailedError("The entry was changed by someone else; reload it")
-        submission = self._require_editable(self._require_submission(entry.submission_id), actor_id)
+        submission = self._require_editable(self._require_submission(entry.submission_id), actor)
         rubric = self.score_keeper.rubric_of(submission)
         values = data.model_dump(exclude_unset=True)
         merged = entry.model_dump() | values
@@ -110,13 +115,26 @@ class EntryService:
 
         result = self.score_keeper.score(SubmissionEntry.model_validate(merged), item, rubric)
         values |= {"weight_applied": result.weight_applied, "score": result.score}
+        # A change by anyone but the owner (staff drafting on their behalf) needs the
+        # owner's confirmation again, even if it was confirmed before
+        values["confirmed_by_owner"] = actor.is_lecturer(submission.lecturer_id)
         entry = self.submission_dao.update(entry, values)
         self.score_keeper.refresh(submission, rubric, freeze=False)
         return EntryResponse.model_validate(entry)
 
-    def delete_entry(self, entry_id: UUID, actor_id: UUID) -> None:
+    def confirm_entry(self, entry_id: UUID, actor: Actor) -> EntryResponse:
+        """Only the owner confirms a staff-drafted entry; staff cannot confirm their own draft."""
         entry = self._require_entry(entry_id)
-        submission = self._require_editable(self._require_submission(entry.submission_id), actor_id)
+        submission = self._require_submission(entry.submission_id)
+        require_owner(actor.lecturer_id, submission)
+        if submission.status not in EDITABLE_STATUSES:
+            raise ConflictError(f"The submission is {submission.status} and can no longer change")
+        entry = self.submission_dao.update(entry, {"confirmed_by_owner": True})
+        return EntryResponse.model_validate(entry)
+
+    def delete_entry(self, entry_id: UUID, actor: Actor) -> None:
+        entry = self._require_entry(entry_id)
+        submission = self._require_editable(self._require_submission(entry.submission_id), actor)
         keys = [evidence.s3_key for evidence in self.evidence_dao.list_by_entry(entry_id)]
         self.submission_dao.delete(entry)
         self.score_keeper.refresh(submission, self.score_keeper.rubric_of(submission), freeze=False)
@@ -187,11 +205,19 @@ class EntryService:
             raise NotFoundError("Entry not found")
         return entry
 
-    def _require_editable(self, submission: Submission, actor_id: UUID) -> Submission:
-        actor = self.lecturer_dao.get_by_id(actor_id)
-        if actor is None or not actor.is_active:
+    def _require_editable(self, submission: Submission, actor: Actor) -> Submission:
+        if actor.lecturer_id is None:
+            raise UnauthorizedError("Sign in as a lecturer")
+        caller = self.lecturer_dao.get_by_id(actor.lecturer_id)
+        if caller is None or not caller.is_active:
             raise UnauthorizedError("Unknown or inactive lecturer")
-        require_owner(actor_id, submission)
+        # V4 #292: staff may draft entries for a lecturer in their own department, pending
+        # that lecturer's confirmation
+        is_staff_in_department = (
+            actor.has_any(Role.STAFF) and caller.department_id == submission.department_snapshot
+        )
+        if not actor.is_lecturer(submission.lecturer_id) and not is_staff_in_department:
+            require_owner(actor.lecturer_id, submission)
         if submission.status not in EDITABLE_STATUSES:
             raise ConflictError(f"The submission is {submission.status} and can no longer change")
         return submission
