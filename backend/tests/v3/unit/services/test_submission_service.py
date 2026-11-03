@@ -58,6 +58,10 @@ def lecturer(**values: object) -> Lecturer:
     return Lecturer(name_th="สมชาย", email="a@x.th", department_id=1, **values)
 
 
+def plain_actor(owner: Lecturer) -> Actor:
+    return Actor(owner.lecturer_id, frozenset({Role.LECTURER}))
+
+
 def signs_everything(owner: Lecturer) -> Actor:
     """The owner who is also staff, chair and committee of department 1: may sign any step."""
     return Actor(
@@ -112,7 +116,9 @@ def test_create_submission_needs_an_open_round(
     daos["round"].get_by_id.return_value = EvaluationRound(id=1, is_open=False)
 
     with pytest.raises(ConflictError, match="not open"):
-        service.create_submission(owner.lecturer_id, SubmissionCreateRequest(round_id=1))
+        service.create_submission(
+            owner.lecturer_id, plain_actor(owner), SubmissionCreateRequest(round_id=1)
+        )
 
 
 def test_create_submission_snapshots_rank_and_department(
@@ -123,7 +129,9 @@ def test_create_submission_snapshots_rank_and_department(
     daos["round"].get_by_id.return_value = EvaluationRound(id=1, is_open=True)
     daos["submission"].get_by_round_and_lecturer.return_value = None
 
-    result = service.create_submission(owner.lecturer_id, SubmissionCreateRequest(round_id=1))
+    result = service.create_submission(
+        owner.lecturer_id, plain_actor(owner), SubmissionCreateRequest(round_id=1)
+    )
 
     assert (result.rank_snapshot, result.department_snapshot) == (AcademicRank.ASSOC_PROF, 1)
     assert result.status is SubmissionStatus.DRAFT
@@ -133,8 +141,37 @@ def test_unknown_caller_is_unauthorized(
     service: SubmissionService, daos: dict[str, MagicMock]
 ) -> None:
     daos["lecturer"].get_by_id.return_value = None
+    actor_id = uuid4()
     with pytest.raises(UnauthorizedError):
-        service.create_submission(uuid4(), SubmissionCreateRequest(round_id=1))
+        service.create_submission(
+            actor_id,
+            Actor(actor_id, frozenset({Role.LECTURER})),
+            SubmissionCreateRequest(round_id=1),
+        )
+
+
+def test_staff_cannot_create_a_submission(
+    service: SubmissionService, daos: dict[str, MagicMock]
+) -> None:
+    owner = lecturer()
+    staff = Actor(owner.lecturer_id, frozenset({Role.LECTURER, Role.STAFF}))
+    with pytest.raises(ForbiddenError):
+        service.create_submission(owner.lecturer_id, staff, SubmissionCreateRequest(round_id=1))
+    daos["lecturer"].get_by_id.assert_not_called()
+
+
+def test_admin_may_still_create_a_submission(
+    service: SubmissionService, daos: dict[str, MagicMock]
+) -> None:
+    owner = lecturer(rank="อาจารย์")
+    admin = Actor(owner.lecturer_id, frozenset({Role.LECTURER, Role.STAFF, Role.ADMIN}))
+    daos["lecturer"].get_by_id.return_value = owner
+    daos["round"].get_by_id.return_value = EvaluationRound(id=1, is_open=True)
+    daos["submission"].get_by_round_and_lecturer.return_value = None
+
+    result = service.create_submission(owner.lecturer_id, admin, SubmissionCreateRequest(round_id=1))
+
+    assert result.status is SubmissionStatus.DRAFT
 
 
 @pytest.mark.parametrize(

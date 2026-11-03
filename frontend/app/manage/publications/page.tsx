@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { createPublication } from '@/app/manage/actions/academic';
 import { ActionForm } from '@/components/manage/action-form';
+import { LecturerMultiSelect } from '@/components/manage/lecturer-multiselect';
 import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
@@ -107,19 +108,11 @@ export default async function PublicationsPage({
             }
             className="mt-4"
           >
-            <select
+            <LecturerMultiSelect
               name="lecturer_ids"
-              multiple
-              size={6}
+              lecturers={lecturers.items}
               defaultValue={me && !manage ? [me.lecturer.lecturer_id] : []}
-              className={inputClass}
-            >
-              {lecturers.items.map((lecturer) => (
-                <option key={lecturer.lecturer_id} value={lecturer.lecturer_id}>
-                  {lecturer.name_th}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
         </ActionForm>
       </Section>

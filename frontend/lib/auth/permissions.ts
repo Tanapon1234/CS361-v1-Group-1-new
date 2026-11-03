@@ -32,6 +32,10 @@ export const viewsAll = (me: Me | null) => hasRole(me, 'staff', 'executive');
  */
 export const isLecturerOnly = (me: Me | null) => !!me && !hasRole(me, 'staff', 'executive');
 
+/** Staff view ใบภาระงาน only; they may not create one (backend: SubmissionService.create_submission) */
+export const canCreateSubmission = (me: Me | null) =>
+  !!me && (isAdmin(me) || !me.roles.includes('staff'));
+
 export const isSelf = (me: Me | null, lecturerId: string) => me?.lecturer.lecturer_id === lecturerId;
 
 /** A lecturer's profile data: themselves or staff */

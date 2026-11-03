@@ -128,8 +128,10 @@ class SubmissionService:
         )
 
     def create_submission(
-        self, actor_id: UUID, data: SubmissionCreateRequest
+        self, actor_id: UUID, actor: Actor, data: SubmissionCreateRequest
     ) -> SubmissionResponse:
+        if Role.STAFF in actor.roles and Role.ADMIN not in actor.roles:
+            raise ForbiddenError("เจ้าหน้าที่ดูใบภาระงานได้อย่างเดียว ไม่มีสิทธิ์สร้างใบภาระงาน")
         lecturer = self._require_actor(actor_id)
         evaluation_round = self.round_dao.get_by_id(data.round_id)
         if evaluation_round is None:

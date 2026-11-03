@@ -1,20 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { createPublication } from '@/app/manage/actions/academic';
 import { createEntry, createSubmission, withdrawSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import { EntryFields } from '@/components/manage/entry-fields';
-import { PublicationFields } from '@/components/manage/publication-fields';
 import {
   EmptyNote,
   Field,
+  Modal,
   Notice,
   PageHeader,
   Section,
   StatusBadge,
   Table,
   Td,
+  buttonClass,
   inputClass,
   intParam,
   linkClass,
@@ -37,7 +37,7 @@ import {
 } from '@/lib/backend/api';
 import { isLecturerOnly } from '@/lib/auth/permissions';
 import { getCurrentUser } from '@/lib/backend/client';
-import { EDITABLE_STATUSES, VERIFICATION_LABEL, formatNumber, formatScore } from '@/lib/backend/labels';
+import { EDITABLE_STATUSES, formatNumber, formatScore } from '@/lib/backend/labels';
 import type { LecturerWork, RubricCategory, WorkYearGroup } from '@/types/backend';
 
 export const metadata: Metadata = { title: 'ผลงานรายปี' };
@@ -96,6 +96,10 @@ export default async function LecturerWorkPage({
     ...new Set([...rounds.items.map((round) => round.academic_year), ...(work?.data?.available_years ?? [])]),
   ].sort((a, b) => b - a);
 
+  const searchFilters = { lecturer: lecturerId, year_from: yearFrom, year_to: yearTo, category };
+  const addOpen = !!own && (param(params.add) === '1' || !!addRoundId);
+  const closeAddHref = withQuery('/manage/work', searchFilters);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -104,6 +108,13 @@ export default async function LecturerWorkPage({
           own
             ? 'ภาระงานและผลงานตีพิมพ์ของคุณ เลือกช่วงปีการศึกษาและหมวดงานได้'
             : 'ดูภาระงานและผลงานตีพิมพ์ของอาจารย์ทีละคน เลือกช่วงปีการศึกษาและหมวดงานได้'
+        }
+        actions={
+          own ? (
+            <Link href={withQuery('/manage/work', { ...searchFilters, add: 1 })} className={buttonClass}>
+              + เพิ่มผลงาน
+            </Link>
+          ) : null
         }
       />
 
@@ -163,48 +174,39 @@ export default async function LecturerWorkPage({
         </form>
       </Section>
 
-      {own ? (
-        <Section title="เพิ่มผลงานของฉัน" description="เลือกว่าจะเพิ่มผลงานตีพิมพ์ หรือเพิ่มงานในใบภาระงานของรอบนั้น">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-bold text-ink">ผลงานตีพิมพ์ (บทความ / งานวิจัย)</h3>
-              <details className="mt-2 rounded-lg border border-line p-3">
-                <summary className="cursor-pointer text-sm font-semibold text-brand">เพิ่มผลงานตีพิมพ์ใหม่</summary>
-                <ActionForm action={createPublication} submitLabel="เพิ่มผลงาน" className="mt-3">
-                  <PublicationFields />
-                  <input type="hidden" name="lecturer_ids" value={own} />
-                </ActionForm>
-              </details>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-ink">งานที่ทำในรอบนี้ (สอน / วิจัย / บริการ ฯลฯ)</h3>
-              <p className="mt-1 text-xs text-ink-muted">
-                กรอกแล้วเข้าใบภาระงานของรอบนั้นทันที ระบบคำนวณคะแนนให้เอง
-              </p>
-              <form method="get" action="/manage/work" className="mt-2 flex flex-wrap items-end gap-2">
-                <Field label="เลือกรอบ" className="min-w-52 flex-1">
-                  <select name="add_round" defaultValue={addRoundId ?? ''} required className={inputClass}>
-                    <option value="" disabled>
-                      เลือกรอบ
-                    </option>
-                    {rounds.items.map((round) => (
-                      <option key={round.id} value={round.id}>
-                        {round.name_th}
-                        {round.is_open ? ' (เปิด)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <button type="submit" className={secondaryButtonClass}>
-                  เลือก
-                </button>
-              </form>
-            </div>
-          </div>
+      {addOpen ? (
+        <Modal title="เพิ่มผลงาน" closeHref={closeAddHref}>
+          <p className="mb-4 text-xs text-ink-muted">
+            เพิ่มงานในใบภาระงานของรอบนั้น (ผลงานตีพิมพ์เพิ่มได้ที่หน้าผลงานตีพิมพ์)
+          </p>
 
-          {addRound ? (
-            <div className="mt-6 border-t border-line pt-5">
-              <h3 className="text-sm font-bold text-ink">กรอกงานในใบภาระงาน {addRound.name_th}</h3>
+          {!addRound ? (
+            <form method="get" action="/manage/work" className="flex flex-wrap items-end gap-2">
+              <Field label="เลือกรอบ" className="min-w-52 flex-1">
+                <select name="add_round" defaultValue="" required className={inputClass}>
+                  <option value="" disabled>
+                    เลือกรอบ
+                  </option>
+                  {rounds.items.map((round) => (
+                    <option key={round.id} value={round.id}>
+                      {round.name_th}
+                      {round.is_open ? ' (เปิด)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <button type="submit" className={secondaryButtonClass}>
+                เลือก
+              </button>
+            </form>
+          ) : (
+            <div>
+              <p className="mb-3 text-xs">
+                รอบ <span className="font-semibold text-ink">{addRound.name_th}</span> ·{' '}
+                <Link href={withQuery('/manage/work', { ...searchFilters, add: 1 })} className={linkClass}>
+                  เปลี่ยนรอบ
+                </Link>
+              </p>
               {addSheet && addForm ? (
                 <>
                   <p className="mt-1 mb-3 text-xs text-ink-muted">
@@ -251,8 +253,8 @@ export default async function LecturerWorkPage({
                 <Notice>รอบนี้ปิดแล้วและคุณไม่มีใบ จึงกรอกงานเพิ่มไม่ได้</Notice>
               )}
             </div>
-          ) : null}
-        </Section>
+          )}
+        </Modal>
       ) : null}
 
       {!work ? (
@@ -303,7 +305,7 @@ function WorkResult({ work }: { work: LecturerWork }) {
   return (
     <>
       <p role="status" className="text-sm text-ink-muted">
-        พบ{describe(work)} {work.total} รายการ
+        สรุป{describe(work)} ทั้งหมด {work.total} รายการ
       </p>
       {work.years.map((year) => (
         <YearResult key={year.academic_year} year={year} />
@@ -350,29 +352,6 @@ function YearResult({ year }: { year: WorkYearGroup }) {
             </Table>
           </Section>
         ))}
-
-        {year.publications.length > 0 ? (
-          <Section title="ผลงานตีพิมพ์" description="จากข้อมูลวิชาการของอาจารย์ นับตามปีที่ตีพิมพ์">
-            <Table head={['ชื่อผลงาน', 'ปี', 'แหล่งตีพิมพ์', 'ผู้แต่งลำดับที่', 'การรับรอง']}>
-              {year.publications.map((publication) => (
-                <tr key={publication.publication_id}>
-                  <Td>
-                    <Link href={`/manage/publications/${publication.publication_id}`} className={linkClass}>
-                      {publication.title}
-                    </Link>
-                  </Td>
-                  <Td className="whitespace-nowrap">
-                    {publication.academic_year ?? '–'}
-                    {publication.publication_year ? ` (${publication.publication_year})` : ''}
-                  </Td>
-                  <Td>{publication.venue ?? '–'}</Td>
-                  <Td>{publication.author_order ?? '–'}</Td>
-                  <Td>{VERIFICATION_LABEL[publication.verification_status]}</Td>
-                </tr>
-              ))}
-            </Table>
-          </Section>
-        ) : null}
       </div>
     </Section>
   );

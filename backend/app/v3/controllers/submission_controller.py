@@ -31,10 +31,13 @@ def list_submissions(
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_submission(
-    data: SubmissionCreateRequest, actor_id: CurrentLecturerIdDep, service: SubmissionServiceDep
+    data: SubmissionCreateRequest,
+    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
+    service: SubmissionServiceDep,
 ) -> SubmissionResponse:
-    """Create the caller's own submission for an open round."""
-    return service.create_submission(actor_id, data)
+    """Create the caller's own submission for an open round (staff: view only)."""
+    return service.create_submission(actor_id, actor, data)
 
 
 @router.get("/{submission_id}")
