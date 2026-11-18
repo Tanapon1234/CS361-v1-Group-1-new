@@ -42,7 +42,7 @@ def url(path: str, lecturer_id: str = SOMEONE_ELSE) -> str:
         name = match.group(1)
         if name == "lecturer_id":
             return lecturer_id
-        if name in {"submission_id", "entry_id", "evidence_id", "position_id"}:
+        if name in {"submission_id", "entry_id", "evidence_id", "position_id", "assignment_id"}:
             return str(uuid4())
         return "1"
 

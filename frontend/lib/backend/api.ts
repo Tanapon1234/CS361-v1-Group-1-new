@@ -6,6 +6,7 @@ import type {
   Assessment,
   AssessmentQueueItem,
   Department,
+  DepartmentReport,
   Education,
   EvaluationRound,
   Evidence,
@@ -18,6 +19,7 @@ import type {
   PageResponse,
   Position,
   Publication,
+  PublicationEvidence,
   PublicationProfile,
   ResearchInterest,
   RoundReport,
@@ -34,6 +36,7 @@ import type {
   AuditLogEntry,
   EvidenceQueueItem,
   PublicationQueueItem,
+  ReviewerAssignment,
 } from '@/types/backend';
 
 /** Reads (GET) used by the /manage pages. Changes live in app/manage/actions/. */
@@ -69,6 +72,17 @@ export const listDepartments = (isActive?: boolean) =>
   backend<PageResponse<Department>>('GET', '/departments', {
     query: { limit: MAX_PAGE, is_active: isActive },
   });
+
+/** Every lecturer's category totals in the department across a B.E. academic year range */
+export const getDepartmentReport = (
+  departmentId: number,
+  query: {
+    academic_year_from: number;
+    academic_year_to: number;
+    category_code?: string;
+    lecturer_id?: string;
+  }
+) => backend<DepartmentReport>('GET', `/departments/${departmentId}/report`, { query });
 
 // --- lecturer academic profile ------------------------------------------------------
 
@@ -118,6 +132,9 @@ export const getPublication = (id: number) => backendOrNull<Publication>(`/publi
 
 export const getPublicationVerification = (id: number) =>
   backend<Verification>('GET', `/publications/${id}/verification`);
+
+export const listPublicationEvidence = (publicationId: number) =>
+  backend<ListResponse<PublicationEvidence>>('GET', `/publications/${publicationId}/evidence`);
 
 // --- rubric -------------------------------------------------------------------------
 
@@ -217,6 +234,12 @@ export const listAuditLog = (query: {
   actor_id?: string;
   offset?: number;
 }) => backend<PageResponse<AuditLogEntry>>('GET', '/audit-log', { query: { ...query, limit: PAGE_SIZE } });
+
+/** Who reviews whom (V4 #293): executive/admin see everyone's; a reviewer sees their own. Only rounds still accepting work. */
+export const listReviewerAssignments = (
+  query: { round_id?: number; reviewer_id?: string; reviewee_id?: string } = {}
+) =>
+  backend<ListResponse<ReviewerAssignment>>('GET', '/reviewer-assignments', { query });
 
 /** Run reads in parallel, but keep one failing section from breaking the whole page */
 export async function settle<T>(promise: Promise<T>): Promise<{ data: T | null; error: string | null }> {

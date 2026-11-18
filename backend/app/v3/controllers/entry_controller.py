@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Header, Query, Response, status
 
 from app.v3.controllers.params import EntryId, SubmissionId
-from app.v3.dependencies import CurrentActorDep, CurrentLecturerIdDep, EntryServiceDep
+from app.v3.dependencies import CurrentActorDep, EntryServiceDep
 from app.v3.dtos.common import ListResponse
 from app.v3.dtos.submission_dto import (
     EntryCreateRequest,
@@ -30,12 +30,13 @@ def list_entries(
 def create_entry(
     submission_id: SubmissionId,
     data: EntryCreateRequest,
-    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
     service: EntryServiceDep,
     response: Response,
 ) -> EntryResponse:
-    """Add one line; the response has the score the server computed."""
-    entry = service.create_entry(submission_id, actor_id, data)
+    """Add one line; the response has the score the server computed. Staff may draft one
+    for a lecturer in their own department, pending that lecturer's confirmation."""
+    entry = service.create_entry(submission_id, actor, data)
     response.headers["ETag"] = entry_etag(entry)
     return entry
 
@@ -53,19 +54,27 @@ def get_entry(
 def update_entry(
     entry_id: EntryId,
     data: EntryUpdateRequest,
-    actor_id: CurrentLecturerIdDep,
+    actor: CurrentActorDep,
     service: EntryServiceDep,
     response: Response,
     if_match: Annotated[str | None, Header()] = None,
 ) -> EntryResponse:
     """Draft or returned submissions only. 412 if `If-Match` is not the current ETag."""
-    entry = service.update_entry(entry_id, actor_id, data, if_match)
+    entry = service.update_entry(entry_id, actor, data, if_match)
+    response.headers["ETag"] = entry_etag(entry)
+    return entry
+
+
+@router.post("/entries/{entry_id}/confirm")
+def confirm_entry(
+    entry_id: EntryId, actor: CurrentActorDep, service: EntryServiceDep, response: Response
+) -> EntryResponse:
+    """The owner confirms a staff-drafted entry (V4 #292); staff cannot confirm their own."""
+    entry = service.confirm_entry(entry_id, actor)
     response.headers["ETag"] = entry_etag(entry)
     return entry
 
 
 @router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_entry(
-    entry_id: EntryId, actor_id: CurrentLecturerIdDep, service: EntryServiceDep
-) -> None:
-    service.delete_entry(entry_id, actor_id)
+def delete_entry(entry_id: EntryId, actor: CurrentActorDep, service: EntryServiceDep) -> None:
+    service.delete_entry(entry_id, actor)

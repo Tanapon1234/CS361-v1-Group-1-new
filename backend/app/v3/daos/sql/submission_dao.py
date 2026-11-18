@@ -18,6 +18,10 @@ from app.v2.models.submission import (
 from app.v3.daos.sql.base import SqlDAO
 from app.v3.daos.submission_dao import SubmissionDAO, SubmissionEntity
 
+#: Hard cap on one department-report query, so a growing department/year range can't
+#: make this endpoint return an unbounded response (V4: reporting at scale).
+MAX_REPORT_ROWS = 5000
+
 
 class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
     # --- submission ---
@@ -71,7 +75,13 @@ class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
         return self.session.exec(statement.order_by(col(Lecturer.name_th))).all()
 
     def list_department_category_totals(
-        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+        self,
+        department_id: int,
+        *,
+        academic_year_from: int,
+        academic_year_to: int,
+        category_code: str | None = None,
+        lecturer_id: UUID | None = None,
     ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
         statement = (
             select(
@@ -88,12 +98,16 @@ class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
             .where(Submission.department_snapshot == department_id)
             .where(col(EvaluationRound.academic_year) >= academic_year_from)
             .where(col(EvaluationRound.academic_year) <= academic_year_to)
-            .order_by(
-                col(EvaluationRound.academic_year).desc(),
-                col(Lecturer.name_th),
-                col(RubricCategory.sort_order),
-            )
         )
+        if category_code is not None:
+            statement = statement.where(RubricCategory.code == category_code)
+        if lecturer_id is not None:
+            statement = statement.where(Submission.lecturer_id == lecturer_id)
+        statement = statement.order_by(
+            col(EvaluationRound.academic_year).desc(),
+            col(Lecturer.name_th),
+            col(RubricCategory.sort_order),
+        ).limit(MAX_REPORT_ROWS)
         return self.session.exec(statement).all()
 
     def find_lecturers_with_department_data(

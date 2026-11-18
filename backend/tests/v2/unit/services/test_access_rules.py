@@ -52,7 +52,7 @@ def lecturer(lecturer_id=None, *roles: Role, positions=()) -> Actor:
         (lecturer(OWNER), True),
         (lecturer(), False),
         (lecturer(None, Role.EXECUTIVE), True),
-        (lecturer(None, Role.REVIEWER), True),
+        (lecturer(None, Role.REVIEWER), False),
         (lecturer(positions=[(PositionCode.DEPT_CHAIR, 7)]), True),
         (lecturer(positions=[(PositionCode.DEPT_COMMITTEE, 8)]), False),
         (lecturer(positions=[(PositionCode.EXEC_COMMITTEE, None)]), False),
@@ -61,7 +61,9 @@ def lecturer(lecturer_id=None, *roles: Role, positions=()) -> Actor:
         "owner",
         "other-lecturer",
         "executive",
-        "reviewer",
+        # A plain reviewer is a regular lecturer except for the verification queue of
+        # lecturers assigned to them (reviewer_assignment) — not a general viewer role.
+        "reviewer-has-no-general-view",
         "chair-same-dept",
         "committee-other-dept",
         "exec-committee-position-only",

@@ -78,7 +78,9 @@ class EntryService:
         values = data.model_dump()
         item = self._check(submission, rubric, values, entry_id=None)
 
-        entry = SubmissionEntry(submission_id=submission_id, **values)
+        # entered_by/confirmed_by_owner (010_staff_drafted_entries.sql, V4 #292 on v3) have
+        # no v2 behavior; always self here, same as before that column existed
+        entry = SubmissionEntry(submission_id=submission_id, entered_by=actor_id, **values)
         result = self.score_keeper.score(entry, item, rubric)
         entry.weight_applied, entry.score = result.weight_applied, result.score
         entry = self.submission_dao.add(entry)

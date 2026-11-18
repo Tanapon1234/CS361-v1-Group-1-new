@@ -163,6 +163,11 @@ export async function deleteEntry(entryId: string): Promise<ActionState> {
   return attempt(() => backend('DELETE', `/entries/${entryId}`), 'ลบรายการแล้ว');
 }
 
+/** The owner confirms a รายการ staff drafted on their behalf (V4) */
+export async function confirmEntry(entryId: string): Promise<ActionState> {
+  return attempt(() => backend('POST', `/entries/${entryId}/confirm`), 'ยืนยันรายการแล้ว');
+}
+
 // --- assessments -------------------------------------------------------------------
 
 export async function putMyAssessment(

@@ -46,10 +46,18 @@ class SubmissionDAO(ABC):
 
     @abstractmethod
     def list_department_category_totals(
-        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+        self,
+        department_id: int,
+        *,
+        academic_year_from: int,
+        academic_year_to: int,
+        category_code: str | None = None,
+        lecturer_id: UUID | None = None,
     ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
         """Frozen category totals of the department's submissions in the year range, as
-        (total, lecturer, academic_year, category_code, category_name_th)."""
+        (total, lecturer, academic_year, category_code, category_name_th). Narrowed to
+        one rubric category and/or one lecturer when given; always capped (see impl) so
+        a growing department can't make this query unbounded."""
 
     @abstractmethod
     def find_lecturers_with_department_data(

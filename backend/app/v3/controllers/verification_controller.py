@@ -56,15 +56,21 @@ def set_evidence_verification(
 
 @router.get("/verifications/publications")
 def list_publication_verification_queue(
-    query: Annotated[VerificationQueueQuery, Query()], service: VerificationServiceDep
+    query: Annotated[VerificationQueueQuery, Query()],
+    actor: CurrentActorDep,
+    service: VerificationServiceDep,
 ) -> PageResponse[PublicationQueueItem]:
-    """Publications in a verification status (default `pending`), oldest first."""
-    return service.list_publication_queue(query)
+    """Publications in a verification status (default `pending`), oldest first. A plain
+    reviewer (not executive/admin) sees only lecturers they are assigned to (V4 #293)."""
+    return service.list_publication_queue(actor, query)
 
 
 @router.get("/verifications/evidence")
 def list_evidence_verification_queue(
-    query: Annotated[VerificationQueueQuery, Query()], service: VerificationServiceDep
+    query: Annotated[VerificationQueueQuery, Query()],
+    actor: CurrentActorDep,
+    service: VerificationServiceDep,
 ) -> PageResponse[EvidenceQueueItem]:
-    """Uploaded evidence files in a verification status (default `pending`), oldest first."""
-    return service.list_evidence_queue(query)
+    """Uploaded evidence files in a verification status (default `pending`), oldest
+    first. A plain reviewer sees only lecturers they are assigned to (V4 #293)."""
+    return service.list_evidence_queue(actor, query)

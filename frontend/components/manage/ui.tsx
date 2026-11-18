@@ -82,6 +82,36 @@ export function Section({
   );
 }
 
+/** URL-driven overlay: open/closed comes from the page's own searchParams, `closeHref` is a
+ * plain Link back to the URL without them. No client JS needed. */
+export function Modal({
+  title,
+  closeHref,
+  children,
+}: {
+  title: ReactNode;
+  closeHref: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 sm:items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-xl rounded-xl border border-line bg-surface p-5 shadow-lg sm:p-6"
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h2 className="text-base font-bold text-ink">{title}</h2>
+          <Link href={closeHref} aria-label="ปิด" className="text-ink-muted hover:text-brand">
+            ✕
+          </Link>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function Field({
   label,
   hint,

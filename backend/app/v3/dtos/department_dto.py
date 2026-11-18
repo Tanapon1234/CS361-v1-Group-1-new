@@ -42,6 +42,10 @@ class DepartmentResponse(ResponseDTO):
 class DepartmentReportQuery(QueryDTO):
     academic_year_from: int = Field(ge=2400, le=2800, examples=[2566])
     academic_year_to: int = Field(ge=2400, le=2800, examples=[2568])
+    category_code: str | None = Field(
+        default=None, min_length=1, max_length=5, description="rubric_category.code, e.g. 2"
+    )
+    lecturer_id: UUID | None = None
     format: Literal["json", "csv"] = "json"
 
 
@@ -69,6 +73,8 @@ class DepartmentReportResponse(BaseModel):
     department: DepartmentResponse
     academic_year_from: int
     academic_year_to: int
+    category_code: str | None = None
+    lecturer_id: UUID | None = None
     rows: list[DepartmentReportCategoryRow]
     missing: list[DepartmentReportMissingRow]
 

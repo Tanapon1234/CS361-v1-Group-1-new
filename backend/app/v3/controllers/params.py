@@ -22,3 +22,4 @@ RoundId = Annotated[int, Path(ge=1, le=32767, description="Evaluation round ID")
 SubmissionId = Annotated[UUID, Path(description="Submission ID")]
 EntryId = Annotated[UUID, Path(description="Submission entry ID")]
 EvidenceId = Annotated[UUID, Path(description="Evidence ID")]
+ReviewerAssignmentId = Annotated[UUID, Path(description="Reviewer assignment ID")]

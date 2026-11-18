@@ -135,6 +135,32 @@ export interface Department {
   is_active: boolean;
 }
 
+export interface DepartmentReportCategoryRow {
+  lecturer_id: string;
+  name_th: string;
+  academic_year: number;
+  category_code: string;
+  category_name_th: string;
+  raw_score: number;
+  capped_score: number;
+}
+
+export interface DepartmentReportMissingRow {
+  lecturer_id: string;
+  name_th: string;
+  academic_year: number;
+}
+
+export interface DepartmentReport {
+  department: Department;
+  academic_year_from: number;
+  academic_year_to: number;
+  category_code: string | null;
+  lecturer_id: string | null;
+  rows: DepartmentReportCategoryRow[];
+  missing: DepartmentReportMissingRow[];
+}
+
 export interface Position {
   id: string;
   lecturer_id: string;
@@ -291,6 +317,10 @@ export interface Entry {
   details: Record<string, unknown> | null;
   note: string | null;
   sort_order: number;
+  /** Who entered this line: the owner, or staff on their behalf (V4) */
+  entered_by: string;
+  /** False while a staff-drafted entry is waiting for the owner to confirm it (V4) */
+  confirmed_by_owner: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -381,6 +411,27 @@ export interface Evidence {
 
 export interface EvidenceUpload {
   evidence: Evidence;
+  upload_url: string;
+  fields: Record<string, string>;
+  expires_at: string;
+}
+
+/** A publication's own evidence (not tied to a workload entry), same shape as Evidence */
+export interface PublicationEvidence {
+  id: string;
+  publication_id: number;
+  label: string | null;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  checksum: string | null;
+  status: EvidenceStatus;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface PublicationEvidenceUpload {
+  evidence: PublicationEvidence;
   upload_url: string;
   fields: Record<string, string>;
   expires_at: string;
@@ -496,6 +547,19 @@ export interface EvidenceQueueItem {
   owner_name_th: string;
   verification_status: VerificationStatus;
   verification_note: string | null;
+  created_at: string;
+}
+
+/** Who reviews whom in one round (V4 #293); only listed while the round is open and before its submit_due_at */
+export interface ReviewerAssignment {
+  id: string;
+  round_id: number;
+  round_name_th: string;
+  reviewer_id: string;
+  reviewer_name_th: string;
+  reviewee_id: string;
+  reviewee_name_th: string;
+  assigned_by: string;
   created_at: string;
 }
 

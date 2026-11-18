@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { backend } from '@/lib/backend/client';
 import { attempt, int, requiredText, text, type ActionState } from '@/lib/backend/form';
 import type { FileInfo, UploadStart } from '@/components/manage/file-upload';
-import type { Lecturer, Publication, UploadPresign } from '@/types/backend';
+import type { Lecturer, Publication, PublicationEvidenceUpload, UploadPresign } from '@/types/backend';
 
 /** Lecturer academic profile + the shared master lists (research interests, expertise, publications). */
 
@@ -250,4 +250,50 @@ export async function deleteLecturerFile(
   lecturerId: string,
   kind: LecturerFileKind): Promise<ActionState> {
   return attempt(() => backend('DELETE', `/lecturers/${lecturerId}/${kind}`), 'ลบไฟล์แล้ว');
+}
+
+// --- publication evidence (presigned S3 upload, same flow as entry evidence) --------
+
+export async function startPublicationEvidenceUpload(
+  publicationId: number,
+  file: FileInfo
+): Promise<UploadStart> {
+  let upload: PublicationEvidenceUpload | null = null;
+  const state = await attempt(async () => {
+    upload = await backend<PublicationEvidenceUpload>('POST', `/publications/${publicationId}/evidence`, {
+      body: {
+        file_name: file.name,
+        mime_type: file.type,
+        size_bytes: file.size,
+        label: file.label,
+      },
+    });
+  });
+  if (!upload) return { ok: false, message: state?.message ?? 'ผิดพลาด' };
+  const { upload_url, fields, evidence } = upload as PublicationEvidenceUpload;
+  return { ok: true, url: upload_url, fields, token: evidence.id };
+}
+
+export async function finishPublicationEvidenceUpload(
+  publicationId: number,
+  evidenceId: string,
+  checksum: string | null
+): Promise<ActionState> {
+  return attempt(
+    () =>
+      backend('PATCH', `/publications/${publicationId}/evidence/${evidenceId}`, {
+        body: { status: 'uploaded', ...(checksum ? { checksum } : {}) },
+      }),
+    'แนบไฟล์เรียบร้อย'
+  );
+}
+
+export async function deletePublicationEvidence(
+  publicationId: number,
+  evidenceId: string
+): Promise<ActionState> {
+  return attempt(
+    () => backend('DELETE', `/publications/${publicationId}/evidence/${evidenceId}`),
+    'ลบไฟล์แล้ว'
+  );
 }

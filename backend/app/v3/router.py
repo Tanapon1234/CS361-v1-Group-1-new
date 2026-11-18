@@ -30,6 +30,7 @@ from app.v3.controllers import (
     publication_evidence_controller,
     publication_profile_controller,
     research_interest_controller,
+    reviewer_assignment_controller,
     round_controller,
     rubric_controller,
     submission_controller,
@@ -78,6 +79,7 @@ for controller in (
     evidence_controller,
     # verification (V3)
     verification_controller,
+    reviewer_assignment_controller,
     audit_log_controller,
 ):
     api_v3_router.include_router(controller.router)

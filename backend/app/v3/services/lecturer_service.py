@@ -30,7 +30,7 @@ def _is_unique_violation(exc: IntegrityError) -> bool:
 
 
 # Identity and position in the faculty; a lecturer editing their own record cannot touch them
-STAFF_ONLY_FIELDS = frozenset({"email", "cognito_sub", "department_id", "rank"})
+ADMIN_ONLY_FIELDS = frozenset({"email", "cognito_sub", "department_id", "rank"})
 
 
 class LecturerService:
@@ -79,11 +79,11 @@ class LecturerService:
             raise NotFoundError("Lecturer not found")
 
         values = data.model_dump(exclude_unset=True)
-        if not actor.has_any(Role.STAFF):
+        if not actor.has_any(Role.ADMIN):
             # The route allows the lecturer themselves, for their contact details only
-            restricted = sorted(STAFF_ONLY_FIELDS & values.keys())
+            restricted = sorted(ADMIN_ONLY_FIELDS & values.keys())
             if restricted:
-                raise ForbiddenError(f"Only staff can change {', '.join(restricted)}")
+                raise ForbiddenError(f"Only an admin can change {', '.join(restricted)}")
         if not values:
             return LecturerResponse.model_validate(lecturer)
 

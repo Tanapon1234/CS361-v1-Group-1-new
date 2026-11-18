@@ -7,7 +7,7 @@ import { signOut } from '@/app/manage/actions/session';
 import { ManageSidebar } from '@/components/manage/sidebar';
 import { secondaryButtonClass } from '@/components/manage/ui';
 import { cognitoEnabled } from '@/lib/auth/cognito';
-import { canReview, isAdmin, isLecturerOnly, mayAssess } from '@/lib/auth/permissions';
+import { canReview, isAdmin, isExecutive, isLecturerOnly, mayAssess } from '@/lib/auth/permissions';
 import { BackendError, getCurrentUser } from '@/lib/backend/client';
 import type { Me } from '@/types/backend';
 
@@ -97,6 +97,7 @@ export default async function ManageLayout({ children }: { children: ReactNode }
             access={{
               assess: mayAssess(me),
               review: canReview(me),
+              executive: isExecutive(me),
               admin: isAdmin(me),
               lecturerOnly: isLecturerOnly(me),
               selfId: me?.lecturer.lecturer_id ?? null,

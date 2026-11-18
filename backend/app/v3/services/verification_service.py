@@ -13,6 +13,7 @@ from app.v2.models.publication import Publication
 from app.v2.models.submission import EntryEvidence, Submission
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.publication_dao import PublicationDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.dtos.common import PageMeta, PageResponse
@@ -23,7 +24,7 @@ from app.v3.dtos.verification_dto import (
     VerificationQueueQuery,
     VerificationResponse,
 )
-from app.v3.security import Actor
+from app.v3.security import Actor, Role
 from app.v3.services.access import require_view_submission
 
 
@@ -34,11 +35,13 @@ class VerificationService:
         publication_dao: PublicationDAO,
         evidence_dao: EvidenceDAO,
         submission_dao: SubmissionDAO,
+        assignment_dao: ReviewerAssignmentDAO,
     ) -> None:
         self.verification_dao = verification_dao
         self.publication_dao = publication_dao
         self.evidence_dao = evidence_dao
         self.submission_dao = submission_dao
+        self.assignment_dao = assignment_dao
 
     # --- publications -------------------------------------------------------------
 
@@ -56,10 +59,13 @@ class VerificationService:
         return VerificationResponse.model_validate(updated)
 
     def list_publication_queue(
-        self, query: VerificationQueueQuery
+        self, actor: Actor, query: VerificationQueueQuery
     ) -> PageResponse[PublicationQueueItem]:
         items, total = self.verification_dao.find_publications(
-            query.status, limit=query.limit, offset=query.offset
+            query.status,
+            limit=query.limit,
+            offset=query.offset,
+            reviewee_ids=self._reviewee_scope(actor),
         )
         return PageResponse(
             items=[
@@ -102,9 +108,14 @@ class VerificationService:
         updated = self.evidence_dao.update(evidence, self._verdict(reviewer, data))
         return VerificationResponse.model_validate(updated)
 
-    def list_evidence_queue(self, query: VerificationQueueQuery) -> PageResponse[EvidenceQueueItem]:
+    def list_evidence_queue(
+        self, actor: Actor, query: VerificationQueueQuery
+    ) -> PageResponse[EvidenceQueueItem]:
         rows, total = self.verification_dao.find_evidence(
-            query.status, limit=query.limit, offset=query.offset
+            query.status,
+            limit=query.limit,
+            offset=query.offset,
+            reviewee_ids=self._reviewee_scope(actor),
         )
         return PageResponse(
             items=[
@@ -127,6 +138,15 @@ class VerificationService:
         )
 
     # --- helpers ------------------------------------------------------------------
+
+    def _reviewee_scope(self, actor: Actor) -> list[UUID] | None:
+        """V4 #293: a plain reviewer only sees items of a lecturer they are assigned
+        to; executive/admin (and anyone else let in by ROUTE_RULES) see everything."""
+        if actor.has_any(Role.EXECUTIVE) or not actor.has_any(Role.REVIEWER):
+            return None
+        if actor.lecturer_id is None:
+            return []
+        return list(self.assignment_dao.reviewee_ids(actor.lecturer_id))
 
     @staticmethod
     def _reviewer_id(actor: Actor) -> UUID:

@@ -75,6 +75,10 @@ EXPECTED_ENDPOINTS = {
     ("PUT", "/api/v3/evidence/{evidence_id}/verification"),
     ("GET", "/api/v3/verifications/publications"),
     ("GET", "/api/v3/verifications/evidence"),
+    # reviewer assignment (V4 #293, migration 011)
+    ("GET", "/api/v3/reviewer-assignments"),
+    ("POST", "/api/v3/reviewer-assignments"),
+    ("DELETE", "/api/v3/reviewer-assignments/{assignment_id}"),
     # lecturer work by year / category (peer test TC1-TC3)
     ("GET", "/api/v3/lecturers/{lecturer_id}/work"),
     # --- workload (database/data_schema/SemesterReport/api-reference.md) ---
@@ -128,6 +132,7 @@ EXPECTED_ENDPOINTS = {
     ("POST", "/api/v3/submissions/{submission_id}/entries"),
     ("GET", "/api/v3/entries/{entry_id}"),
     ("PATCH", "/api/v3/entries/{entry_id}"),
+    ("POST", "/api/v3/entries/{entry_id}/confirm"),
     ("DELETE", "/api/v3/entries/{entry_id}"),
     # assessment
     ("GET", "/api/v3/assessments"),

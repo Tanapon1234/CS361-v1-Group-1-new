@@ -5,7 +5,6 @@ import { createSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import {
   EmptyNote,
-  Field,
   PageHeader,
   Pager,
   Section,
@@ -20,7 +19,7 @@ import {
   withQuery,
 } from '@/components/manage/ui';
 import { MAX_PAGE, PAGE_SIZE, listLecturers, listRounds, listSubmissions } from '@/lib/backend/api';
-import { isLecturerOnly } from '@/lib/auth/permissions';
+import { canCreateSubmission, isLecturerOnly } from '@/lib/auth/permissions';
 import { currentLecturerId, getCurrentUser } from '@/lib/backend/client';
 import { SUBMISSION_STATUS_LABEL, formatDateTime, formatScore } from '@/lib/backend/labels';
 import type { SubmissionStatus } from '@/types/backend';
@@ -57,6 +56,12 @@ export default async function SubmissionsPage({
   const roundName = new Map(rounds.items.map((round) => [round.id, round.name_th]));
   const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
   const openRounds = rounds.items.filter((round) => round.is_open);
+  // Reuse the round picked in the filter below for "create", so there is only one round
+  // dropdown on the page; with exactly one open round there is nothing to pick anyway
+  const createRound =
+    (roundId ? openRounds.find((round) => round.id === roundId) : undefined) ??
+    (openRounds.length === 1 ? openRounds[0] : undefined);
+  const canCreate = canCreateSubmission(user);
 
   return (
     <div className="space-y-6">
@@ -68,21 +73,21 @@ export default async function SubmissionsPage({
         </EmptyNote>
       ) : (
         <>
-          <Section title="สร้างใบภาระงานของฉัน">
-            {openRounds.length === 0 ? (
-              <EmptyNote>ยังไม่มีรอบที่เปิดให้กรอก</EmptyNote>
-            ) : (
-              <ActionForm action={createSubmission} submitLabel="สร้างใบ" className="flex flex-wrap items-end gap-3">
-                <Field label="รอบประเมิน" className="min-w-60">
-                  <select name="round_id" required className={inputClass}>
-                    {openRounds.map((round) => (
-                      <option key={round.id} value={round.id}>{round.name_th}</option>
-                    ))}
-                  </select>
-                </Field>
-              </ActionForm>
-            )}
-          </Section>
+          {canCreate ? (
+            <Section title="สร้างใบภาระงานของฉัน">
+              {openRounds.length === 0 ? (
+                <EmptyNote>ยังไม่มีรอบที่เปิดให้กรอก</EmptyNote>
+              ) : createRound ? (
+                <ActionForm action={createSubmission} submitLabel={`สร้างใบสำหรับ${createRound.name_th}`}>
+                  <input type="hidden" name="round_id" value={createRound.id} />
+                </ActionForm>
+              ) : (
+                <EmptyNote>
+                  เลือกรอบที่เปิดอยู่จากช่อง &quot;รอบ&quot; ด้านล่าง ({openRounds.map((round) => round.name_th).join(', ')}) เพื่อสร้างใบ
+                </EmptyNote>
+              )}
+            </Section>
+          ) : null}
 
           <Section title={scope === 'mine' ? 'ใบของฉัน' : 'ใบทั้งหมด'}>
             <form role="search" className="mb-4 flex flex-wrap gap-2">
@@ -95,7 +100,10 @@ export default async function SubmissionsPage({
               <select name="round_id" defaultValue={roundId ?? ''} className={`${inputClass} sm:w-56`} aria-label="รอบ">
                 <option value="">ทุกรอบ</option>
                 {rounds.items.map((round) => (
-                  <option key={round.id} value={round.id}>{round.name_th}</option>
+                  <option key={round.id} value={round.id}>
+                    {round.name_th}
+                    {round.is_open ? ' (เปิด)' : ''}
+                  </option>
                 ))}
               </select>
               <select name="status" defaultValue={status ?? ''} className={`${inputClass} sm:w-56`} aria-label="สถานะ">

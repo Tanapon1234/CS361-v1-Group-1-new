@@ -16,8 +16,10 @@ class Role(StrEnum):
     ADMIN = "admin"
 
 
-#: Roles that may see everyone's data (not change it)
-VIEW_ALL_ROLES = frozenset({Role.STAFF, Role.REVIEWER, Role.EXECUTIVE, Role.ADMIN})
+#: Roles that may see everyone's data (not change it). Reviewer is deliberately excluded
+#: (V4 #291 follow-up): a reviewer is a plain lecturer except for the verification queue
+#: of lecturers assigned to them (reviewer_assignment) — not a general "see everyone" role.
+VIEW_ALL_ROLES = frozenset({Role.STAFF, Role.EXECUTIVE, Role.ADMIN})
 
 
 def roles_from_names(names: Iterable[str]) -> frozenset[Role]:

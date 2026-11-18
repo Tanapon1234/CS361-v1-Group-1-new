@@ -69,6 +69,10 @@ PRIVATE_ROUTE_TABLE_IDS="${PRIVATE_ROUTE_TABLE_IDS:-$(aws ec2 describe-route-tab
 CORS_ALLOW_ORIGINS="${CORS_ALLOW_ORIGINS:-[\"http://localhost:3000\"]}"
 CREATE_VPC_ENDPOINTS="${CREATE_VPC_ENDPOINTS:-true}"
 DEV_AUTH_HEADER_ENABLED="${DEV_AUTH_HEADER_ENABLED:-true}"
+# Omitting these from --parameter-overrides resets them to the template Default on redeploy
+# (true / postgres), not the stack's current value, so they must always be passed explicitly.
+ATTACH_TO_VPC="${ATTACH_TO_VPC:-false}"
+DB_USER="${DB_USER:-postgres}"
 COGNITO_STACK="${COGNITO_STACK:-cs361-v2-cognito-dev}"
 cognito_output() {
   aws cloudformation describe-stacks --region "${REGION}" --stack-name "${COGNITO_STACK}" \
@@ -102,6 +106,8 @@ aws cloudformation deploy \
     DBHost="${DB_HOST}" \
     DBName="${DB_NAME}" \
     DBSecretArn="${DB_SECRET_ARN}" \
+    AttachToVpc="${ATTACH_TO_VPC}" \
+    DBUser="${DB_USER}" \
     DataBucketName="${DATA_BUCKET_NAME}" \
     CorsAllowOrigins="${CORS_ALLOW_ORIGINS}" \
     CreateVpcEndpoints="${CREATE_VPC_ENDPOINTS}" \

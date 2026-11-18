@@ -8,6 +8,7 @@ from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.v2.models.rubric import RubricVersion
 from app.v2.models.submission import EvaluationRound
 from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
+from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.rubric_dao import RubricDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.common import PageMeta, PageResponse
@@ -35,10 +36,12 @@ class RoundService:
         round_dao: EvaluationRoundDAO,
         rubric_dao: RubricDAO,
         submission_dao: SubmissionDAO,
+        lecturer_dao: LecturerDAO,
     ) -> None:
         self.round_dao = round_dao
         self.rubric_dao = rubric_dao
         self.submission_dao = submission_dao
+        self.lecturer_dao = lecturer_dao
 
     def list_rounds(self, query: RoundListQuery) -> PageResponse[RoundResponse]:
         items, total = self.round_dao.find_page(
@@ -79,8 +82,10 @@ class RoundService:
         self, round_id: int, actor: Actor, query: RoundSubmissionsQuery
     ) -> PageResponse[SubmissionResponse]:
         self._require_round(round_id)
-        # Department chair / committee see their department, viewers see all
-        department_id = require_department_view(actor, query.department_id)
+        # Department chair / committee / staff / reviewer see their department, exec/admin see all
+        department_id = require_department_view(
+            actor, query.department_id, self._caller_department_id(actor)
+        )
         items, total = self.submission_dao.find_page(
             round_id=round_id,
             lecturer_id=None,
@@ -99,7 +104,9 @@ class RoundService:
     ) -> RoundReportResponse:
         """Scores of every submission in the round (stored totals, kept up to date)."""
         evaluation_round = self._require_round(round_id)
-        department_id = require_department_view(actor, query.department_id)
+        department_id = require_department_view(
+            actor, query.department_id, self._caller_department_id(actor)
+        )
         version = self.rubric_dao.get_version(evaluation_round.rubric_version_id)
         if version is None:
             raise NotFoundError("Rubric version not found")
@@ -153,3 +160,9 @@ class RoundService:
         if not version.is_active:
             raise BadRequestError("Rubric version is not active")
         return version
+
+    def _caller_department_id(self, actor: Actor) -> int | None:
+        if actor.lecturer_id is None:
+            return None
+        lecturer = self.lecturer_dao.get_by_id(actor.lecturer_id)
+        return lecturer.department_id if lecturer is not None else None

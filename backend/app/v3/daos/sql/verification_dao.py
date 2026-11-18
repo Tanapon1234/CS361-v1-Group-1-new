@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from uuid import UUID
 
 from sqlalchemy import func
 from sqlmodel import col, select
@@ -13,9 +14,22 @@ from app.v3.daos.verification_dao import EvidenceQueueRow, VerificationDAO
 
 class SqlVerificationDAO(SqlDAO, VerificationDAO):
     def find_publications(
-        self, status: VerificationStatus, *, limit: int, offset: int
+        self,
+        status: VerificationStatus,
+        *,
+        limit: int,
+        offset: int,
+        reviewee_ids: Sequence[UUID] | None = None,
     ) -> tuple[Sequence[Publication], int]:
         statement = select(Publication).where(Publication.verification_status == status)
+        if reviewee_ids is not None:
+            statement = statement.where(
+                col(Publication.publication_id).in_(
+                    select(FacultyPublication.publication_id).where(
+                        col(FacultyPublication.lecturer_id).in_(reviewee_ids)
+                    )
+                )
+            )
         total = self.session.exec(select(func.count()).select_from(statement.subquery())).one()
         items = self.session.exec(
             statement.order_by(col(Publication.created_at), col(Publication.publication_id))
@@ -34,7 +48,12 @@ class SqlVerificationDAO(SqlDAO, VerificationDAO):
         return list(self.session.exec(statement).all())
 
     def find_evidence(
-        self, status: VerificationStatus, *, limit: int, offset: int
+        self,
+        status: VerificationStatus,
+        *,
+        limit: int,
+        offset: int,
+        reviewee_ids: Sequence[UUID] | None = None,
     ) -> tuple[Sequence[EvidenceQueueRow], int]:
         statement = (
             select(EntryEvidence, SubmissionEntry, Submission, Lecturer)
@@ -46,6 +65,8 @@ class SqlVerificationDAO(SqlDAO, VerificationDAO):
                 EntryEvidence.status == EvidenceStatus.UPLOADED,
             )
         )
+        if reviewee_ids is not None:
+            statement = statement.where(col(Submission.lecturer_id).in_(reviewee_ids))
         total = self.session.exec(select(func.count()).select_from(statement.subquery())).one()
         rows = self.session.exec(
             statement.order_by(col(EntryEvidence.created_at), col(EntryEvidence.id))

@@ -10,10 +10,11 @@ from app.v2.models.publication import Publication
 from app.v2.models.submission import EntryEvidence, Submission, SubmissionEntry
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.publication_dao import PublicationDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.dtos.publication_dto import PublicationUpdateRequest
-from app.v3.dtos.verification_dto import VerificationPutRequest
+from app.v3.dtos.verification_dto import VerificationPutRequest, VerificationQueueQuery
 from app.v3.security import Actor, Role
 from app.v3.services.publication_service import PublicationService
 from app.v3.services.verification_service import VerificationService
@@ -30,6 +31,7 @@ def daos() -> dict[str, MagicMock]:
         "publication": create_autospec(PublicationDAO, instance=True),
         "evidence": create_autospec(EvidenceDAO, instance=True),
         "submission": create_autospec(SubmissionDAO, instance=True),
+        "assignment": create_autospec(ReviewerAssignmentDAO, instance=True),
     }
     daos["publication"].get_by_id.return_value = Publication(publication_id=1, title="T")
     daos["publication"].get_author_ids.return_value = [AUTHOR]
@@ -41,7 +43,11 @@ def daos() -> dict[str, MagicMock]:
 @pytest.fixture
 def service(daos: dict[str, MagicMock]) -> VerificationService:
     return VerificationService(
-        daos["verification"], daos["publication"], daos["evidence"], daos["submission"]
+        daos["verification"],
+        daos["publication"],
+        daos["evidence"],
+        daos["submission"],
+        daos["assignment"],
     )
 
 
@@ -157,3 +163,37 @@ def test_an_authors_fix_sends_a_rejected_publication_back_to_pending(
 
     values = daos["publication"].update.call_args.args[1]
     assert values["verification_status"] is VerificationStatus.PENDING
+
+
+# --- reviewer assignment narrows the queue (V4 #293) ---------------------------------
+
+
+def test_a_plain_reviewer_only_sees_their_assigned_reviewees(
+    service: VerificationService, daos: dict[str, MagicMock]
+) -> None:
+    daos["verification"].find_publications.return_value = ([], 0)
+    daos["verification"].find_evidence.return_value = ([], 0)
+    reviewee = uuid4()
+    daos["assignment"].reviewee_ids.return_value = [reviewee]
+
+    service.list_publication_queue(REVIEWER, VerificationQueueQuery())
+    service.list_evidence_queue(REVIEWER, VerificationQueueQuery())
+
+    daos["assignment"].reviewee_ids.assert_called_with(REVIEWER.lecturer_id)
+    assert daos["verification"].find_publications.call_args.kwargs["reviewee_ids"] == [reviewee]
+    assert daos["verification"].find_evidence.call_args.kwargs["reviewee_ids"] == [reviewee]
+
+
+def test_executive_and_admin_see_the_whole_queue(
+    service: VerificationService, daos: dict[str, MagicMock]
+) -> None:
+    daos["verification"].find_publications.return_value = ([], 0)
+    executive = Actor(uuid4(), frozenset({Role.LECTURER, Role.EXECUTIVE}))
+    admin = Actor(uuid4(), frozenset({Role.LECTURER, Role.ADMIN}))
+
+    service.list_publication_queue(executive, VerificationQueueQuery())
+    assert daos["verification"].find_publications.call_args.kwargs["reviewee_ids"] is None
+
+    service.list_publication_queue(admin, VerificationQueueQuery())
+    assert daos["verification"].find_publications.call_args.kwargs["reviewee_ids"] is None
+    daos["assignment"].reviewee_ids.assert_not_called()

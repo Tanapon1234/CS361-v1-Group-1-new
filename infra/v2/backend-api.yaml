@@ -207,6 +207,7 @@ Resources:
                 Resource:
                   - !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}/lecturers/*"
                   - !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}/submissions/*"
+                  - !Sub "arn:${AWS::Partition}:s3:::${DataBucketName}/publications/*"
               - Sid: HeadObjectNeedsListForMissingKeys
                 Effect: Allow
                 Action: s3:ListBucket
