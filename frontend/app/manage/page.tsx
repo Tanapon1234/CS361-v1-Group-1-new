@@ -125,9 +125,9 @@ export default async function ManageHomePage() {
                       </div>
                     ) : (
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm text-ink">ยังไม่มีใบภาระงาน</p>
+                        <p className="text-sm text-ink">ยังไม่ได้เริ่มกรอก</p>
                         {mayCreate && state !== 'closed' ? (
-                          <ActionForm inline large action={createSubmission} submitLabel="สร้างใบภาระงาน">
+                          <ActionForm inline large action={createSubmission} submitLabel="เริ่มกรอกภาระงาน">
                             <input type="hidden" name="round_id" value={round.id} />
                           </ActionForm>
                         ) : null}
