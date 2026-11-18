@@ -33,6 +33,8 @@ def daos() -> dict[str, MagicMock]:
         "submission": create_autospec(SubmissionDAO, instance=True),
         "assignment": create_autospec(ReviewerAssignmentDAO, instance=True),
     }
+    daos["assignment"].reviewee_ids.return_value = [AUTHOR]
+    daos["assignment"].is_assigned.return_value = True
     daos["publication"].get_by_id.return_value = Publication(publication_id=1, title="T")
     daos["publication"].get_author_ids.return_value = [AUTHOR]
     for name in ("publication", "evidence"):
@@ -184,16 +186,52 @@ def test_a_plain_reviewer_only_sees_their_assigned_reviewees(
     assert daos["verification"].find_evidence.call_args.kwargs["reviewee_ids"] == [reviewee]
 
 
-def test_executive_and_admin_see_the_whole_queue(
+@pytest.mark.parametrize("role", [Role.EXECUTIVE, Role.STAFF, Role.ADMIN])
+def test_only_a_real_reviewer_can_use_the_queue_or_verify(
+    service: VerificationService, daos: dict[str, MagicMock], role: Role
+) -> None:
+    """Staff, executives and admins may read sheets but never verify (unless also assigned)."""
+    caller = Actor(uuid4(), frozenset({Role.LECTURER, role}))
+    evidence, submission, entry = evidence_of(AUTHOR, EvidenceStatus.UPLOADED)
+    daos["evidence"].get_by_id.return_value = evidence
+    daos["submission"].get_entry.return_value = entry
+    daos["submission"].get_by_id.return_value = submission
+
+    with pytest.raises(ForbiddenError, match="reviewer"):
+        service.list_publication_queue(caller, VerificationQueueQuery())
+    with pytest.raises(ForbiddenError, match="reviewer"):
+        service.list_evidence_queue(caller, VerificationQueueQuery())
+    with pytest.raises(ForbiddenError, match="reviewer"):
+        service.set_publication_verification(1, caller, VERIFY)
+    with pytest.raises(ForbiddenError, match="reviewer"):
+        service.set_evidence_verification(evidence.id, caller, VERIFY)
+    daos["publication"].update.assert_not_called()
+    daos["evidence"].update.assert_not_called()
+
+
+def test_a_reviewer_cannot_verify_a_publication_of_someone_they_are_not_assigned_to(
     service: VerificationService, daos: dict[str, MagicMock]
 ) -> None:
-    daos["verification"].find_publications.return_value = ([], 0)
-    executive = Actor(uuid4(), frozenset({Role.LECTURER, Role.EXECUTIVE}))
-    admin = Actor(uuid4(), frozenset({Role.LECTURER, Role.ADMIN}))
+    daos["assignment"].reviewee_ids.return_value = [uuid4()]  # not the author
 
-    service.list_publication_queue(executive, VerificationQueueQuery())
-    assert daos["verification"].find_publications.call_args.kwargs["reviewee_ids"] is None
+    with pytest.raises(ForbiddenError, match="not assigned"):
+        service.set_publication_verification(1, REVIEWER, VERIFY)
+    daos["publication"].update.assert_not_called()
 
-    service.list_publication_queue(admin, VerificationQueueQuery())
-    assert daos["verification"].find_publications.call_args.kwargs["reviewee_ids"] is None
-    daos["assignment"].reviewee_ids.assert_not_called()
+
+def test_a_reviewer_cannot_verify_evidence_outside_their_assignment_for_that_round(
+    service: VerificationService, daos: dict[str, MagicMock]
+) -> None:
+    evidence, submission, entry = evidence_of(AUTHOR, EvidenceStatus.UPLOADED)
+    daos["evidence"].get_by_id.return_value = evidence
+    daos["submission"].get_entry.return_value = entry
+    daos["submission"].get_by_id.return_value = submission
+    daos["assignment"].is_assigned.return_value = False
+
+    with pytest.raises(ForbiddenError, match="not assigned"):
+        service.set_evidence_verification(evidence.id, REVIEWER, VERIFY)
+
+    daos["assignment"].is_assigned.assert_called_with(
+        REVIEWER.lecturer_id, AUTHOR, submission.round_id
+    )
+    daos["evidence"].update.assert_not_called()

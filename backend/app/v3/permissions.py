@@ -19,15 +19,22 @@ DEPARTMENT_SIGNERS = frozenset({PositionCode.DEPT_CHAIR, PositionCode.DEPT_COMMI
 
 @dataclass(frozen=True, slots=True)
 class Rule:
-    """Allowed when any part matches. Admin is always allowed (Actor.has_any)."""
+    """Allowed when any part matches. Admin is always allowed (Actor.has_any), unless the
+    rule is `strict`: then only a caller who really holds one of the roles passes."""
 
     roles: frozenset[Role] = frozenset()
+    strict: bool = False
     anyone: bool = False  # every signed-in caller
     self_param: str | None = None  # path parameter that is the caller's own lecturer_id
     positions: frozenset[PositionCode] = field(default_factory=frozenset)
 
     def allows(self, actor: Actor, path_params: Mapping[str, Any]) -> bool:
-        if self.anyone or actor.has_any(*self.roles):
+        if self.anyone:
+            return True
+        if self.strict:
+            if any(role in actor.roles for role in self.roles):
+                return True
+        elif actor.has_any(*self.roles):
             return True
         own = self.self_param is not None and actor.lecturer_id is not None
         if own and str(path_params.get(self.self_param)) == str(actor.lecturer_id):
@@ -36,7 +43,8 @@ class Rule:
 
 
 SIGNED_IN = Rule(anyone=True)
-REVIEWERS = Rule(roles=frozenset({Role.REVIEWER}))
+# Verifying is for the assigned reviewer alone: not admin, not executive (they may only read)
+REVIEWERS = Rule(roles=frozenset({Role.REVIEWER}), strict=True)
 EXECUTIVE = Rule(roles=frozenset({Role.EXECUTIVE}))
 ADMIN = Rule(roles=frozenset({Role.ADMIN}))
 # STAFF has no master-data create/edit rights (view-only, department-scoped in services);
