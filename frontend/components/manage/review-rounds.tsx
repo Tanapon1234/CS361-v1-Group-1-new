@@ -17,7 +17,7 @@ export function ReviewRounds({
   assignments: MyReviewAssignment[];
 }) {
   if (assignments.length === 0) {
-    return <EmptyNote>ตอนนี้ยังไม่มีอาจารย์ที่ต้องตรวจ</EmptyNote>;
+    return <EmptyNote>ไม่มีอาจารย์ในสถานะนี้</EmptyNote>;
   }
   const byRound = new Map<number, MyReviewAssignment[]>();
   for (const assignment of assignments) {
