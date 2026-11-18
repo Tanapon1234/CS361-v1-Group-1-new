@@ -102,6 +102,8 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   for (const { section } of sections) for (const item of section.items) items.set(item.id, item);
   const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
 
+  // A closed round changes nothing: the sheet is view only
+  const roundClosed = !!round && !round.is_open;
   const isOwner = me?.lecturer.lecturer_id === submission.lecturer_id;
   // The first step is signed by the reviewer assigned to this lecturer in this round; with
   // nobody assigned, the department head may sign it (backend: SubmissionService)
@@ -219,7 +221,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         title="การส่งและการอนุมัติ"
         description="ขั้นถัดไปมาจากสถานะของใบ: เจ้าของส่ง, เจ้าหน้าที่รับเรื่อง, หัวหน้าและกรรมการของสาขาลงนาม"
       >
-        {isOwner && submission.status === 'submitted' ? (
+        {isOwner && submission.status === 'submitted' && !roundClosed ? (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line-soft bg-surface-alt p-4">
             <p className="text-sm text-ink">
               ใบนี้ส่งแล้ว ยังไม่มีใครรับเรื่อง ถ้าอยากแก้รายการ ถอนใบกลับมาแก้ได้
@@ -233,7 +235,9 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
             />
           </div>
         ) : null}
-        {step && !signs ? (
+        {step && roundClosed ? (
+          <Notice>รอบประเมินนี้ปิดแล้ว ใบนี้ดูได้อย่างเดียว</Notice>
+        ) : step && !signs ? (
           <Notice>
             ขั้นถัดไป: รอ <strong>{SIGNER_ROLE_LABEL[step.role]}</strong> ลงนาม
           </Notice>

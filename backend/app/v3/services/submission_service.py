@@ -264,6 +264,9 @@ class SubmissionService:
         step = STEPS.get(submission.status)
         if step is None:
             raise ConflictError(f"A {submission.status} submission cannot change any more")
+        evaluation_round = self.round_dao.get_by_id(submission.round_id)
+        if evaluation_round is not None and not evaluation_round.is_open:
+            raise ConflictError("The evaluation round is closed: the sheet is view only")
         # The owner may pull a sent submission back while nobody has accepted it yet: it goes
         # to `returned`, signed as the performer, and the owner edits and sends it again
         withdraws = (

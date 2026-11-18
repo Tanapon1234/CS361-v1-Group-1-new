@@ -458,3 +458,20 @@ def test_someone_else_cannot_pull_back_a_sent_submission(
             Actor(other.lecturer_id, frozenset({Role.LECTURER})),
             ApprovalCreateRequest(decision=ApprovalDecision.RETURNED),
         )
+
+
+@pytest.mark.parametrize("decision", list(ApprovalDecision))
+def test_a_closed_round_sheet_is_view_only(
+    service: SubmissionService, daos: dict[str, MagicMock], decision: ApprovalDecision
+) -> None:
+    owner = lecturer()
+    current = submission(SubmissionStatus.SUBMITTED, owner)
+    daos["submission"].get_by_id.return_value = current
+    daos["lecturer"].get_by_id.return_value = owner
+    daos["round"].get_by_id.return_value = MagicMock(is_open=False)
+
+    with pytest.raises(ConflictError, match="closed"):
+        service.create_approval(
+            current.id, reviewer_of(owner), ApprovalCreateRequest(decision=decision, comment="x")
+        )
+    assert current.status is SubmissionStatus.SUBMITTED
