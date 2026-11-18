@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -53,17 +54,20 @@ class SubmissionDAO(ABC):
         academic_year_to: int,
         category_code: str | None = None,
         lecturer_id: UUID | None = None,
-    ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
+    ) -> Sequence[tuple[UUID, str, int, str, str, Decimal, Decimal]]:
         """Frozen category totals of the department's submissions in the year range, as
-        (total, lecturer, academic_year, category_code, category_name_th). Narrowed to
+        (lecturer_id, name_th, academic_year, category_code, category_name_th, raw_score,
+        capped_score). Plain columns, not entities: a report only needs these seven and
+        loading whole Lecturer rows made the query 2-4x slower. Narrowed to
         one rubric category and/or one lecturer when given; always capped (see impl) so
         a growing department can't make this query unbounded."""
 
     @abstractmethod
     def find_lecturers_with_department_data(
-        self, department_id: int, academic_year: int
-    ) -> Sequence[UUID]:
-        """Lecturer ids with at least one category total in this department and year."""
+        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+    ) -> Sequence[tuple[UUID, int]]:
+        """(lecturer_id, academic_year) pairs with at least one category total in this
+        department, for every year in the range, in one query."""
 
     # --- entries ---
 

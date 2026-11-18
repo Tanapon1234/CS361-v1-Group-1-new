@@ -10,7 +10,6 @@ from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.v2.models.department import Department
 from app.v2.models.enums import PositionCode
 from app.v2.models.lecturer import Lecturer
-from app.v2.models.submission import SubmissionCategoryTotal
 from app.v3.daos.department_dao import DepartmentDAO
 from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
@@ -45,16 +44,6 @@ def lecturer(**values: object) -> Lecturer:
         "department_id": 1,
     }
     return Lecturer(**(defaults | values))
-
-
-def category_total(**values: object) -> SubmissionCategoryTotal:
-    defaults = {
-        "submission_id": uuid4(),
-        "category_id": 1,
-        "raw_score": Decimal("10"),
-        "capped_score": Decimal("10"),
-    }
-    return SubmissionCategoryTotal(**(defaults | values))
 
 
 def query(**values: object) -> DepartmentReportQuery:
@@ -131,11 +120,13 @@ class TestGetReport:
         prapaporn = lecturer(name_th="ปราภาพร")
         daos["submission"].list_department_category_totals.return_value = [
             (
-                category_total(raw_score=Decimal("90"), capped_score=Decimal("80")),
-                prapaporn,
+                prapaporn.lecturer_id,
+                prapaporn.name_th,
                 2567,
                 "1",
                 "งานสอน",
+                Decimal("90"),
+                Decimal("80"),
             )
         ]
         daos["lecturer"].find_page.return_value = ([], 0)
@@ -160,7 +151,9 @@ class TestGetReport:
         daos["lecturer"].find_page.return_value = ([thapana, kasidit], 2)
         daos["round"].list_academic_years.return_value = [2567]
         # kasidit has data this year; thapana does not
-        daos["submission"].find_lecturers_with_department_data.return_value = [kasidit.lecturer_id]
+        daos["submission"].find_lecturers_with_department_data.return_value = [
+            (kasidit.lecturer_id, 2567)
+        ]
 
         result = service.get_report(1, ADMIN, query())
 
@@ -177,9 +170,28 @@ class TestGetReport:
         daos["lecturer"].find_page.return_value = ([prapaporn], 1)
         daos["round"].list_academic_years.return_value = [2566, 2567]
         daos["submission"].find_lecturers_with_department_data.return_value = [
-            prapaporn.lecturer_id
+            (prapaporn.lecturer_id, 2566),
+            (prapaporn.lecturer_id, 2567),
         ]
 
         result = service.get_report(1, ADMIN, query())
 
         assert result.missing == []
+
+    def test_missing_is_decided_per_year_from_a_single_query(
+        self, service: DepartmentService, daos: dict[str, MagicMock]
+    ) -> None:
+        daos["department"].get_by_id.return_value = Department(id=1, code="CS", name_th="CS")
+        prapaporn = lecturer(name_th="ปราภาพร")
+        daos["submission"].list_department_category_totals.return_value = []
+        daos["lecturer"].find_page.return_value = ([prapaporn], 1)
+        daos["round"].list_academic_years.return_value = [2566, 2567, 2568]
+        # data only in 2567: missing in 2566 and 2568, and the DAO is asked once for all years
+        daos["submission"].find_lecturers_with_department_data.return_value = [
+            (prapaporn.lecturer_id, 2567)
+        ]
+
+        result = service.get_report(1, ADMIN, query())
+
+        assert sorted(row.academic_year for row in result.missing) == [2566, 2568]
+        daos["submission"].find_lecturers_with_department_data.assert_called_once()
