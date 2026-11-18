@@ -157,6 +157,13 @@ export const listRounds = (isOpen?: boolean) =>
     query: { limit: MAX_PAGE, is_open: isOpen },
   });
 
+/** Open rounds not yet past their submit_due_at: the only ones that take new reviewer assignments */
+export async function listAssignableRounds(): Promise<EvaluationRound[]> {
+  const { items } = await listRounds(true);
+  const now = Date.now();
+  return items.filter((round) => !round.submit_due_at || new Date(round.submit_due_at).getTime() > now);
+}
+
 export const getRound = (id: number) => backendOrNull<EvaluationRound>(`/rounds/${id}`);
 
 export const listRoundSubmissions = (
