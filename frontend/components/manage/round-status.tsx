@@ -1,63 +1,48 @@
-import type { ReactNode } from 'react';
-
 /** open: takes assignments; overdue: marked open but past its deadline; closed: not open */
 export type RoundStatus = 'open' | 'overdue' | 'closed';
 
-const STATUS: Record<RoundStatus, { label: string; hint: string; tag: string; icon: ReactNode }> = {
+const STATUS: Record<
+  RoundStatus,
+  { label: string; hint: string; text: string; dot: string; rail: string }
+> = {
   open: {
     label: 'เปิดรับ',
     hint: '',
-    tag: 'border-emerald-700/30 bg-emerald-50 text-emerald-900',
-    icon: <path d="M3.5 8.5l3 3 6-7" />,
+    text: 'text-emerald-800',
+    dot: 'bg-emerald-600 shadow-[0_0_0_3px_rgb(5_150_105/0.18)]',
+    rail: 'border-l-emerald-700',
   },
   overdue: {
     label: 'เลยกำหนดส่ง',
     hint: 'หมดเวลาส่งแล้ว มอบหมายไม่ได้',
-    tag: 'border-amber-700/30 bg-amber-50 text-amber-900',
-    icon: (
-      <>
-        <circle cx="8" cy="8" r="5.5" />
-        <path d="M8 5v3.2l2 1.3" />
-      </>
-    ),
+    text: 'text-amber-800',
+    dot: 'bg-amber-600 shadow-[0_0_0_3px_rgb(217_119_6/0.18)]',
+    rail: 'border-l-amber-600',
   },
   closed: {
     label: 'ปิดแล้ว',
     hint: 'รอบนี้ปิดแล้ว มอบหมายไม่ได้',
-    tag: 'border-zinc-400/60 bg-zinc-100 text-zinc-700',
-    icon: (
-      <>
-        <rect x="3.5" y="7" width="9" height="6" rx="1" />
-        <path d="M5.5 7V5.5a2.5 2.5 0 015 0V7" />
-      </>
-    ),
+    text: 'text-zinc-600',
+    // hollow ring: the round is not live
+    dot: 'border-[1.5px] border-zinc-400 bg-transparent',
+    rail: 'border-l-zinc-300',
   },
 };
 
 export const roundStatusHint = (status: RoundStatus) => STATUS[status].hint;
 
+/** Colour of the left edge of a round row or fold: the state as structure, not a tag */
+export const roundStatusRail = (status: RoundStatus) => `border-l-4 ${STATUS[status].rail}`;
+
 /**
- * Plain status tag for an evaluation round: a small square-cornered label with a line
- * icon, so the state reads without relying on colour alone.
+ * A round's state as a dot and a word, no box around it. The word always carries the
+ * meaning (the dot is decoration), and the text colours keep at least 4.5:1 on white.
  */
-export function RoundStatusBadge({ status }: { status: RoundStatus }) {
-  const { label, tag, icon } = STATUS[status];
+export function RoundStatusMark({ status }: { status: RoundStatus }) {
+  const { label, text, dot } = STATUS[status];
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold leading-none whitespace-nowrap ${tag}`}
-    >
-      <svg
-        aria-hidden
-        viewBox="0 0 16 16"
-        className="size-3.5 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {icon}
-      </svg>
+    <span className={`inline-flex items-center gap-2 text-sm font-medium whitespace-nowrap ${text}`}>
+      <span aria-hidden className={`size-2 shrink-0 rounded-full ${dot}`} />
       {label}
     </span>
   );
