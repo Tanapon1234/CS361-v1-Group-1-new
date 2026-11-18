@@ -3,26 +3,26 @@ import Link from 'next/link';
 
 import { createSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
+import { RoundStatusMark, roundStatusRail } from '@/components/manage/round-status';
 import {
   Badge,
   EmptyNote,
-  Field,
   Notice,
   PageHeader,
   Section,
   StatusBadge,
-  Table,
-  Td,
   buttonClass,
-  inputClass,
-  linkClass,
+  secondaryButtonClass,
 } from '@/components/manage/ui';
-import { getMe, listRounds, listSubmissions } from '@/lib/backend/api';
+import { canCreateSubmission } from '@/lib/auth/permissions';
+import { getMe, listRoundsWithState, listSubmissions } from '@/lib/backend/api';
 import { currentLecturerId } from '@/lib/backend/client';
 import {
   POSITION_LABEL,
   SIGNER_ROLE_LABEL,
   formatDate,
+  formatDateTime,
+  formatNumber,
   formatScore,
 } from '@/lib/backend/labels';
 
@@ -45,12 +45,12 @@ export default async function ManageHomePage() {
   const [me, mine, rounds] = await Promise.all([
     getMe(),
     listSubmissions({ lecturer_id: lecturerId }),
-    listRounds(),
+    listRoundsWithState(),
   ]);
-  const roundName = new Map(rounds.items.map((round) => [round.id, round.name_th]));
-  const roundsWithoutSubmission = me.open_rounds.filter(
-    (round) => !mine.items.some((submission) => submission.round_id === round.id)
-  );
+  // One card per round: every round still taking work, plus any closed round where I have a submission
+  const mineByRound = new Map(mine.items.map((submission) => [submission.round_id, submission]));
+  const myRounds = rounds.filter(({ round, state }) => state !== 'closed' || mineByRound.has(round.id));
+  const mayCreate = canCreateSubmission(me);
   // Nothing to say for an ordinary lecturer: no position and only their own signing role
   const showPositions = me.positions.length > 0;
   const signsBeyondOwn = me.signer_roles.some((role) => role !== 'performer');
@@ -62,85 +62,82 @@ export default async function ManageHomePage() {
         description={[me.lecturer.rank, me.lecturer.email].filter(Boolean).join(' · ')}
       />
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {showPositions || signsBeyondOwn ? (
-          <Section
-            title={showPositions ? 'ตำแหน่งที่ดำรงอยู่' : 'สิทธิ์ลงนามของฉัน'}
-            description={showPositions ? 'มาจากเมนู อาจารย์ → ตำแหน่งบริหาร' : undefined}
-          >
-            {showPositions ? (
-              <ul className="space-y-2 text-sm">
-                {me.positions.map((position) => (
-                  <li key={position.id} className="flex justify-between gap-3">
-                    <span className="font-medium text-ink">{POSITION_LABEL[position.position]}</span>
-                    <span className="text-ink-muted">ตั้งแต่ {formatDate(position.start_date)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <p className={`text-xs text-ink-muted ${showPositions ? 'mt-4' : ''}`}>
-              ลงนามในใบภาระงานได้ในฐานะ
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {me.signer_roles.map((role) => (
-                <Badge key={role}>{SIGNER_ROLE_LABEL[role]}</Badge>
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        <Section title="รอบประเมินที่เปิดอยู่">
-          {me.open_rounds.length === 0 ? (
-            <EmptyNote>ยังไม่มีรอบที่เปิดให้กรอก</EmptyNote>
-          ) : (
+      {showPositions || signsBeyondOwn ? (
+        <Section
+          title={showPositions ? 'ตำแหน่งที่ดำรงอยู่' : 'สิทธิ์ลงนามของฉัน'}
+          description={showPositions ? 'มาจากเมนู อาจารย์ → ตำแหน่งบริหาร' : undefined}
+        >
+          {showPositions ? (
             <ul className="space-y-2 text-sm">
-              {me.open_rounds.map((round) => (
-                <li key={round.id} className="flex justify-between gap-3">
-                  <span className="font-medium text-ink">{round.name_th}</span>
-                  <span className="text-ink-muted">
-                    ส่งภายใน {round.submit_due_at ? formatDate(round.submit_due_at) : '–'}
-                  </span>
+              {me.positions.map((position) => (
+                <li key={position.id} className="flex justify-between gap-3">
+                  <span className="font-medium text-ink">{POSITION_LABEL[position.position]}</span>
+                  <span className="text-ink-muted">ตั้งแต่ {formatDate(position.start_date)}</span>
                 </li>
               ))}
             </ul>
-          )}
-          {roundsWithoutSubmission.length > 0 ? (
-            <ActionForm action={createSubmission} submitLabel="สร้างใบภาระงาน" className="mt-4 space-y-3">
-              <Field label="สร้างใบภาระงานของฉันสำหรับรอบ">
-                <select name="round_id" className={inputClass} required>
-                  {roundsWithoutSubmission.map((round) => (
-                    <option key={round.id} value={round.id}>
-                      {round.name_th}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </ActionForm>
           ) : null}
-        </Section>
-      </div>
-
-      <Section title="ใบภาระงานของฉัน">
-        {mine.items.length === 0 ? (
-          <EmptyNote>ยังไม่มีใบภาระงาน</EmptyNote>
-        ) : (
-          <Table head={['รอบ', 'สถานะ', 'คะแนนหลังตัดเพดาน', 'หน่วยกิตสอน', '']}>
-            {mine.items.map((submission) => (
-              <tr key={submission.id}>
-                <Td>{roundName.get(submission.round_id) ?? `รอบ #${submission.round_id}`}</Td>
-                <Td>
-                  <StatusBadge status={submission.status} />
-                </Td>
-                <Td>{formatScore(submission.capped_total)}</Td>
-                <Td>{formatScore(submission.teaching_credits)}</Td>
-                <Td>
-                  <Link href={`/manage/submissions/${submission.id}`} className={linkClass}>
-                    เปิด
-                  </Link>
-                </Td>
-              </tr>
+          <p className={`text-xs text-ink-muted ${showPositions ? 'mt-4' : ''}`}>
+            ลงนามในใบภาระงานได้ในฐานะ
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {me.signer_roles.map((role) => (
+              <Badge key={role}>{SIGNER_ROLE_LABEL[role]}</Badge>
             ))}
-          </Table>
+          </div>
+        </Section>
+      ) : null}
+
+      <Section
+        title="รอบประเมินของฉัน"
+        description="รอบที่เปิดรับอยู่ และรอบที่ฉันมีใบภาระงานแล้ว"
+      >
+        {myRounds.length === 0 ? (
+          <EmptyNote>ยังไม่มีรอบที่เปิดให้กรอก</EmptyNote>
+        ) : (
+          <ul className="space-y-4">
+            {myRounds.map(({ round, state }) => {
+              const submission = mineByRound.get(round.id);
+              return (
+                <li key={round.id} className={`rounded-xl border border-line ${roundStatusRail(state)}`}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pt-4">
+                    <p className="font-semibold text-ink">{round.name_th}</p>
+                    <RoundStatusMark status={state} />
+                  </div>
+                  <p className="px-4 text-[13px] text-ink-muted">
+                    {round.submit_due_at ? `ส่งภายใน ${formatDateTime(round.submit_due_at)}` : 'ไม่กำหนดวันส่ง'}
+                  </p>
+
+                  <div className="mt-3 border-t border-line-soft bg-surface-alt px-4 py-3">
+                    <p className="text-xs font-medium text-ink-muted">ใบภาระงานของฉัน</p>
+                    {submission ? (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <StatusBadge status={submission.status} />
+                          <p className="text-[13px] text-ink-muted">
+                            คะแนน {formatScore(submission.capped_total)} · หน่วยกิตสอน{' '}
+                            {formatNumber(submission.teaching_credits)}
+                          </p>
+                        </div>
+                        <Link href={`/manage/submissions/${submission.id}`} className={`${secondaryButtonClass} min-h-11 px-4`}>
+                          เปิดใบภาระงาน
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-ink">ยังไม่ได้เริ่มกรอก</p>
+                        {mayCreate && state !== 'closed' ? (
+                          <ActionForm inline large action={createSubmission} submitLabel="เริ่มกรอกภาระงาน">
+                            <input type="hidden" name="round_id" value={round.id} />
+                          </ActionForm>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </Section>
     </div>
