@@ -19,6 +19,7 @@ from app.core.error_handlers import register_exception_handlers
 from app.v2.models.enums import PositionCode
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.member_position import MemberPosition
+from app.v2.models.reviewer_assignment import ReviewerAssignment
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.member_position_dao import MemberPositionDAO
 from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
@@ -73,7 +74,7 @@ POSITION_DAO.list_active.return_value = []
 USER_ROLE_DAO = create_autospec(UserRoleDAO, instance=True)
 USER_ROLE_DAO.roles_of.return_value = []
 ASSIGNMENT_DAO = create_autospec(ReviewerAssignmentDAO, instance=True)
-ASSIGNMENT_DAO.has_active.return_value = False
+ASSIGNMENT_DAO.list_by_reviewer.return_value = []
 
 
 def make_client(lecturer_dao: MagicMock, **settings: Any) -> TestClient:
@@ -274,11 +275,15 @@ def test_roles_granted_in_the_app_apply_on_the_next_request(client: TestClient) 
 
 
 def test_an_active_reviewer_assignment_makes_the_lecturer_a_reviewer(client: TestClient) -> None:
-    ASSIGNMENT_DAO.has_active.return_value = True
+    ASSIGNMENT_DAO.list_by_reviewer.return_value = [
+        ReviewerAssignment(
+            round_id=1, reviewer_id=uuid4(), reviewee_id=uuid4(), assigned_by=uuid4()
+        )
+    ]
     try:
         response = client.get("/who", headers=bearer(token()))
     finally:
-        ASSIGNMENT_DAO.has_active.return_value = False
+        ASSIGNMENT_DAO.list_by_reviewer.return_value = []
 
     assert "reviewer" in response.json()["roles"]
 

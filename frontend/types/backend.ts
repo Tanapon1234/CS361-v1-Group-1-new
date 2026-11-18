@@ -550,6 +550,27 @@ export interface EvidenceQueueItem {
   created_at: string;
 }
 
+/** A reviewer's verdict on a whole sheet (V4 #335); `pending` until someone has looked */
+export interface SubmissionReview {
+  status: VerificationStatus;
+  note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+}
+
+/** One lecturer the caller reviews in one round, with their sheet, its verdict and what is still pending */
+export interface MyReviewAssignment {
+  round_id: number;
+  reviewee_id: string;
+  reviewee_name_th: string;
+  submission_id: string | null;
+  submission_status: SubmissionStatus | null;
+  review_status: VerificationStatus | null;
+  review_note: string | null;
+  pending_evidence: number;
+  pending_publications: number;
+}
+
 /** Who reviews whom in one round (V4 #293); only listed while the round is open and before its submit_due_at */
 export interface ReviewerAssignment {
   id: string;

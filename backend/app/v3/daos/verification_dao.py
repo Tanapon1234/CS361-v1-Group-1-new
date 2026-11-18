@@ -47,3 +47,11 @@ class VerificationDAO(ABC):
     ) -> tuple[Sequence[EvidenceQueueRow], int]:
         """Uploaded files only (a pending upload has nothing to check), oldest first.
         `reviewee_ids`, when given (V4 #293), narrows the queue to that submission owner."""
+
+    @abstractmethod
+    def count_pending_evidence(self, submission_id: UUID) -> int:
+        """Uploaded evidence files of this sheet still waiting for a verdict."""
+
+    @abstractmethod
+    def count_pending_publications(self, lecturer_id: UUID) -> int:
+        """Publications of this author still waiting for a verdict."""

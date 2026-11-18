@@ -35,6 +35,8 @@ import type {
   VerificationStatus,
   AuditLogEntry,
   EvidenceQueueItem,
+  MyReviewAssignment,
+  SubmissionReview,
   PublicationQueueItem,
   ReviewerAssignment,
   UserRole,
@@ -246,6 +248,13 @@ export const listEvidenceQueue = (query: { status?: VerificationStatus; offset?:
   backend<PageResponse<EvidenceQueueItem>>('GET', '/verifications/evidence', {
     query: { ...query, limit: PAGE_SIZE },
   });
+
+export const getSubmissionReview = (id: string) =>
+  backend<SubmissionReview>('GET', `/submissions/${id}/review`);
+
+/** The caller's active reviewer assignments (reviewers only; anyone else gets 403) */
+export const listMyReviewAssignments = () =>
+  backend<ListResponse<MyReviewAssignment>>('GET', '/verifications/assignments');
 
 export const listAuditLog = (query: {
   entity?: string;

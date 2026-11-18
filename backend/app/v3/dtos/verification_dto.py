@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from app.v2.models.enums import VerificationStatus
+from app.v2.models.enums import SubmissionStatus, VerificationStatus
 from app.v3.dtos.base import RequestDTO, ResponseDTO
 from app.v3.dtos.common import PageQuery
 
@@ -57,3 +57,26 @@ class EvidenceQueueItem(ResponseDTO):
     verification_status: VerificationStatus
     verification_note: str | None
     created_at: datetime
+
+
+class SubmissionReviewResponse(ResponseDTO):
+    """A reviewer's verdict on a whole sheet; `pending` until someone has looked."""
+
+    status: VerificationStatus
+    note: str | None
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+
+
+class ReviewAssignmentItem(ResponseDTO):
+    """One lecturer the caller reviews in one round, with how far the review has got."""
+
+    round_id: int
+    reviewee_id: UUID
+    reviewee_name_th: str
+    submission_id: UUID | None
+    submission_status: SubmissionStatus | None
+    review_status: VerificationStatus | None
+    review_note: str | None
+    pending_evidence: int
+    pending_publications: int

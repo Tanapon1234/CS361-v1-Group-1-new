@@ -50,9 +50,11 @@ from app.v3.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v3.daos.sql.reviewer_assignment_dao import SqlReviewerAssignmentDAO
 from app.v3.daos.sql.rubric_dao import SqlRubricDAO
 from app.v3.daos.sql.submission_dao import SqlSubmissionDAO
+from app.v3.daos.sql.submission_review_dao import SqlSubmissionReviewDAO
 from app.v3.daos.sql.user_role_dao import SqlUserRoleDAO
 from app.v3.daos.sql.verification_dao import SqlVerificationDAO
 from app.v3.daos.submission_dao import SubmissionDAO
+from app.v3.daos.submission_review_dao import SubmissionReviewDAO
 from app.v3.daos.user_role_dao import UserRoleDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.permissions import rule_for
@@ -171,6 +173,10 @@ def get_user_role_dao(session: SessionDep) -> UserRoleDAO:
     return SqlUserRoleDAO(session)
 
 
+def get_submission_review_dao(session: SessionDep) -> SubmissionReviewDAO:
+    return SqlSubmissionReviewDAO(session)
+
+
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
 LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
@@ -189,6 +195,7 @@ PublicationEvidenceDAODep = Annotated[PublicationEvidenceDAO, Depends(get_public
 VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
 ReviewerAssignmentDAODep = Annotated[ReviewerAssignmentDAO, Depends(get_reviewer_assignment_dao)]
 UserRoleDAODep = Annotated[UserRoleDAO, Depends(get_user_role_dao)]
+SubmissionReviewDAODep = Annotated[SubmissionReviewDAO, Depends(get_submission_review_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
 
@@ -240,24 +247,20 @@ def get_actor(
         # reviewer is derived from an active assignment, so the Cognito group is not honored
         token_roles = roles_from_names(groups) - {Role.REVIEWER}
         positions = _positions_held(position_dao, lecturer.lecturer_id)
-        return Actor(
-            lecturer.lecturer_id,
-            _effective_roles(
-                token_roles, lecturer.lecturer_id, positions, user_role_dao, assignment_dao
-            ),
-            positions,
+        roles, reviewing = _effective_roles(
+            token_roles, lecturer.lecturer_id, positions, user_role_dao, assignment_dao
         )
+        return Actor(lecturer.lecturer_id, roles, positions, reviewing)
 
     if settings.allows_dev_auth_header and (x_lecturer_id or x_dev_roles):
         roles = roles_from_names((x_dev_roles or "").split(","))
         if x_lecturer_id is None:
             return Actor(None, roles)
         positions = _positions_held(position_dao, x_lecturer_id)
-        return Actor(
-            x_lecturer_id,
-            _effective_roles(roles, x_lecturer_id, positions, user_role_dao, assignment_dao),
-            positions,
+        effective, reviewing = _effective_roles(
+            roles, x_lecturer_id, positions, user_role_dao, assignment_dao
         )
+        return Actor(x_lecturer_id, effective, positions, reviewing)
 
     raise UnauthorizedError("Sign-in required")
 
@@ -268,18 +271,22 @@ def _effective_roles(
     positions: frozenset[HeldPosition],
     user_role_dao: UserRoleDAO,
     assignment_dao: ReviewerAssignmentDAO,
-) -> frozenset[Role]:
+) -> tuple[frozenset[Role], frozenset[tuple[UUID, int]]]:
     """Roles from the token (or dev header), the ones an admin granted in the app, executive
     while the lecturer holds the department head position, and reviewer while they have an
-    active reviewer assignment. Read on every request, so a change applies at once, without
-    a new sign-in."""
+    active reviewer assignment; plus those assignments as (reviewee, round) pairs. Read on
+    every request, so a change applies at once, without a new sign-in."""
     roles = set(given) | {Role.LECTURER}
     roles |= roles_from_names(user_role_dao.roles_of(lecturer_id))
     if any(held.position is EXECUTIVE_POSITION for held in positions):
         roles.add(Role.EXECUTIVE)
-    if assignment_dao.has_active(lecturer_id):
+    reviewing = frozenset(
+        (assignment.reviewee_id, assignment.round_id)
+        for assignment in assignment_dao.list_by_reviewer(lecturer_id)
+    )
+    if reviewing:
         roles.add(Role.REVIEWER)
-    return frozenset(roles)
+    return frozenset(roles), reviewing
 
 
 def _positions_held(position_dao: MemberPositionDAO, lecturer_id: UUID) -> frozenset[HeldPosition]:
@@ -547,9 +554,17 @@ def get_verification_service(
     evidence_dao: EvidenceDAODep,
     submission_dao: SubmissionDAODep,
     assignment_dao: ReviewerAssignmentDAODep,
+    review_dao: SubmissionReviewDAODep,
+    lecturer_dao: LecturerDAODep,
 ) -> VerificationService:
     return VerificationService(
-        verification_dao, publication_dao, evidence_dao, submission_dao, assignment_dao
+        verification_dao,
+        publication_dao,
+        evidence_dao,
+        submission_dao,
+        assignment_dao,
+        review_dao,
+        lecturer_dao,
     )
 
 
