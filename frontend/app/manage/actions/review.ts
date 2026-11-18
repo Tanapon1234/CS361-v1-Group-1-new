@@ -29,6 +29,9 @@ export async function createReviewerAssignment(
   _: ActionState,
   form: FormData
 ): Promise<ActionState> {
+  if (requiredText(form, 'reviewer_id') === requiredText(form, 'reviewee_id')) {
+    return { ok: false, message: 'ผู้ตรวจและอาจารย์ที่ถูกตรวจต้องเป็นคนละคน' };
+  }
   return attempt(
     () =>
       backend('POST', '/reviewer-assignments', {

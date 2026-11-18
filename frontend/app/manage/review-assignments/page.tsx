@@ -4,7 +4,7 @@ import { createReviewerAssignment, deleteReviewerAssignment } from '@/app/manage
 import { ActionForm } from '@/components/manage/action-form';
 import { EmptyNote, Field, inputClass, Notice, PageHeader, Section, Table, Td } from '@/components/manage/ui';
 import { isExecutive } from '@/lib/auth/permissions';
-import { listLecturers, listReviewerAssignments, listRounds, MAX_PAGE, settle } from '@/lib/backend/api';
+import { listAssignableRounds, listLecturers, listReviewerAssignments, MAX_PAGE, settle } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatDateTime } from '@/lib/backend/labels';
 
@@ -21,16 +21,11 @@ export default async function ReviewAssignmentsPage() {
     );
   }
 
-  const [lecturers, rounds, assignments] = await Promise.all([
+  const [lecturers, assignableRounds, assignments] = await Promise.all([
     listLecturers({ is_active: true, limit: MAX_PAGE }),
-    listRounds(true),
+    listAssignableRounds(),
     settle(listReviewerAssignments()),
   ]);
-  // A round past its submit_due_at no longer takes new assignments (the backend refuses too)
-  const now = Date.now();
-  const assignableRounds = rounds.items.filter(
-    (round) => !round.submit_due_at || new Date(round.submit_due_at).getTime() > now
-  );
 
   return (
     <div className="space-y-6">
@@ -59,7 +54,7 @@ export default async function ReviewAssignmentsPage() {
             </select>
           </Field>
           <Field label="ผู้ตรวจสอบ (reviewer)">
-            <select name="reviewer_id" required className={inputClass}>
+            <select name="reviewer_id" required defaultValue="" className={inputClass}>
               <option value="" disabled>
                 เลือกอาจารย์
               </option>
@@ -71,7 +66,7 @@ export default async function ReviewAssignmentsPage() {
             </select>
           </Field>
           <Field label="อาจารย์ที่ต้องถูกตรวจ (reviewee)">
-            <select name="reviewee_id" required className={inputClass}>
+            <select name="reviewee_id" required defaultValue="" className={inputClass}>
               <option value="" disabled>
                 เลือกอาจารย์
               </option>
