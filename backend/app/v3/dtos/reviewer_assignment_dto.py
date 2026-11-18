@@ -1,4 +1,4 @@
-"""Who reviews whom (011_reviewer_assignment.sql, V4 #293)."""
+"""Who reviews whom (011/012_reviewer_assignment*.sql, V4 #293)."""
 
 from datetime import datetime
 from typing import Self
@@ -10,11 +10,13 @@ from app.v3.dtos.base import QueryDTO, RequestDTO, ResponseDTO
 
 
 class ReviewerAssignmentListQuery(QueryDTO):
+    round_id: int | None = None
     reviewer_id: UUID | None = None
     reviewee_id: UUID | None = None
 
 
 class ReviewerAssignmentCreateRequest(RequestDTO):
+    round_id: int
     reviewer_id: UUID
     reviewee_id: UUID
 
@@ -27,6 +29,8 @@ class ReviewerAssignmentCreateRequest(RequestDTO):
 
 class ReviewerAssignmentResponse(ResponseDTO):
     id: UUID
+    round_id: int
+    round_name_th: str
     reviewer_id: UUID
     reviewer_name_th: str
     reviewee_id: UUID

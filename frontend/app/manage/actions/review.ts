@@ -1,7 +1,7 @@
 'use server';
 
 import { backend } from '@/lib/backend/client';
-import { attempt, requiredText, text, type ActionState } from '@/lib/backend/form';
+import { attempt, int, requiredText, text, type ActionState } from '@/lib/backend/form';
 
 /** A reviewer's verdict on a publication or an evidence file (backend: PUT .../verification) */
 function verdict(form: FormData) {
@@ -33,6 +33,7 @@ export async function createReviewerAssignment(
     () =>
       backend('POST', '/reviewer-assignments', {
         body: {
+          round_id: int(form, 'round_id'),
           reviewer_id: requiredText(form, 'reviewer_id'),
           reviewee_id: requiredText(form, 'reviewee_id'),
         },

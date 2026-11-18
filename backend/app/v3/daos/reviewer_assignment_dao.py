@@ -1,4 +1,8 @@
-"""Who reviews whom (011_reviewer_assignment.sql, V4 #293)."""
+"""Who reviews whom, per evaluation round (011/012_reviewer_assignment*.sql, V4 #293).
+
+An assignment is "active" only while its round is open and before the round's
+submit_due_at; list_all / list_by_reviewer / reviewee_ids return active ones only.
+"""
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -13,16 +17,22 @@ class ReviewerAssignmentDAO(ABC):
 
     @abstractmethod
     def list_all(
-        self, *, reviewer_id: UUID | None = None, reviewee_id: UUID | None = None
+        self,
+        *,
+        round_id: int | None = None,
+        reviewer_id: UUID | None = None,
+        reviewee_id: UUID | None = None,
     ) -> Sequence[ReviewerAssignment]:
-        """Every assignment, optionally narrowed by reviewer and/or reviewee."""
+        """Every active assignment, optionally narrowed by round, reviewer and/or reviewee."""
 
     @abstractmethod
-    def list_by_reviewer(self, reviewer_id: UUID) -> Sequence[ReviewerAssignment]: ...
+    def list_by_reviewer(
+        self, reviewer_id: UUID, *, round_id: int | None = None
+    ) -> Sequence[ReviewerAssignment]: ...
 
     @abstractmethod
     def reviewee_ids(self, reviewer_id: UUID) -> Sequence[UUID]:
-        """Just the lecturer_ids this reviewer may see in the verification queue."""
+        """Just the lecturer_ids this reviewer may see in the verification queue (active rounds)."""
 
     @abstractmethod
     def add(self, assignment: ReviewerAssignment) -> ReviewerAssignment: ...

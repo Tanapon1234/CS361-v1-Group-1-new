@@ -235,8 +235,10 @@ export const listAuditLog = (query: {
   offset?: number;
 }) => backend<PageResponse<AuditLogEntry>>('GET', '/audit-log', { query: { ...query, limit: PAGE_SIZE } });
 
-/** Who reviews whom (V4 #293): executive/admin see everyone's; a reviewer sees their own */
-export const listReviewerAssignments = (query: { reviewer_id?: string; reviewee_id?: string } = {}) =>
+/** Who reviews whom (V4 #293): executive/admin see everyone's; a reviewer sees their own. Only rounds still accepting work. */
+export const listReviewerAssignments = (
+  query: { round_id?: number; reviewer_id?: string; reviewee_id?: string } = {}
+) =>
   backend<ListResponse<ReviewerAssignment>>('GET', '/reviewer-assignments', { query });
 
 /** Run reads in parallel, but keep one failing section from breaking the whole page */

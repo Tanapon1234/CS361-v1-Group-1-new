@@ -1,13 +1,16 @@
-"""Who reviews whom (V4 #293): an executive assigns a reviewer to a lecturer; the
-verification queue (VerificationService) narrows a plain reviewer to their reviewees.
+"""Who reviews whom (V4 #293): an executive assigns a reviewer to a lecturer for one
+evaluation round; the verification queue (VerificationService) narrows a plain reviewer to
+their reviewees. An assignment only counts while its round is open and before submit_due_at.
 """
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.v2.models.reviewer_assignment import ReviewerAssignment
+from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.dtos.common import ListMeta, ListResponse
@@ -21,20 +24,35 @@ from app.v3.services.db_errors import is_unique_violation
 
 
 class ReviewerAssignmentService:
-    def __init__(self, assignment_dao: ReviewerAssignmentDAO, lecturer_dao: LecturerDAO) -> None:
+    def __init__(
+        self,
+        assignment_dao: ReviewerAssignmentDAO,
+        lecturer_dao: LecturerDAO,
+        round_dao: EvaluationRoundDAO,
+    ) -> None:
         self.assignment_dao = assignment_dao
         self.lecturer_dao = lecturer_dao
+        self.round_dao = round_dao
 
     def create_assignment(
         self, actor: Actor, data: ReviewerAssignmentCreateRequest
     ) -> ReviewerAssignmentResponse:
         if actor.lecturer_id is None:
             raise ForbiddenError("Sign in as a person: an assignment records who made it")
+        evaluation_round = self.round_dao.get_by_id(data.round_id)
+        if evaluation_round is None:
+            raise BadRequestError("Evaluation round not found")
+        if not evaluation_round.is_open or (
+            evaluation_round.submit_due_at is not None
+            and evaluation_round.submit_due_at <= datetime.now(UTC)
+        ):
+            raise ConflictError("The evaluation round is closed: no new reviewer assignments")
         self._require_lecturer(data.reviewer_id)
         self._require_lecturer(data.reviewee_id)
         try:
             assignment = self.assignment_dao.add(
                 ReviewerAssignment(
+                    round_id=data.round_id,
                     reviewer_id=data.reviewer_id,
                     reviewee_id=data.reviewee_id,
                     assigned_by=actor.lecturer_id,
@@ -42,7 +60,9 @@ class ReviewerAssignmentService:
             )
         except IntegrityError as exc:
             if is_unique_violation(exc):
-                raise ConflictError("This reviewer is already assigned to this lecturer") from exc
+                raise ConflictError(
+                    "This reviewer is already assigned to this lecturer in this round"
+                ) from exc
             raise
         return self._to_response(assignment)
 
@@ -51,12 +71,16 @@ class ReviewerAssignmentService:
     ) -> ListResponse[ReviewerAssignmentResponse]:
         if actor.has_any(Role.EXECUTIVE):  # admin counts as every role (Actor.has_any)
             assignments = self.assignment_dao.list_all(
-                reviewer_id=query.reviewer_id, reviewee_id=query.reviewee_id
+                round_id=query.round_id,
+                reviewer_id=query.reviewer_id,
+                reviewee_id=query.reviewee_id,
             )
         elif actor.has_any(Role.REVIEWER):
             if actor.lecturer_id is None:
                 raise ForbiddenError("Sign in as a person to see your assignments")
-            assignments = self.assignment_dao.list_by_reviewer(actor.lecturer_id)
+            assignments = self.assignment_dao.list_by_reviewer(
+                actor.lecturer_id, round_id=query.round_id
+            )
         else:
             raise ForbiddenError("Only an executive or a reviewer sees assignments")
         items = [self._to_response(assignment) for assignment in assignments]
@@ -77,8 +101,11 @@ class ReviewerAssignmentService:
     def _to_response(self, assignment: ReviewerAssignment) -> ReviewerAssignmentResponse:
         reviewer = self.lecturer_dao.get_by_id(assignment.reviewer_id)
         reviewee = self.lecturer_dao.get_by_id(assignment.reviewee_id)
+        evaluation_round = self.round_dao.get_by_id(assignment.round_id)
         return ReviewerAssignmentResponse(
             id=assignment.id,
+            round_id=assignment.round_id,
+            round_name_th=evaluation_round.name_th if evaluation_round else "",
             reviewer_id=assignment.reviewer_id,
             reviewer_name_th=reviewer.name_th if reviewer else "",
             reviewee_id=assignment.reviewee_id,

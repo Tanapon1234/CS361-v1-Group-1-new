@@ -519,9 +519,11 @@ VerificationServiceDep = Annotated[VerificationService, Depends(get_verification
 
 
 def get_reviewer_assignment_service(
-    assignment_dao: ReviewerAssignmentDAODep, lecturer_dao: LecturerDAODep
+    assignment_dao: ReviewerAssignmentDAODep,
+    lecturer_dao: LecturerDAODep,
+    round_dao: EvaluationRoundDAODep,
 ) -> ReviewerAssignmentService:
-    return ReviewerAssignmentService(assignment_dao, lecturer_dao)
+    return ReviewerAssignmentService(assignment_dao, lecturer_dao, round_dao)
 
 
 ReviewerAssignmentServiceDep = Annotated[

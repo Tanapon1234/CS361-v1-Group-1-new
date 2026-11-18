@@ -550,9 +550,11 @@ export interface EvidenceQueueItem {
   created_at: string;
 }
 
-/** Who reviews whom (V4 #293) */
+/** Who reviews whom in one round (V4 #293); only listed while the round is open and before its submit_due_at */
 export interface ReviewerAssignment {
   id: string;
+  round_id: number;
+  round_name_th: string;
   reviewer_id: string;
   reviewer_name_th: string;
   reviewee_id: string;
