@@ -32,7 +32,7 @@ const GROUPS: Group[] = [
       { href: '/manage/submissions', label: 'ใบภาระงาน' },
       { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
       { href: '/manage/rounds', label: 'รอบประเมิน' },
-      { href: '/manage/rubrics', label: 'เกณฑ์ภาระงาน' },
+      { href: '/manage/rubrics', label: 'เกณฑ์ภาระงาน', needs: 'admin' },
     ],
   },
   {
@@ -66,7 +66,6 @@ function lecturerGroups(selfId: string | null): Group[] {
       items: [
         { href: '/manage/submissions', label: 'ใบภาระงานของฉัน' },
         { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
-        { href: '/manage/rounds', label: 'รอบประเมิน' },
       ],
     },
     {
