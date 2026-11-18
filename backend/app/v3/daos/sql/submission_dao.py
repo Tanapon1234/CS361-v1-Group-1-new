@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -82,14 +83,16 @@ class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
         academic_year_to: int,
         category_code: str | None = None,
         lecturer_id: UUID | None = None,
-    ) -> Sequence[tuple[SubmissionCategoryTotal, Lecturer, int, str, str]]:
+    ) -> Sequence[tuple[UUID, str, int, str, str, Decimal, Decimal]]:
         statement = (
             select(
-                SubmissionCategoryTotal,
-                Lecturer,
+                Lecturer.lecturer_id,
+                Lecturer.name_th,
                 EvaluationRound.academic_year,
                 RubricCategory.code,
                 RubricCategory.name_th,
+                SubmissionCategoryTotal.raw_score,
+                SubmissionCategoryTotal.capped_score,
             )
             .join(Submission, Submission.id == SubmissionCategoryTotal.submission_id)
             .join(Lecturer, col(Lecturer.lecturer_id) == Submission.lecturer_id)
@@ -111,14 +114,15 @@ class SqlSubmissionDAO(SqlDAO, SubmissionDAO):
         return self.session.exec(statement).all()
 
     def find_lecturers_with_department_data(
-        self, department_id: int, academic_year: int
-    ) -> Sequence[UUID]:
+        self, department_id: int, *, academic_year_from: int, academic_year_to: int
+    ) -> Sequence[tuple[UUID, int]]:
         statement = (
-            select(Submission.lecturer_id)
+            select(Submission.lecturer_id, EvaluationRound.academic_year)
             .join(SubmissionCategoryTotal, SubmissionCategoryTotal.submission_id == Submission.id)
             .join(EvaluationRound, EvaluationRound.id == Submission.round_id)
             .where(Submission.department_snapshot == department_id)
-            .where(EvaluationRound.academic_year == academic_year)
+            .where(col(EvaluationRound.academic_year) >= academic_year_from)
+            .where(col(EvaluationRound.academic_year) <= academic_year_to)
             .distinct()
         )
         return self.session.exec(statement).all()

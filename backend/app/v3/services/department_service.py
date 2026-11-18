@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
@@ -93,15 +95,23 @@ class DepartmentService:
 
         rows = [
             DepartmentReportCategoryRow(
-                lecturer_id=lecturer.lecturer_id,
-                name_th=lecturer.name_th,
+                lecturer_id=lecturer_id,
+                name_th=name_th,
                 academic_year=academic_year,
                 category_code=category_code,
                 category_name_th=category_name_th,
-                raw_score=total.raw_score,
-                capped_score=total.capped_score,
+                raw_score=raw_score,
+                capped_score=capped_score,
             )
-            for total, lecturer, academic_year, category_code, category_name_th in (
+            for (
+                lecturer_id,
+                name_th,
+                academic_year,
+                category_code,
+                category_name_th,
+                raw_score,
+                capped_score,
+            ) in (
                 self.submission_dao.list_department_category_totals(
                     department_id,
                     academic_year_from=query.academic_year_from,
@@ -126,11 +136,17 @@ class DepartmentService:
         # "Missing" means no submission at all that year, independent of which category
         # was asked for, so it is not narrowed by category_code.
         years = self.round_dao.list_academic_years(query.academic_year_from, query.academic_year_to)
+        # One query for every year (was one per year); Aurora round trips add up.
+        present_by_year: dict[int, set[UUID]] = {}
+        for lecturer_id, year in self.submission_dao.find_lecturers_with_department_data(
+            department_id,
+            academic_year_from=query.academic_year_from,
+            academic_year_to=query.academic_year_to,
+        ):
+            present_by_year.setdefault(year, set()).add(lecturer_id)
         missing: list[DepartmentReportMissingRow] = []
         for year in sorted(years, reverse=True):
-            present = set(
-                self.submission_dao.find_lecturers_with_department_data(department_id, year)
-            )
+            present = present_by_year.get(year, set())
             missing.extend(
                 DepartmentReportMissingRow(
                     lecturer_id=lecturer.lecturer_id, name_th=lecturer.name_th, academic_year=year
