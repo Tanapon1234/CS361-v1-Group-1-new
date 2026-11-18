@@ -40,6 +40,7 @@ const GROUPS: Group[] = [
     items: [
       { href: '/manage/review', label: 'ตรวจสอบและรับรอง', needs: 'review' },
       { href: '/manage/review-assignments', label: 'มอบหมายผู้ตรวจ', needs: 'executive' },
+      { href: '/manage/user-roles', label: 'กำหนดบทบาทผู้ใช้', needs: 'admin' },
       { href: '/manage/audit', label: 'ประวัติการแก้ไข', needs: 'admin' },
     ],
   },

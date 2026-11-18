@@ -21,11 +21,15 @@ from app.v2.models.lecturer import Lecturer
 from app.v2.models.member_position import MemberPosition
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.member_position_dao import MemberPositionDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
+from app.v3.daos.user_role_dao import UserRoleDAO
 from app.v3.dependencies import (
     CurrentActorDep,
     get_lecturer_dao,
     get_member_position_dao,
+    get_reviewer_assignment_dao,
     get_token_verifier,
+    get_user_role_dao,
 )
 from app.v3.security import Actor, HeldPosition, Role
 
@@ -66,6 +70,10 @@ def lecturer_dao() -> MagicMock:
 
 POSITION_DAO = create_autospec(MemberPositionDAO, instance=True)
 POSITION_DAO.list_active.return_value = []
+USER_ROLE_DAO = create_autospec(UserRoleDAO, instance=True)
+USER_ROLE_DAO.roles_of.return_value = []
+ASSIGNMENT_DAO = create_autospec(ReviewerAssignmentDAO, instance=True)
+ASSIGNMENT_DAO.has_active.return_value = False
 
 
 def make_client(lecturer_dao: MagicMock, **settings: Any) -> TestClient:
@@ -84,6 +92,8 @@ def make_client(lecturer_dao: MagicMock, **settings: Any) -> TestClient:
     app.dependency_overrides[get_settings] = lambda: Settings(**values)
     app.dependency_overrides[get_lecturer_dao] = lambda: lecturer_dao
     app.dependency_overrides[get_member_position_dao] = lambda: POSITION_DAO
+    app.dependency_overrides[get_user_role_dao] = lambda: USER_ROLE_DAO
+    app.dependency_overrides[get_reviewer_assignment_dao] = lambda: ASSIGNMENT_DAO
     app.dependency_overrides[get_token_verifier] = lambda: CognitoTokenVerifier(
         issuer=ISSUER, client_id=CLIENT_ID, jwks_json=JWKS
     )
@@ -248,6 +258,35 @@ def test_positions_held_today_are_on_the_actor(client: TestClient) -> None:
         POSITION_DAO.list_active.return_value = []
 
     assert response.json() == [["dept_chair", 3]]
+
+
+# --- roles from the app and the derived reviewer role ---------------------------------
+
+
+def test_roles_granted_in_the_app_apply_on_the_next_request(client: TestClient) -> None:
+    USER_ROLE_DAO.roles_of.return_value = ["executive"]
+    try:
+        response = client.get("/who", headers=bearer(token()))
+    finally:
+        USER_ROLE_DAO.roles_of.return_value = []
+
+    assert response.json()["roles"] == ["executive", "lecturer", "staff"]
+
+
+def test_an_active_reviewer_assignment_makes_the_lecturer_a_reviewer(client: TestClient) -> None:
+    ASSIGNMENT_DAO.has_active.return_value = True
+    try:
+        response = client.get("/who", headers=bearer(token()))
+    finally:
+        ASSIGNMENT_DAO.has_active.return_value = False
+
+    assert "reviewer" in response.json()["roles"]
+
+
+def test_the_cognito_reviewer_group_is_no_longer_honored(client: TestClient) -> None:
+    response = client.get("/who", headers=bearer(token(**{"cognito:groups": ["reviewer"]})))
+
+    assert response.json()["roles"] == ["lecturer"]
 
 
 def test_admin_counts_as_every_role() -> None:

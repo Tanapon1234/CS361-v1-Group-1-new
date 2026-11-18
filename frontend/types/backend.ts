@@ -563,6 +563,15 @@ export interface ReviewerAssignment {
   created_at: string;
 }
 
+/** A role an admin granted in the app (staff, executive, admin); reviewer is derived, not stored */
+export interface UserRole {
+  lecturer_id: string;
+  lecturer_name_th: string;
+  role: Role;
+  granted_by: string;
+  created_at: string;
+}
+
 export interface AuditLogEntry {
   id: number;
   occurred_at: string;

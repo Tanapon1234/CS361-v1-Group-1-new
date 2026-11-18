@@ -50,8 +50,10 @@ from app.v3.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v3.daos.sql.reviewer_assignment_dao import SqlReviewerAssignmentDAO
 from app.v3.daos.sql.rubric_dao import SqlRubricDAO
 from app.v3.daos.sql.submission_dao import SqlSubmissionDAO
+from app.v3.daos.sql.user_role_dao import SqlUserRoleDAO
 from app.v3.daos.sql.verification_dao import SqlVerificationDAO
 from app.v3.daos.submission_dao import SubmissionDAO
+from app.v3.daos.user_role_dao import UserRoleDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.permissions import rule_for
 from app.v3.security import Actor, HeldPosition, Role, roles_from_names
@@ -77,6 +79,7 @@ from app.v3.services.round_service import RoundService
 from app.v3.services.rubric_service import RubricService
 from app.v3.services.score_keeper import ScoreKeeper
 from app.v3.services.submission_service import SubmissionService
+from app.v3.services.user_role_service import UserRoleService
 from app.v3.services.verification_service import VerificationService
 from app.v3.storage.object_storage import ObjectStorage
 from app.v3.storage.s3_object_storage import S3ObjectStorage
@@ -164,6 +167,10 @@ def get_reviewer_assignment_dao(session: SessionDep) -> ReviewerAssignmentDAO:
     return SqlReviewerAssignmentDAO(session)
 
 
+def get_user_role_dao(session: SessionDep) -> UserRoleDAO:
+    return SqlUserRoleDAO(session)
+
+
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
 LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
@@ -181,6 +188,7 @@ EvidenceDAODep = Annotated[EvidenceDAO, Depends(get_evidence_dao)]
 PublicationEvidenceDAODep = Annotated[PublicationEvidenceDAO, Depends(get_publication_evidence_dao)]
 VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
 ReviewerAssignmentDAODep = Annotated[ReviewerAssignmentDAO, Depends(get_reviewer_assignment_dao)]
+UserRoleDAODep = Annotated[UserRoleDAO, Depends(get_user_role_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
 
@@ -205,6 +213,8 @@ def get_actor(
     verifier: TokenVerifierDep,
     lecturer_dao: LecturerDAODep,
     position_dao: MemberPositionDAODep,
+    user_role_dao: UserRoleDAODep,
+    assignment_dao: ReviewerAssignmentDAODep,
     authorization: Annotated[str | None, Header()] = None,
     x_lecturer_id: Annotated[
         UUID | None, Header(description="Dev only (not prod): act as this lecturer_id")
@@ -227,9 +237,11 @@ def get_actor(
         if not lecturer.is_active:
             raise ForbiddenError("This lecturer account is deactivated")
         groups = claims.get("cognito:groups") or []
+        # reviewer is derived from an active assignment, so the Cognito group is not honored
+        token_roles = roles_from_names(groups) - {Role.REVIEWER}
         return Actor(
             lecturer.lecturer_id,
-            roles_from_names(groups) | {Role.LECTURER},
+            _effective_roles(token_roles, lecturer.lecturer_id, user_role_dao, assignment_dao),
             _positions_held(position_dao, lecturer.lecturer_id),
         )
 
@@ -238,10 +250,28 @@ def get_actor(
         if x_lecturer_id is None:
             return Actor(None, roles)
         return Actor(
-            x_lecturer_id, roles | {Role.LECTURER}, _positions_held(position_dao, x_lecturer_id)
+            x_lecturer_id,
+            _effective_roles(roles, x_lecturer_id, user_role_dao, assignment_dao),
+            _positions_held(position_dao, x_lecturer_id),
         )
 
     raise UnauthorizedError("Sign-in required")
+
+
+def _effective_roles(
+    given: frozenset[Role],
+    lecturer_id: UUID,
+    user_role_dao: UserRoleDAO,
+    assignment_dao: ReviewerAssignmentDAO,
+) -> frozenset[Role]:
+    """Roles from the token (or dev header), the ones an admin granted in the app, and
+    reviewer while the lecturer has an active reviewer assignment. Read on every request,
+    so a grant or revoke applies at once, without a new sign-in."""
+    roles = set(given) | {Role.LECTURER}
+    roles |= roles_from_names(user_role_dao.roles_of(lecturer_id))
+    if assignment_dao.has_active(lecturer_id):
+        roles.add(Role.REVIEWER)
+    return frozenset(roles)
 
 
 def _positions_held(position_dao: MemberPositionDAO, lecturer_id: UUID) -> frozenset[HeldPosition]:
@@ -525,6 +555,14 @@ def get_reviewer_assignment_service(
 ) -> ReviewerAssignmentService:
     return ReviewerAssignmentService(assignment_dao, lecturer_dao, round_dao)
 
+
+def get_user_role_service(
+    user_role_dao: UserRoleDAODep, lecturer_dao: LecturerDAODep
+) -> UserRoleService:
+    return UserRoleService(user_role_dao, lecturer_dao)
+
+
+UserRoleServiceDep = Annotated[UserRoleService, Depends(get_user_role_service)]
 
 ReviewerAssignmentServiceDep = Annotated[
     ReviewerAssignmentService, Depends(get_reviewer_assignment_service)

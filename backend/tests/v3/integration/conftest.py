@@ -34,6 +34,7 @@ def engine() -> Iterator[Engine]:
                 "010_staff_drafted_entries.sql",
                 "011_reviewer_assignment.sql",
                 "012_reviewer_assignment_round.sql",
+                "013_user_role.sql",
             ):
                 cursor.execute((MIGRATIONS / name).read_text())
         raw.commit()

@@ -79,6 +79,9 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v3/reviewer-assignments"),
     ("POST", "/api/v3/reviewer-assignments"),
     ("DELETE", "/api/v3/reviewer-assignments/{assignment_id}"),
+    ("GET", "/api/v3/user-roles"),
+    ("POST", "/api/v3/user-roles"),
+    ("DELETE", "/api/v3/user-roles/{lecturer_id}/{role}"),
     # lecturer work by year / category (peer test TC1-TC3)
     ("GET", "/api/v3/lecturers/{lecturer_id}/work"),
     # --- workload (database/data_schema/SemesterReport/api-reference.md) ---

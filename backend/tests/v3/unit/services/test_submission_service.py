@@ -169,7 +169,9 @@ def test_admin_may_still_create_a_submission(
     daos["round"].get_by_id.return_value = EvaluationRound(id=1, is_open=True)
     daos["submission"].get_by_round_and_lecturer.return_value = None
 
-    result = service.create_submission(owner.lecturer_id, admin, SubmissionCreateRequest(round_id=1))
+    result = service.create_submission(
+        owner.lecturer_id, admin, SubmissionCreateRequest(round_id=1)
+    )
 
     assert result.status is SubmissionStatus.DRAFT
 

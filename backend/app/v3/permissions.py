@@ -191,6 +191,10 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/reviewer-assignments"): Rule(roles=frozenset({Role.EXECUTIVE, Role.REVIEWER})),
     ("POST", "/reviewer-assignments"): EXECUTIVE,
     ("DELETE", "/reviewer-assignments/{assignment_id}"): EXECUTIVE,
+    # roles granted in the app (013): admin only; reviewer is not stored, it is derived
+    ("GET", "/user-roles"): ADMIN,
+    ("POST", "/user-roles"): ADMIN,
+    ("DELETE", "/user-roles/{lecturer_id}/{role}"): ADMIN,
 }
 
 

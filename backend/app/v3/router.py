@@ -34,6 +34,7 @@ from app.v3.controllers import (
     round_controller,
     rubric_controller,
     submission_controller,
+    user_role_controller,
     verification_controller,
 )
 from app.v3.dependencies import authorize
@@ -80,6 +81,7 @@ for controller in (
     # verification (V3)
     verification_controller,
     reviewer_assignment_controller,
+    user_role_controller,
     audit_log_controller,
 ):
     api_v3_router.include_router(controller.router)
