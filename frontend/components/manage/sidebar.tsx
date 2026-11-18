@@ -34,6 +34,7 @@ const GROUPS: Group[] = [
     title: 'ภาระงานประจำภาค',
     items: [
       { href: '/manage/submissions', label: 'ใบภาระงาน' },
+      { href: '/manage/summary', label: 'สรุปผลงานของฉัน' },
       { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
       {
         href: '/manage/rounds',
@@ -73,6 +74,7 @@ function lecturerGroups(selfId: string | null): Group[] {
       title: 'ภาระงานประจำภาค',
       items: [
         { href: '/manage/submissions', label: 'ใบภาระงานของฉัน' },
+        { href: '/manage/summary', label: 'สรุปผลงานของฉัน' },
         { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
         { href: '/manage/rounds', label: 'รอบประเมิน', alsoActiveOn: ['/manage/rubrics'] },
       ],
