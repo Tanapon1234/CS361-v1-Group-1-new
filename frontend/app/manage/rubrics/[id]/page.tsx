@@ -13,6 +13,7 @@ import {
   updateSection,
 } from '@/app/manage/actions/rubric';
 import { ActionForm } from '@/components/manage/action-form';
+import { itemSummary } from '@/components/manage/rubric-summary';
 import { RubricItemFields } from '@/components/manage/rubric-item-fields';
 import {
   Badge,
@@ -29,29 +30,14 @@ import { canManage } from '@/lib/auth/permissions';
 import { getRubricForm, listRounds } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import {
-  POSITION_LABEL,
-  UNIT_LABEL,
   formatNumber,
 } from '@/lib/backend/labels';
-import type { RubricFormSection, RubricItem, RubricSection } from '@/types/backend';
+import type { RubricFormSection, RubricSection } from '@/types/backend';
 
 export const metadata: Metadata = { title: 'แก้ไขเกณฑ์' };
 
 function flatten(sections: RubricFormSection[]): RubricFormSection[] {
   return sections.flatMap((section) => [section, ...flatten(section.children)]);
-}
-
-function itemSummary(item: RubricItem): string {
-  const weight =
-    item.weight_mode === 'fixed'
-      ? `น้ำหนัก ${formatNumber(item.weight)}`
-      : `${item.assessor_position ? POSITION_LABEL[item.assessor_position] : ''} ให้ค่า ${formatNumber(item.weight_min)}–${formatNumber(item.weight_max)}${item.range_basis === 'points' ? ' คะแนน' : ''}`;
-  const divisor = item.unit_divisor !== 1 ? ` ÷ ${formatNumber(item.unit_divisor)}` : '';
-  const tier =
-    item.tier_min !== null || item.tier_max !== null
-      ? ` · นศ. ${item.tier_min ?? 0}–${item.tier_max ?? '∞'}`
-      : '';
-  return `${weight} · ต่อ${UNIT_LABEL[item.unit]}${divisor}${tier}`;
 }
 
 function SectionFields({

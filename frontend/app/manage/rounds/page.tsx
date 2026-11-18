@@ -56,7 +56,9 @@ export default async function RoundsPage() {
                       <span className="text-ink-muted">ยังไม่ได้สร้าง</span>
                     )
                   ) : (
-                    (versionCode.get(round.rubric_version_id) ?? '–')
+                    <Link href={`/manage/rounds/${round.id}/criteria`} className={linkClass}>
+                      {versionCode.get(round.rubric_version_id) ?? 'ดูเกณฑ์'}
+                    </Link>
                   )}
                 </Td>
                 <Td>{formatDateTime(round.submit_due_at)}</Td>
