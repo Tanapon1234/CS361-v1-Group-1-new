@@ -27,7 +27,6 @@ function groupByRound(assignments: ReviewerAssignment[], roundOrder: Map<number,
     .map(([id, round]) => ({
       id,
       name: round.name,
-      pairs: [...round.reviewers.values()].reduce((sum, reviewer) => sum + reviewer.rows.length, 0),
       reviewers: [...round.reviewers.entries()]
         .map(([reviewerId, reviewer]) => ({ id: reviewerId, ...reviewer }))
         .sort((x, y) => x.name.localeCompare(y.name, 'th')),
@@ -89,19 +88,16 @@ export default async function ReviewAssignmentsPage() {
         ) : (
           <div className="space-y-4">
             {groups.map((round, index) => (
-              // Newest round open, the others folded: the summary still says how many pairs are inside
+              // Newest round open, the others folded
               <details key={round.id} open={index === 0} className="group overflow-hidden rounded-xl border border-line">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-3 bg-surface-alt px-4 py-4">
                   <div className="min-w-0">
                     <p className="font-bold text-ink">{round.name}</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <div className="mt-1.5">
                       <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">
                         <span aria-hidden className="mr-1.5 size-1.5 rounded-full bg-emerald-500" />
                         เปิดรับ
                       </Badge>
-                      <span className="text-xs text-ink-muted">
-                        {round.pairs} คู่ · ผู้ตรวจ {round.reviewers.length} คน
-                      </span>
                     </div>
                   </div>
                   <span aria-hidden className="mt-1 shrink-0 text-ink-muted transition-transform group-open:rotate-180">
