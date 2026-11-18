@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { createSubmission } from '@/app/manage/actions/workload';
-import { ActionForm } from '@/components/manage/action-form';
+import { RoundSheetList } from '@/components/manage/round-sheet-list';
 import {
   EmptyNote,
   PageHeader,
@@ -18,7 +17,14 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
-import { MAX_PAGE, PAGE_SIZE, listLecturers, listRounds, listSubmissions } from '@/lib/backend/api';
+import {
+  MAX_PAGE,
+  PAGE_SIZE,
+  listLecturers,
+  listRounds,
+  listRoundsWithState,
+  listSubmissions,
+} from '@/lib/backend/api';
 import { canCreateSubmission, isLecturerOnly } from '@/lib/auth/permissions';
 import { currentLecturerId, getCurrentUser } from '@/lib/backend/client';
 import { SUBMISSION_STATUS_LABEL, formatDateTime, formatScore } from '@/lib/backend/labels';
@@ -41,27 +47,22 @@ export default async function SubmissionsPage({
   const status = param(params.status) as SubmissionStatus | undefined;
   const offset = intParam(params.offset) ?? 0;
 
-  const [rounds, lecturers, submissions] = await Promise.all([
-    listRounds(),
-    listLecturers({ limit: MAX_PAGE }),
+  const canCreate = canCreateSubmission(user);
+  const [rounds, lecturers, submissions, myRounds] = await Promise.all([
+    scope === 'all' ? listRounds() : null,
+    scope === 'all' ? listLecturers({ limit: MAX_PAGE }) : null,
     me
       ? listSubmissions({
-          round_id: roundId,
-          status: status || undefined,
+          round_id: scope === 'all' ? roundId : undefined,
+          status: scope === 'all' ? status || undefined : undefined,
           lecturer_id: scope === 'mine' ? me : undefined,
-          offset,
+          offset: scope === 'all' ? offset : undefined,
         })
       : Promise.resolve(null),
+    scope === 'mine' ? listRoundsWithState() : null,
   ]);
-  const roundName = new Map(rounds.items.map((round) => [round.id, round.name_th]));
-  const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
-  const openRounds = rounds.items.filter((round) => round.is_open);
-  // Reuse the round picked in the filter below for "create", so there is only one round
-  // dropdown on the page; with exactly one open round there is nothing to pick anyway
-  const createRound =
-    (roundId ? openRounds.find((round) => round.id === roundId) : undefined) ??
-    (openRounds.length === 1 ? openRounds[0] : undefined);
-  const canCreate = canCreateSubmission(user);
+  const roundName = new Map(rounds?.items.map((round) => [round.id, round.name_th]));
+  const lecturerName = new Map(lecturers?.items.map((l) => [l.lecturer_id, l.name_th]));
 
   return (
     <div className="space-y-6">
@@ -73,23 +74,17 @@ export default async function SubmissionsPage({
         </EmptyNote>
       ) : (
         <>
-          {canCreate ? (
-            <Section title="สร้างใบภาระงานของฉัน">
-              {openRounds.length === 0 ? (
-                <EmptyNote>ยังไม่มีรอบที่เปิดให้กรอก</EmptyNote>
-              ) : createRound ? (
-                <ActionForm action={createSubmission} submitLabel={`สร้างใบสำหรับ${createRound.name_th}`}>
-                  <input type="hidden" name="round_id" value={createRound.id} />
-                </ActionForm>
-              ) : (
-                <EmptyNote>
-                  เลือกรอบที่เปิดอยู่จากช่อง &quot;รอบ&quot; ด้านล่าง ({openRounds.map((round) => round.name_th).join(', ')}) เพื่อสร้างใบ
-                </EmptyNote>
-              )}
+          {scope === 'mine' && myRounds ? (
+            <Section
+              title="ใบภาระงานของฉัน"
+              description="แยกตามรอบประเมิน รอบที่เปิดรับอยู่ และรอบที่ฉันมีใบแล้ว"
+            >
+              <RoundSheetList rounds={myRounds} mine={submissions?.items ?? []} mayCreate={canCreate} />
             </Section>
           ) : null}
 
-          <Section title={scope === 'mine' ? 'ใบของฉัน' : 'ใบทั้งหมด'}>
+          {scope === 'all' && rounds ? (
+          <Section title="ใบทั้งหมด">
             <form role="search" className="mb-4 flex flex-wrap gap-2">
               {ownOnly ? null : (
                 <select name="scope" defaultValue={scope} className={`${inputClass} sm:w-44`} aria-label="ขอบเขต">
@@ -144,6 +139,7 @@ export default async function SubmissionsPage({
               />
             ) : null}
           </Section>
+          ) : null}
         </>
       )}
     </div>
