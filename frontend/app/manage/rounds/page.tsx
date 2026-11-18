@@ -44,7 +44,11 @@ export default async function RoundsPage() {
           <Table head={['รอบ', 'ช่วงผลงาน', ownOnly ? 'ใบภาระงานของฉัน' : 'เกณฑ์', 'กำหนดส่ง', 'สถานะ', '']}>
             {rounds.items.map((round) => (
               <tr key={round.id}>
-                <Td className="font-medium text-ink">{round.name_th}</Td>
+                <Td className="font-medium text-ink">
+                  <Link href={`/manage/rounds/${round.id}`} className="hover:text-brand">
+                    {round.name_th}
+                  </Link>
+                </Td>
                 <Td>
                   {formatDate(round.period_start)} – {formatDate(round.period_end)}
                 </Td>
@@ -56,9 +60,7 @@ export default async function RoundsPage() {
                       <span className="text-ink-muted">ยังไม่ได้สร้าง</span>
                     )
                   ) : (
-                    <Link href={`/manage/rounds/${round.id}/criteria`} className={linkClass}>
-                      {versionCode.get(round.rubric_version_id) ?? 'ดูเกณฑ์'}
-                    </Link>
+                    (versionCode.get(round.rubric_version_id) ?? '–')
                   )}
                 </Td>
                 <Td>{formatDateTime(round.submit_due_at)}</Td>
@@ -70,8 +72,8 @@ export default async function RoundsPage() {
                   )}
                 </Td>
                 <Td>
-                  <Link href={`/manage/rounds/${round.id}`} className={linkClass}>
-                    เปิด
+                  <Link href={`/manage/rounds/${round.id}/criteria`} className={linkClass}>
+                    ดูเกณฑ์
                   </Link>
                 </Td>
               </tr>
