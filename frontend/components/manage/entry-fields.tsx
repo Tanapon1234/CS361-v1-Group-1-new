@@ -14,7 +14,7 @@ interface Choice {
   group: string;
 }
 
-function choicesOf(form: RubricForm): Choice[] {
+function choicesOf(form: RubricForm, categoryId?: number): Choice[] {
   const walk = (sections: RubricFormSection[], category: string): Choice[] =>
     sections.flatMap((section) => [
       ...section.items
@@ -22,9 +22,9 @@ function choicesOf(form: RubricForm): Choice[] {
         .map((item) => ({ item, group: `${category} › ${section.code} ${section.name_th}` })),
       ...walk(section.children, category),
     ]);
-  return form.categories.flatMap((category) =>
-    walk(category.sections, `หมวด ${category.code}`)
-  );
+  return form.categories
+    .filter((category) => categoryId === undefined || category.id === categoryId)
+    .flatMap((category) => walk(category.sections, `หมวด ${category.code}`));
 }
 
 function toDetailValue(spec: FieldSpec, raw: string | boolean): unknown {
@@ -43,14 +43,17 @@ function toDetailValue(spec: FieldSpec, raw: string | boolean): unknown {
 export function EntryFields({
   form,
   entry,
+  categoryId,
   publications = [],
 }: {
   form: RubricForm;
   entry?: Entry;
+  /** Offer only the items of this category (the "+" of a category section) */
+  categoryId?: number;
   /** The owner's own publications, to link a line to one */
   publications?: { publication_id: number; title: string; publication_year: number | null }[];
 }) {
-  const choices = useMemo(() => choicesOf(form), [form]);
+  const choices = useMemo(() => choicesOf(form, categoryId), [form, categoryId]);
   const [itemId, setItemId] = useState<number>(entry?.item_id ?? choices[0]?.item.id ?? 0);
   const [details, setDetails] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(

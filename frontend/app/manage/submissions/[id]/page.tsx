@@ -278,22 +278,11 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         )}
       </Section>
 
-      {editable ? (
-        <Section
-          title="เพิ่มรายการ"
-          description={
-            isOwner
-              ? 'เลือกรายการตามเกณฑ์ ระบบจะคำนวณคะแนนให้เอง'
-              : 'กรอกแทนอาจารย์ได้ — รายการที่กรอกแทนต้องให้อาจารย์ยืนยันก่อนนับเป็นข้อมูลจริง'
-          }
-        >
-          <ActionForm action={createEntry.bind(null, id)} submitLabel="เพิ่มรายการ" resetOnSuccess>
-            <EntryFields form={form} publications={myPublications} />
-          </ActionForm>
-        </Section>
-      ) : (
+      {!editable ? (
         <Notice>ใบอยู่ในสถานะที่แก้รายการไม่ได้ (แก้ได้เฉพาะตอนเป็นร่างหรือถูกตีกลับ)</Notice>
-      )}
+      ) : null}
+
+      <h2 className="text-lg font-bold text-ink">รอบ {round?.name_th ?? ''}</h2>
 
       {form.categories.map((category) => {
         const categorySections = sections.filter((s) => s.category.id === category.id);
@@ -306,6 +295,25 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
             title={`หมวด ${category.code} ${category.name_th}`}
             description={`${entriesInCategory.length} รายการ · เพดาน ${formatNumber(category.cap)}`}
           >
+            {editable ? (
+              <details className="group mb-4 rounded-lg border border-line-soft">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-brand">
+                  <span className="text-lg leading-none group-open:hidden">+</span>
+                  <span className="hidden text-lg leading-none group-open:inline">−</span>
+                  เพิ่มรายการในหมวด {category.code} {category.name_th}
+                </summary>
+                <div className="space-y-3 border-t border-line-soft p-4">
+                  {!isOwner ? (
+                    <p className="text-xs text-ink-muted">
+                      กรอกแทนอาจารย์ได้ รายการที่กรอกแทนต้องให้อาจารย์ยืนยันก่อนนับเป็นข้อมูลจริง
+                    </p>
+                  ) : null}
+                  <ActionForm action={createEntry.bind(null, id)} submitLabel="เพิ่มรายการ" resetOnSuccess>
+                    <EntryFields form={form} categoryId={category.id} publications={myPublications} />
+                  </ActionForm>
+                </div>
+              </details>
+            ) : null}
             {entriesInCategory.length === 0 ? (
               <EmptyNote>ยังไม่มีรายการในหมวดนี้</EmptyNote>
             ) : (
