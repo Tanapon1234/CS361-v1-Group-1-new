@@ -3,9 +3,10 @@ import Link from 'next/link';
 
 import { createRound } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
+import { RoundsRubricTabs } from '@/components/manage/rounds-rubric-tabs';
 import { RoundFields } from '@/components/manage/round-fields';
 import { Badge, EmptyNote, Notice, PageHeader, Section, StatusBadge, Table, Td, linkClass } from '@/components/manage/ui';
-import { canManage, isLecturerOnly } from '@/lib/auth/permissions';
+import { canManage, isAdmin, isLecturerOnly } from '@/lib/auth/permissions';
 import { listRounds, listRubricVersions, listSubmissions } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatDate, formatDateTime } from '@/lib/backend/labels';
@@ -26,6 +27,7 @@ export default async function RoundsPage() {
 
   return (
     <div className="space-y-6">
+      {isAdmin(me) ? <RoundsRubricTabs current="rounds" /> : null}
       <PageHeader
         title="รอบประเมิน"
         description={

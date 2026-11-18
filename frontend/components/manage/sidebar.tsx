@@ -20,6 +20,10 @@ interface Item {
   label: string;
   /** Shown only when this access flag is on */
   needs?: keyof SidebarAccess;
+  /** Other paths that keep this item highlighted */
+  alsoActiveOn?: string[];
+  /** A different label for admins (they get more on the page) */
+  adminLabel?: string;
 }
 
 type Group = { title: string; items: Item[] };
@@ -31,8 +35,12 @@ const GROUPS: Group[] = [
     items: [
       { href: '/manage/submissions', label: 'ใบภาระงาน' },
       { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
-      { href: '/manage/rounds', label: 'รอบประเมิน' },
-      { href: '/manage/rubrics', label: 'เกณฑ์ภาระงาน' },
+      {
+        href: '/manage/rounds',
+        label: 'รอบประเมิน',
+        adminLabel: 'รอบและเกณฑ์ภาระงาน',
+        alsoActiveOn: ['/manage/rubrics'],
+      },
     ],
   },
   {
@@ -66,7 +74,6 @@ function lecturerGroups(selfId: string | null): Group[] {
       items: [
         { href: '/manage/submissions', label: 'ใบภาระงานของฉัน' },
         { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
-        { href: '/manage/rounds', label: 'รอบประเมิน' },
       ],
     },
     {
@@ -92,8 +99,10 @@ export function ManageSidebar({ access }: { access: SidebarAccess }) {
     items: group.items.filter((item) => !item.needs || access[item.needs]),
   })).filter((group) => group.items.length > 0);
   const pathname = usePathname();
-  const isActive = (href: string) =>
-    href === '/manage' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (item: Item) =>
+    [item.href, ...(item.alsoActiveOn ?? [])].some((href) =>
+      href === '/manage' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
+    );
 
   return (
     <nav
@@ -113,14 +122,14 @@ export function ManageSidebar({ access }: { access: SidebarAccess }) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    aria-current={isActive(item) ? 'page' : undefined}
                     className={
-                      isActive(item.href)
+                      isActive(item)
                         ? 'block rounded-lg bg-brand-soft px-3 py-2 text-sm font-bold whitespace-nowrap text-brand'
                         : 'block rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-ink-muted transition-colors hover:bg-brand-soft hover:text-brand'
                     }
                   >
-                    {item.label}
+                    {access.admin && item.adminLabel ? item.adminLabel : item.label}
                   </Link>
                 </li>
               ))}
