@@ -18,6 +18,10 @@ export const canManage = (me: Me | null) => isAdmin(me);
 export const canManageAnyPublication = (me: Me | null) => hasRole(me, 'staff');
 /** Really a reviewer (an active assignment); admin does not count, only the assigned reviewer verifies */
 export const canReview = (me: Me | null) => !!me && me.roles.includes('reviewer');
+/** Holds the department chair position (the second approval step) */
+export const isDeptChair = (me: Me | null) => !!me?.positions.some((held) => held.position === 'dept_chair');
+/** Has something to check on the review page: as the assigned reviewer or as department head */
+export const canOpenReviewPage = (me: Me | null) => canReview(me) || isDeptChair(me);
 /**
  * Sees everyone's submissions and reports. A plain reviewer is NOT included here — they
  * are a regular lecturer except for the verification queue of lecturers assigned to them
