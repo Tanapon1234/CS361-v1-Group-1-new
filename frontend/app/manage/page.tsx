@@ -7,16 +7,19 @@ import {
   PageHeader,
   Section,
   buttonClass,
+  secondaryButtonClass,
 } from '@/components/manage/ui';
+import { CategoryLegend, YearStackedChart } from '@/components/manage/work-charts';
 import { RoundSheetList } from '@/components/manage/round-sheet-list';
 import { canCreateSubmission } from '@/lib/auth/permissions';
-import { getMe, listRoundsWithState, listSubmissions } from '@/lib/backend/api';
+import { getLecturerWork, getMe, listRoundsWithState, listSubmissions, settle } from '@/lib/backend/api';
 import { currentLecturerId } from '@/lib/backend/client';
 import {
   POSITION_LABEL,
   SIGNER_ROLE_LABEL,
   formatDate,
 } from '@/lib/backend/labels';
+import { summarizeWork } from '@/lib/work-summary';
 
 export const metadata: Metadata = { title: 'ภาพรวมของฉัน' };
 
@@ -34,11 +37,13 @@ export default async function ManageHomePage() {
     );
   }
 
-  const [me, mine, rounds] = await Promise.all([
+  const [me, mine, rounds, work] = await Promise.all([
     getMe(),
     listSubmissions({ lecturer_id: lecturerId }),
     listRoundsWithState(),
+    settle(getLecturerWork(lecturerId, {})),
   ]);
+  const summary = work.data ? summarizeWork(work.data) : null;
   const mayCreate = canCreateSubmission(me);
   // Nothing to say for an ordinary lecturer: no position and only their own signing role
   const showPositions = me.positions.length > 0;
@@ -73,6 +78,23 @@ export default async function ManageHomePage() {
             {me.signer_roles.map((role) => (
               <Badge key={role}>{SIGNER_ROLE_LABEL[role]}</Badge>
             ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {summary && summary.years.length > 0 ? (
+        <Section
+          title="สรุปผลงานของฉัน"
+          description="คะแนนรายปีการศึกษา แบ่งตามหมวด นับเฉพาะใบที่ส่งแล้ว"
+          actions={
+            <Link href="/manage/summary" className={secondaryButtonClass}>
+              ดูสรุปเชิงลึก
+            </Link>
+          }
+        >
+          <div className="space-y-4 rounded-2xl border border-line bg-surface p-5">
+            <YearStackedChart summary={summary} />
+            <CategoryLegend summary={summary} years={summary.years.slice(-8)} />
           </div>
         </Section>
       ) : null}
