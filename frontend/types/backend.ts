@@ -524,32 +524,6 @@ export interface LecturerWork {
 
 // --- review queues (GET /verifications/*) and audit log -------------------------------
 
-export interface PublicationQueueItem {
-  publication_id: number;
-  title: string;
-  publication_year: number | null;
-  venue: string | null;
-  doi: string | null;
-  authors: string[];
-  verification_status: VerificationStatus;
-  verification_note: string | null;
-  created_at: string | null;
-}
-
-export interface EvidenceQueueItem {
-  evidence_id: string;
-  file_name: string;
-  label: string | null;
-  entry_id: string;
-  entry_title: string | null;
-  submission_id: string;
-  owner_id: string;
-  owner_name_th: string;
-  verification_status: VerificationStatus;
-  verification_note: string | null;
-  created_at: string;
-}
-
 /** A reviewer's verdict on a whole sheet (V4 #335); `pending` until someone has looked */
 export interface SubmissionReview {
   status: VerificationStatus;
