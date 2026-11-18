@@ -37,6 +37,7 @@ import type {
   EvidenceQueueItem,
   PublicationQueueItem,
   ReviewerAssignment,
+  UserRole,
 } from '@/types/backend';
 
 /** Reads (GET) used by the /manage pages. Changes live in app/manage/actions/. */
@@ -240,6 +241,9 @@ export const listReviewerAssignments = (
   query: { round_id?: number; reviewer_id?: string; reviewee_id?: string } = {}
 ) =>
   backend<ListResponse<ReviewerAssignment>>('GET', '/reviewer-assignments', { query });
+
+/** Roles an admin granted in the app (admin only). Cognito groups are not listed. */
+export const listUserRoles = () => backend<ListResponse<UserRole>>('GET', '/user-roles');
 
 /** Run reads in parallel, but keep one failing section from breaking the whole page */
 export async function settle<T>(promise: Promise<T>): Promise<{ data: T | null; error: string | null }> {

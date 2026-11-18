@@ -16,7 +16,13 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.main import create_app
 from app.v3.daos.member_position_dao import MemberPositionDAO
-from app.v3.dependencies import get_member_position_dao
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
+from app.v3.daos.user_role_dao import UserRoleDAO
+from app.v3.dependencies import (
+    get_member_position_dao,
+    get_reviewer_assignment_dao,
+    get_user_role_dao,
+)
 from app.v3.permissions import ROUTE_RULES, Rule
 from app.v3.security import Role
 
@@ -58,8 +64,14 @@ def call(client: TestClient, method: str, path: str, headers: dict[str, str], **
 def client() -> Iterator[TestClient]:
     positions = create_autospec(MemberPositionDAO, instance=True)
     positions.list_active.return_value = []
+    user_roles = create_autospec(UserRoleDAO, instance=True)
+    user_roles.roles_of.return_value = []
+    assignments = create_autospec(ReviewerAssignmentDAO, instance=True)
+    assignments.has_active.return_value = False
     APP.dependency_overrides[get_session] = lambda: MagicMock(spec=Session)
     APP.dependency_overrides[get_member_position_dao] = lambda: positions
+    APP.dependency_overrides[get_user_role_dao] = lambda: user_roles
+    APP.dependency_overrides[get_reviewer_assignment_dao] = lambda: assignments
     # Past the check, services hit a mock session; any status but 401 / 403 means "let in"
     with TestClient(APP, raise_server_exceptions=False) as client:
         yield client

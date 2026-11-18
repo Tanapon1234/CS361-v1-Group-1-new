@@ -16,6 +16,10 @@ class Role(StrEnum):
     ADMIN = "admin"
 
 
+#: Roles an admin grants from the app (user_role). `lecturer` is implicit and `reviewer` is
+#: derived from an active reviewer_assignment, so neither is stored.
+GRANTABLE_ROLES = frozenset({Role.STAFF, Role.EXECUTIVE, Role.ADMIN})
+
 #: Roles that may see everyone's data (not change it). Reviewer is deliberately excluded
 #: (V4 #291 follow-up): a reviewer is a plain lecturer except for the verification queue
 #: of lecturers assigned to them (reviewer_assignment) — not a general "see everyone" role.
