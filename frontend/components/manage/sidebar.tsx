@@ -74,6 +74,7 @@ function lecturerGroups(selfId: string | null): Group[] {
       items: [
         { href: '/manage/submissions', label: 'ใบภาระงานของฉัน' },
         { href: '/manage/assessments', label: 'งานประเมินของฉัน', needs: 'assess' },
+        { href: '/manage/rounds', label: 'รอบประเมิน', alsoActiveOn: ['/manage/rubrics'] },
       ],
     },
     {
