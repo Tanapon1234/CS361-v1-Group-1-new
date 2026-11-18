@@ -5,7 +5,7 @@ import { ActionForm } from '@/components/manage/action-form';
 import { ReviewerAssignForm } from '@/components/manage/reviewer-assign-form';
 import { Badge, EmptyNote, Notice, PageHeader, Section } from '@/components/manage/ui';
 import { isExecutive } from '@/lib/auth/permissions';
-import { listAssignableRounds, listLecturers, listReviewerAssignments, MAX_PAGE, settle } from '@/lib/backend/api';
+import { listLecturers, listReviewerAssignments, listRoundsWithState, MAX_PAGE, settle } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatDate, formatDateTime } from '@/lib/backend/labels';
 import type { ReviewerAssignment } from '@/types/backend';
@@ -36,9 +36,9 @@ export default async function ReviewAssignmentsPage() {
     );
   }
 
-  const [lecturers, assignableRounds, assignments] = await Promise.all([
+  const [lecturers, rounds, assignments] = await Promise.all([
     listLecturers({ is_active: true, limit: MAX_PAGE }),
-    listAssignableRounds(),
+    listRoundsWithState(),
     settle(listReviewerAssignments()),
   ]);
   const groups = groupByReviewer(assignments.data?.items ?? []);
@@ -58,9 +58,10 @@ export default async function ReviewAssignmentsPage() {
             name: lecturer.name_th,
             email: lecturer.email,
           }))}
-          rounds={assignableRounds.map((round) => ({
+          rounds={rounds.map(({ round, state }) => ({
             id: round.id,
             name: round.name_th,
+            state,
             period: `${formatDate(round.period_start)} – ${formatDate(round.period_end)}`,
             deadline: round.submit_due_at
               ? `ส่งภายใน ${formatDateTime(round.submit_due_at)}`

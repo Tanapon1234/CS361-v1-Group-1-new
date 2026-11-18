@@ -3,7 +3,7 @@
 import { startTransition, useCallback, useMemo, useState } from 'react';
 
 import { ActionForm, type ActionState, type FormAction } from '@/components/manage/action-form';
-import { Notice, inputClass } from '@/components/manage/ui';
+import { Badge, Notice, inputClass } from '@/components/manage/ui';
 
 export interface PickLecturer {
   id: string;
@@ -11,12 +11,42 @@ export interface PickLecturer {
   email: string | null;
 }
 
+/** open: takes assignments; overdue: marked open but past its deadline; closed: not open */
+export type PickRoundState = 'open' | 'overdue' | 'closed';
+
 export interface PickRound {
   id: number;
   name: string;
+  state: PickRoundState;
   /** Shown under the name: the period, then the submit deadline */
   period: string;
   deadline: string;
+}
+
+const ROUND_STATE: Record<PickRoundState, { label: string; hint: string; pill: string; dot: string }> = {
+  open: {
+    label: 'เปิดรับ',
+    hint: '',
+    pill: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    dot: 'bg-emerald-500',
+  },
+  overdue: {
+    label: 'เลยกำหนดส่ง',
+    hint: 'หมดเวลาส่งแล้ว มอบหมายไม่ได้',
+    pill: 'border-amber-200 bg-amber-50 text-amber-800',
+    dot: 'bg-amber-500',
+  },
+  closed: {
+    label: 'ปิดแล้ว',
+    hint: 'รอบนี้ปิดแล้ว มอบหมายไม่ได้',
+    pill: 'border-line bg-surface-alt text-ink-muted',
+    dot: 'bg-zinc-400',
+  },
+};
+
+function matchesRound(round: PickRound, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  return !q || round.name.toLowerCase().includes(q);
 }
 
 function matches(lecturer: PickLecturer, query: string): boolean {
@@ -53,11 +83,19 @@ export function ReviewerAssignForm({
   rounds: PickRound[];
   action: FormAction;
 }) {
-  const [roundId, setRoundId] = useState<number | null>(rounds[0]?.id ?? null);
+  const [roundId, setRoundId] = useState<number | null>(rounds.find((r) => r.state === 'open')?.id ?? null);
   const [reviewerId, setReviewerId] = useState<string | null>(null);
   const [reviewees, setReviewees] = useState<Set<string>>(new Set());
+  const [roundQuery, setRoundQuery] = useState('');
   const [reviewerQuery, setReviewerQuery] = useState('');
   const [revieweeQuery, setRevieweeQuery] = useState('');
+
+  // Rounds that take assignments first (newest first, as the API sends them), then the rest
+  const roundChoices = useMemo(() => {
+    const shown = rounds.filter((candidate) => matchesRound(candidate, roundQuery));
+    return [...shown.filter((r) => r.state === 'open'), ...shown.filter((r) => r.state !== 'open')];
+  }, [rounds, roundQuery]);
+  const openCount = rounds.filter((candidate) => candidate.state === 'open').length;
 
   const reviewerChoices = useMemo(
     () => lecturers.filter((lecturer) => matches(lecturer, reviewerQuery)),
@@ -99,8 +137,14 @@ export function ReviewerAssignForm({
     [action]
   );
 
-  if (rounds.length === 0) {
-    return <Notice>ไม่มีรอบประเมินที่เปิดรับอยู่ ต้องเปิดรอบ (หรือขยายกำหนดส่ง) ก่อนจึงจะมอบหมายผู้ตรวจได้</Notice>;
+  if (openCount === 0) {
+    return (
+      <Notice>
+        {rounds.length === 0
+          ? 'ยังไม่มีรอบประเมิน'
+          : 'ไม่มีรอบประเมินที่เปิดรับอยู่ ต้องเปิดรอบ (หรือขยายกำหนดส่ง) ก่อนจึงจะมอบหมายผู้ตรวจได้'}
+      </Notice>
+    );
   }
 
   const count = reviewees.size;
@@ -121,26 +165,59 @@ export function ReviewerAssignForm({
       ))}
 
       <Step n={1} title="รอบประเมิน">
+        <input
+          type="search"
+          value={roundQuery}
+          onChange={(event) => setRoundQuery(event.target.value)}
+          placeholder="ค้นหารอบ เช่น 2569"
+          aria-label="ค้นหารอบประเมิน"
+          className={`${inputClass} min-h-11`}
+        />
+        <p className="text-xs text-ink-muted">
+          เปิดรับ {openCount} รอบ จากทั้งหมด {rounds.length} รอบ · มอบหมายได้เฉพาะรอบที่เปิดรับ
+        </p>
         <div
           role="radiogroup"
           aria-label="รอบประเมิน"
-          className="max-h-60 divide-y divide-line-soft overflow-y-auto rounded-lg border border-line"
+          className="max-h-72 divide-y divide-line-soft overflow-y-auto rounded-lg border border-line"
         >
-          {rounds.map((candidate) => (
-            <label key={candidate.id} className={`${ROW} ${roundId === candidate.id ? 'bg-brand-soft' : ''}`}>
-              <input
-                type="radio"
-                checked={roundId === candidate.id}
-                onChange={() => setRoundId(candidate.id)}
-                className="size-5 accent-brand"
-              />
-              <span className="min-w-0">
-                <span className="block truncate text-ink">{candidate.name}</span>
-                <span className="block text-xs text-ink-muted">{candidate.period}</span>
-                <span className="block text-xs text-ink-muted">{candidate.deadline}</span>
-              </span>
-            </label>
-          ))}
+          {roundChoices.length === 0 ? (
+            <p className="px-3 py-4 text-sm text-ink-muted">ไม่พบรอบ</p>
+          ) : (
+            roundChoices.map((candidate) => {
+              const info = ROUND_STATE[candidate.state];
+              const usable = candidate.state === 'open';
+              return (
+                <label
+                  key={candidate.id}
+                  className={`${ROW} ${usable ? '' : 'cursor-not-allowed opacity-60'} ${
+                    roundId === candidate.id ? 'bg-brand-soft' : ''
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    checked={roundId === candidate.id}
+                    disabled={!usable}
+                    onChange={() => setRoundId(candidate.id)}
+                    className="size-5 shrink-0 accent-brand"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                      <span className="font-medium text-ink">{candidate.name}</span>
+                      <Badge className={info.pill}>
+                        <span aria-hidden className={`mr-1.5 size-1.5 rounded-full ${info.dot}`} />
+                        {info.label}
+                      </Badge>
+                    </span>
+                    <span className="block text-xs text-ink-muted">{candidate.period}</span>
+                    <span className="block text-xs text-ink-muted">
+                      {usable ? candidate.deadline : `${candidate.deadline} · ${info.hint}`}
+                    </span>
+                  </span>
+                </label>
+              );
+            })
+          )}
         </div>
       </Step>
 
