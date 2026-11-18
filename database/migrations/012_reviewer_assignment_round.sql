@@ -4,6 +4,9 @@ BEGIN;
 -- that round is open and before its submit_due_at (see SqlReviewerAssignmentDAO).
 ALTER TABLE "reviewer_assignment" ADD COLUMN "round_id" smallint;
 
+-- The old key must go before rows are copied per round, or each copy collides with its source.
+ALTER TABLE "reviewer_assignment" DROP CONSTRAINT "uq_reviewer_assignment";
+
 -- Existing assignments had no round: carry each one into every round that is open now.
 -- Assignments with no open round to attach to would be inactive anyway, so they are dropped.
 INSERT INTO "reviewer_assignment" ("reviewer_id", "reviewee_id", "assigned_by", "created_at", "round_id")
@@ -20,7 +23,6 @@ ALTER TABLE "reviewer_assignment"
   ADD CONSTRAINT "fk_reviewer_assignment_round"
   FOREIGN KEY ("round_id") REFERENCES "evaluation_round" ("id");
 
-ALTER TABLE "reviewer_assignment" DROP CONSTRAINT "uq_reviewer_assignment";
 ALTER TABLE "reviewer_assignment"
   ADD CONSTRAINT "uq_reviewer_assignment" UNIQUE ("round_id", "reviewer_id", "reviewee_id");
 
