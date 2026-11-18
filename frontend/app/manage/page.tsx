@@ -51,6 +51,9 @@ export default async function ManageHomePage() {
   const roundsWithoutSubmission = me.open_rounds.filter(
     (round) => !mine.items.some((submission) => submission.round_id === round.id)
   );
+  // Nothing to say for an ordinary lecturer: no position and only their own signing role
+  const showPositions = me.positions.length > 0;
+  const signsBeyondOwn = me.signer_roles.some((role) => role !== 'performer');
 
   return (
     <div className="space-y-6">
@@ -60,26 +63,31 @@ export default async function ManageHomePage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Section title="ตำแหน่งที่ดำรงอยู่" description="มาจากเมนู อาจารย์ → ตำแหน่งบริหาร">
-          {me.positions.length === 0 ? (
-            <EmptyNote>ไม่มีตำแหน่งบริหาร</EmptyNote>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {me.positions.map((position) => (
-                <li key={position.id} className="flex justify-between gap-3">
-                  <span className="font-medium text-ink">{POSITION_LABEL[position.position]}</span>
-                  <span className="text-ink-muted">ตั้งแต่ {formatDate(position.start_date)}</span>
-                </li>
+        {showPositions || signsBeyondOwn ? (
+          <Section
+            title={showPositions ? 'ตำแหน่งที่ดำรงอยู่' : 'สิทธิ์ลงนามของฉัน'}
+            description={showPositions ? 'มาจากเมนู อาจารย์ → ตำแหน่งบริหาร' : undefined}
+          >
+            {showPositions ? (
+              <ul className="space-y-2 text-sm">
+                {me.positions.map((position) => (
+                  <li key={position.id} className="flex justify-between gap-3">
+                    <span className="font-medium text-ink">{POSITION_LABEL[position.position]}</span>
+                    <span className="text-ink-muted">ตั้งแต่ {formatDate(position.start_date)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p className={`text-xs text-ink-muted ${showPositions ? 'mt-4' : ''}`}>
+              ลงนามในใบภาระงานได้ในฐานะ
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {me.signer_roles.map((role) => (
+                <Badge key={role}>{SIGNER_ROLE_LABEL[role]}</Badge>
               ))}
-            </ul>
-          )}
-          <p className="mt-4 text-xs text-ink-muted">ลงนามในใบภาระงานได้ในฐานะ</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {me.signer_roles.map((role) => (
-              <Badge key={role}>{SIGNER_ROLE_LABEL[role]}</Badge>
-            ))}
-          </div>
-        </Section>
+            </div>
+          </Section>
+        ) : null}
 
         <Section title="รอบประเมินที่เปิดอยู่">
           {me.open_rounds.length === 0 ? (
