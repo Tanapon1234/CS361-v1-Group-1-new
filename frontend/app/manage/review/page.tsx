@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 
 import { HeadReviewRounds } from '@/components/manage/head-review-rounds';
 import type { HeadSheet } from '@/components/manage/head-review-rounds';
-import { Notice, PageHeader, Section } from '@/components/manage/ui';
+import { Notice, PageHeader, Section, param } from '@/components/manage/ui';
+import { ReviewFilterTabs, applyReviewFilter, parseReviewFilter } from '@/components/manage/review-filter';
 import { ReviewRounds } from '@/components/manage/review-rounds';
 import { canOpenReviewPage, canReview, isDeptChair } from '@/lib/auth/permissions';
 import {
@@ -48,7 +49,12 @@ async function headSheets(me: Me): Promise<HeadSheet[]> {
   }));
 }
 
-export default async function ReviewPage() {
+export default async function ReviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const filter = parseReviewFilter(param((await searchParams).status));
   const me = await getCurrentUser();
   if (!me || !canOpenReviewPage(me)) {
     return (
@@ -78,7 +84,13 @@ export default async function ReviewPage() {
           {assignments.error ? (
             <Notice tone="error">{assignments.error}</Notice>
           ) : (
-            <ReviewRounds rounds={rounds} assignments={assignments.data?.items ?? []} />
+            <>
+              <ReviewFilterTabs active={filter} assignments={assignments.data?.items ?? []} />
+              <ReviewRounds
+                rounds={rounds}
+                assignments={applyReviewFilter(assignments.data?.items ?? [], filter)}
+              />
+            </>
           )}
         </Section>
       ) : null}
