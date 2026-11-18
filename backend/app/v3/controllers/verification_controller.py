@@ -4,12 +4,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.v3.controllers.params import EvidenceId, PublicationId
+from app.v3.controllers.params import EvidenceId, PublicationId, SubmissionId
 from app.v3.dependencies import CurrentActorDep, VerificationServiceDep
-from app.v3.dtos.common import PageResponse
+from app.v3.dtos.common import ListMeta, ListResponse, PageResponse
 from app.v3.dtos.verification_dto import (
     EvidenceQueueItem,
     PublicationQueueItem,
+    ReviewAssignmentItem,
+    SubmissionReviewResponse,
     VerificationPutRequest,
     VerificationQueueQuery,
     VerificationResponse,
@@ -74,3 +76,33 @@ def list_evidence_verification_queue(
     """Uploaded evidence files in a verification status (default `pending`), oldest
     first. A plain reviewer sees only lecturers they are assigned to (V4 #293)."""
     return service.list_evidence_queue(actor, query)
+
+
+@router.get("/submissions/{submission_id}/review")
+def get_submission_review(
+    submission_id: SubmissionId, actor: CurrentActorDep, service: VerificationServiceDep
+) -> SubmissionReviewResponse:
+    """The reviewer's verdict on the whole sheet (`pending` until someone has looked)."""
+    return service.get_submission_review(submission_id, actor)
+
+
+@router.put("/submissions/{submission_id}/review")
+def set_submission_review(
+    submission_id: SubmissionId,
+    data: VerificationPutRequest,
+    actor: CurrentActorDep,
+    service: VerificationServiceDep,
+) -> SubmissionReviewResponse:
+    """The assigned reviewer: verified / rejected (with a note) / back to pending. A submitted
+    sheet only, not your own. The sheet's workflow status does not change."""
+    return service.set_submission_review(submission_id, actor, data)
+
+
+@router.get("/verifications/assignments")
+def list_my_review_assignments(
+    actor: CurrentActorDep, service: VerificationServiceDep
+) -> ListResponse[ReviewAssignmentItem]:
+    """The caller's active assignments, newest round first: each lecturer with their sheet,
+    its verdict and how many evidence files and publications still wait for a verdict."""
+    items = service.list_assignments(actor)
+    return ListResponse(items=items, meta=ListMeta(count=len(items)))

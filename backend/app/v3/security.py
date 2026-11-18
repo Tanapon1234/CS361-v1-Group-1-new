@@ -47,11 +47,15 @@ class Actor:
     """The caller. `lecturer_id` is None only for a dev-header script acting by role alone.
 
     `positions` are the member_position rows held today (they decide signing and assessing).
+    `reviewing` are the active reviewer assignments (they decide which sheets a reviewer reads).
     """
 
     lecturer_id: UUID | None
     roles: frozenset[Role]
     positions: frozenset[HeldPosition] = field(default_factory=frozenset)
+    #: (reviewee lecturer_id, round_id) pairs this caller reviews right now: they may read
+    #: that lecturer's sheet in that round and verdict it (V4 #335)
+    reviewing: frozenset[tuple[UUID, int]] = field(default_factory=frozenset)
 
     def has_any(self, *roles: Role) -> bool:
         """Admin counts as every role."""

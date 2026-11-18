@@ -26,6 +26,8 @@ def can_view_submission(actor: Actor, submission: Submission) -> bool:
         actor.is_lecturer(submission.lecturer_id)
         or actor.views_all
         or submission.department_snapshot in signer_departments(actor)
+        # a reviewer reads the sheets of the lecturers assigned to them, in the assigned round
+        or (submission.lecturer_id, submission.round_id) in actor.reviewing
     )
 
 

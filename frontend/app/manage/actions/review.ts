@@ -25,6 +25,14 @@ export async function verifyEvidence(id: string, _: ActionState, form: FormData)
   );
 }
 
+/** The assigned reviewer's verdict on a whole sheet (backend: PUT /submissions/{id}/review) */
+export async function reviewSubmission(id: string, _: ActionState, form: FormData): Promise<ActionState> {
+  return attempt(
+    () => backend('PUT', `/submissions/${id}/review`, { body: verdict(form) }),
+    'บันทึกผลตรวจใบภาระงานแล้ว'
+  );
+}
+
 // --- reviewer assignment (V4 #293): who reviews whom, per round ---------------------
 
 /** One reviewer, several reviewees: the pairs are created one by one, so a pair that

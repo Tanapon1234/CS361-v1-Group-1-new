@@ -73,6 +73,29 @@ def test_who_sees_a_submission(actor: Actor, allowed: bool) -> None:
     assert can_view_submission(actor, SUBMISSION) is allowed
 
 
+def test_a_reviewer_reads_the_sheet_only_in_the_round_they_are_assigned() -> None:
+    reviewer = uuid4()
+    in_round = Actor(
+        reviewer,
+        frozenset({Role.LECTURER, Role.REVIEWER}),
+        reviewing=frozenset({(OWNER, SUBMISSION.round_id)}),
+    )
+    other_round = Actor(
+        reviewer,
+        frozenset({Role.LECTURER, Role.REVIEWER}),
+        reviewing=frozenset({(OWNER, SUBMISSION.round_id + 1)}),
+    )
+    other_lecturer = Actor(
+        reviewer,
+        frozenset({Role.LECTURER, Role.REVIEWER}),
+        reviewing=frozenset({(uuid4(), SUBMISSION.round_id)}),
+    )
+
+    assert can_view_submission(in_round, SUBMISSION)
+    assert not can_view_submission(other_round, SUBMISSION)
+    assert not can_view_submission(other_lecturer, SUBMISSION)
+
+
 def test_department_lists_are_narrowed_for_department_signers() -> None:
     chair = lecturer(positions=[(PositionCode.DEPT_CHAIR, 7)])
 

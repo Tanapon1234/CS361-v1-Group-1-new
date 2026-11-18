@@ -67,7 +67,7 @@ def client() -> Iterator[TestClient]:
     user_roles = create_autospec(UserRoleDAO, instance=True)
     user_roles.roles_of.return_value = []
     assignments = create_autospec(ReviewerAssignmentDAO, instance=True)
-    assignments.has_active.return_value = False
+    assignments.list_by_reviewer.return_value = []
     APP.dependency_overrides[get_session] = lambda: MagicMock(spec=Session)
     APP.dependency_overrides[get_member_position_dao] = lambda: positions
     APP.dependency_overrides[get_user_role_dao] = lambda: user_roles

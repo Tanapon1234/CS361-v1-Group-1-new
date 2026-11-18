@@ -16,7 +16,8 @@ export const isExecutive = (me: Me | null) => hasRole(me, 'executive');
 export const canManage = (me: Me | null) => isAdmin(me);
 /** Any publication, not just their own — backend kept this for staff (PublicationService) */
 export const canManageAnyPublication = (me: Me | null) => hasRole(me, 'staff');
-export const canReview = (me: Me | null) => hasRole(me, 'reviewer');
+/** Really a reviewer (an active assignment); admin does not count, only the assigned reviewer verifies */
+export const canReview = (me: Me | null) => !!me && me.roles.includes('reviewer');
 /**
  * Sees everyone's submissions and reports. A plain reviewer is NOT included here — they
  * are a regular lecturer except for the verification queue of lecturers assigned to them

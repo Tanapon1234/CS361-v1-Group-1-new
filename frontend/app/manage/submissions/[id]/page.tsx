@@ -17,6 +17,7 @@ import {
 import { ActionForm } from '@/components/manage/action-form';
 import { EntryFields } from '@/components/manage/entry-fields';
 import { FileUpload } from '@/components/manage/file-upload';
+import { SheetReviewPanel } from '@/components/manage/sheet-review-panel';
 import {
   Badge,
   EmptyNote,
@@ -31,16 +32,18 @@ import {
   inputClass,
   linkClass,
 } from '@/components/manage/ui';
-import { canSign, hasRole } from '@/lib/auth/permissions';
+import { canReview, canSign, hasRole } from '@/lib/auth/permissions';
 import {
   getLecturer,
   getPublication,
   getRound,
   getRubricForm,
   getSubmission,
+  getSubmissionReview,
   getSubmissionSummary,
   getSubmissionTotals,
   listApprovals,
+  listMyReviewAssignments,
   listEntryAssessments,
   listEvidence,
   listLecturers,
@@ -101,6 +104,14 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const lecturerName = new Map(lecturers.items.map((l) => [l.lecturer_id, l.name_th]));
 
   const isOwner = me?.lecturer.lecturer_id === submission.lecturer_id;
+  // The sheet's verdict, and whether I am the reviewer assigned to this lecturer in this round
+  const [review, myAssignments] = await Promise.all([
+    settle(getSubmissionReview(id)),
+    canReview(me) ? settle(listMyReviewAssignments()) : Promise.resolve(null),
+  ]);
+  const isAssignedReviewer = !!myAssignments?.data?.items.some(
+    (item) => item.round_id === submission.round_id && item.reviewee_id === submission.lecturer_id
+  );
   // Staff in the same department may draft entries too, pending the owner's confirmation (V4)
   const staffDrafts =
     hasRole(me, 'staff') && me?.lecturer.department_id === submission.department_snapshot;
@@ -181,6 +192,13 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
         />
         <Stat label="รอผู้บริหารประเมิน" value={summary.pending_assessments} hint="รายการที่ยังไม่มีค่าประเมิน" />
       </div>
+
+      <SheetReviewPanel
+        submissionId={id}
+        status={submission.status}
+        review={review.data ?? null}
+        isAssignedReviewer={isAssignedReviewer}
+      />
 
       <Section title="คะแนนรายหมวด" description={totals ? 'คำนวณสดจากรายการ · ด้านขวาคือยอดที่ระบบ freeze ไว้ตอนส่ง' : 'คำนวณสดจากรายการ'}>
         <Table head={['หมวด', 'เพดาน', 'คะแนนดิบ', 'หลังตัดเพดาน', ...(totals ? ['ยอดที่ freeze'] : [])]}>
