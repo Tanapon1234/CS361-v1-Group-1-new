@@ -3,6 +3,12 @@
 import { startTransition, useCallback, useMemo, useState } from 'react';
 
 import { ActionForm, type ActionState, type FormAction } from '@/components/manage/action-form';
+import {
+  RoundStatusMark,
+  roundStatusHint,
+  roundStatusRail,
+  type RoundStatus,
+} from '@/components/manage/round-status';
 import { Notice, inputClass } from '@/components/manage/ui';
 
 export interface PickLecturer {
@@ -14,6 +20,15 @@ export interface PickLecturer {
 export interface PickRound {
   id: number;
   name: string;
+  state: RoundStatus;
+  /** Shown under the name: the period, then the submit deadline */
+  period: string;
+  deadline: string;
+}
+
+function matchesRound(round: PickRound, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  return !q || round.name.toLowerCase().includes(q);
 }
 
 function matches(lecturer: PickLecturer, query: string): boolean {
@@ -50,11 +65,19 @@ export function ReviewerAssignForm({
   rounds: PickRound[];
   action: FormAction;
 }) {
-  const [roundId, setRoundId] = useState<number | null>(rounds.length === 1 ? rounds[0].id : null);
+  const [roundId, setRoundId] = useState<number | null>(rounds.find((r) => r.state === 'open')?.id ?? null);
   const [reviewerId, setReviewerId] = useState<string | null>(null);
   const [reviewees, setReviewees] = useState<Set<string>>(new Set());
+  const [roundQuery, setRoundQuery] = useState('');
   const [reviewerQuery, setReviewerQuery] = useState('');
   const [revieweeQuery, setRevieweeQuery] = useState('');
+
+  // Rounds that take assignments first (newest first, as the API sends them), then the rest
+  const roundChoices = useMemo(() => {
+    const shown = rounds.filter((candidate) => matchesRound(candidate, roundQuery));
+    return [...shown.filter((r) => r.state === 'open'), ...shown.filter((r) => r.state !== 'open')];
+  }, [rounds, roundQuery]);
+  const openCount = rounds.filter((candidate) => candidate.state === 'open').length;
 
   const reviewerChoices = useMemo(
     () => lecturers.filter((lecturer) => matches(lecturer, reviewerQuery)),
@@ -66,6 +89,7 @@ export function ReviewerAssignForm({
     [lecturers, reviewerId, revieweeQuery]
   );
   const reviewer = lecturers.find((lecturer) => lecturer.id === reviewerId);
+  const round = rounds.find((candidate) => candidate.id === roundId);
 
   function chooseReviewer(id: string) {
     setReviewerId(id);
@@ -95,8 +119,14 @@ export function ReviewerAssignForm({
     [action]
   );
 
-  if (rounds.length === 0) {
-    return <Notice>ไม่มีรอบประเมินที่เปิดรับอยู่ ต้องเปิดรอบ (หรือขยายกำหนดส่ง) ก่อนจึงจะมอบหมายผู้ตรวจได้</Notice>;
+  if (openCount === 0) {
+    return (
+      <Notice>
+        {rounds.length === 0
+          ? 'ยังไม่มีรอบประเมิน'
+          : 'ไม่มีรอบประเมินที่เปิดรับอยู่ ต้องเปิดรอบ (หรือขยายกำหนดส่ง) ก่อนจึงจะมอบหมายผู้ตรวจได้'}
+      </Notice>
+    );
   }
 
   const count = reviewees.size;
@@ -117,25 +147,56 @@ export function ReviewerAssignForm({
       ))}
 
       <Step n={1} title="รอบประเมิน">
-        {rounds.length === 1 ? (
-          <p className="rounded-lg bg-surface-alt px-3 py-3 text-sm text-ink">{rounds[0].name}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {rounds.map((round) => (
-              <button
-                key={round.id}
-                type="button"
-                aria-pressed={roundId === round.id}
-                onClick={() => setRoundId(round.id)}
-                className={`min-h-11 rounded-lg border px-4 text-sm font-semibold ${
-                  roundId === round.id ? 'border-brand bg-brand-soft text-brand' : 'border-line bg-surface text-ink'
-                }`}
-              >
-                {round.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <input
+          type="search"
+          value={roundQuery}
+          onChange={(event) => setRoundQuery(event.target.value)}
+          placeholder="ค้นหารอบ เช่น 2569"
+          aria-label="ค้นหารอบประเมิน"
+          className={`${inputClass} min-h-11`}
+        />
+        <p className="text-xs text-ink-muted">
+          เปิดรับ {openCount} รอบ จากทั้งหมด {rounds.length} รอบ · มอบหมายได้เฉพาะรอบที่เปิดรับ
+        </p>
+        <div
+          role="radiogroup"
+          aria-label="รอบประเมิน"
+          className="max-h-72 divide-y divide-line-soft overflow-y-auto rounded-lg border border-line"
+        >
+          {roundChoices.length === 0 ? (
+            <p className="px-3 py-4 text-sm text-ink-muted">ไม่พบรอบ</p>
+          ) : (
+            roundChoices.map((candidate) => {
+              const usable = candidate.state === 'open';
+              return (
+                <label
+                  key={candidate.id}
+                  className={`${ROW} ${roundStatusRail(candidate.state)} ${
+                    usable ? '' : 'cursor-not-allowed bg-surface-alt'
+                  } ${roundId === candidate.id ? 'bg-brand-soft' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    checked={roundId === candidate.id}
+                    disabled={!usable}
+                    onChange={() => setRoundId(candidate.id)}
+                    className="size-5 shrink-0 accent-brand"
+                  />
+                  <span className="min-w-0 flex-1 py-0.5">
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                      <span className={`font-semibold ${usable ? 'text-ink' : 'text-ink-muted'}`}>{candidate.name}</span>
+                      <RoundStatusMark status={candidate.state} />
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-ink-muted">{candidate.period}</span>
+                    <span className="block text-[13px] text-ink-muted">
+                      {usable ? candidate.deadline : `${candidate.deadline} · ${roundStatusHint(candidate.state)}`}
+                    </span>
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
       </Step>
 
       <Step n={2} title="ผู้ตรวจสอบ (เลือก 1 คน)">
@@ -184,7 +245,7 @@ export function ReviewerAssignForm({
             />
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p aria-live="polite" className="text-ink-muted">
-                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · ผู้ตรวจ: {reviewer.name}
+                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · ผู้ตรวจ: {reviewer.name}{round ? ` · ${round.name}` : ''}
               </p>
               <div className="flex gap-2">
                 <button

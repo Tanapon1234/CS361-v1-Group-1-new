@@ -157,11 +157,22 @@ export const listRounds = (isOpen?: boolean) =>
     query: { limit: MAX_PAGE, is_open: isOpen },
   });
 
-/** Open rounds not yet past their submit_due_at: the only ones that take new reviewer assignments */
-export async function listAssignableRounds(): Promise<EvaluationRound[]> {
-  const { items } = await listRounds(true);
+/** open: takes work; overdue: still marked open but past its submit_due_at; closed: not open */
+export type RoundState = 'open' | 'overdue' | 'closed';
+
+/** Every round, newest period first, with what state it is in right now. Only `open` rounds
+ * take new reviewer assignments (the backend refuses the others). */
+export async function listRoundsWithState(): Promise<{ round: EvaluationRound; state: RoundState }[]> {
+  const { items } = await listRounds();
   const now = Date.now();
-  return items.filter((round) => !round.submit_due_at || new Date(round.submit_due_at).getTime() > now);
+  return items.map((round) => ({
+    round,
+    state: !round.is_open
+      ? 'closed'
+      : round.submit_due_at && new Date(round.submit_due_at).getTime() <= now
+        ? 'overdue'
+        : 'open',
+  }));
 }
 
 export const getRound = (id: number) => backendOrNull<EvaluationRound>(`/rounds/${id}`);
