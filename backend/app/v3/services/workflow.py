@@ -4,14 +4,16 @@ Every change of status is one row in `submission_approval` (append-only). The si
 role comes from the current status, never from the request body.
 
     draft / returned  --performer (owner) sends---------->  submitted
-    submitted         --receiver accepts----------------->  assessing
-    assessing         --dept_chair (assessments done)---->  dept_review
-    dept_review       --dept_committee approves---------->  dept_approved
-    dept_approved     --receiver sends to the faculty---->  sent_to_faculty
+    submitted         --reviewer forwards to the head---->  assessing
+    assessing         --dept_chair checks, sends on------>  sent_to_faculty
+
+The reviewer is the lecturer assigned to the owner in that round (reviewer_assignment). If
+nobody is assigned, the department head may sign the first step (SubmissionService), so a
+sheet is never stuck. Staff and the committee are not part of the flow.
 
 From submitted onwards the signer may return it instead (status -> returned), and the
 owner fixes the entries and sends it again. While it is still `submitted` (nobody has
-accepted it) the owner may also pull it back to `returned` (SubmissionService.create_approval).
+signed it) the owner may also pull it back to `returned` (SubmissionService.create_approval).
 Change this table to change the workflow.
 Who may sign each role: app/v3/services/access.py (can_sign).
 """
@@ -31,14 +33,8 @@ class Step:
 STEPS: dict[SubmissionStatus, Step] = {
     SubmissionStatus.DRAFT: Step(SignerRole.PERFORMER, SubmissionStatus.SUBMITTED, False),
     SubmissionStatus.RETURNED: Step(SignerRole.PERFORMER, SubmissionStatus.SUBMITTED, False),
-    SubmissionStatus.SUBMITTED: Step(SignerRole.RECEIVER, SubmissionStatus.ASSESSING, True),
-    SubmissionStatus.ASSESSING: Step(SignerRole.DEPT_CHAIR, SubmissionStatus.DEPT_REVIEW, True),
-    SubmissionStatus.DEPT_REVIEW: Step(
-        SignerRole.DEPT_COMMITTEE, SubmissionStatus.DEPT_APPROVED, True
-    ),
-    SubmissionStatus.DEPT_APPROVED: Step(
-        SignerRole.RECEIVER, SubmissionStatus.SENT_TO_FACULTY, True
-    ),
+    SubmissionStatus.SUBMITTED: Step(SignerRole.REVIEWER, SubmissionStatus.ASSESSING, True),
+    SubmissionStatus.ASSESSING: Step(SignerRole.DEPT_CHAIR, SubmissionStatus.SENT_TO_FACULTY, True),
 }
 
 # The owner may add, change or delete entries and evidence only in these statuses

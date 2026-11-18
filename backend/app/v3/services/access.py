@@ -11,6 +11,7 @@ from app.v3.security import Actor, Role
 _SIGNER_LABEL = {
     SignerRole.PERFORMER: "owner of the submission",
     SignerRole.RECEIVER: "faculty staff (staff role)",
+    SignerRole.REVIEWER: "reviewer assigned to this lecturer in this round",
     SignerRole.DEPT_CHAIR: "chair of the submission's department",
     SignerRole.DEPT_COMMITTEE: "a committee member of the submission's department",
 }
@@ -89,6 +90,8 @@ def can_sign(actor: Actor, submission: Submission, role: SignerRole) -> bool:
             return actor.is_lecturer(submission.lecturer_id)
         case SignerRole.RECEIVER:
             return actor.has_any(Role.STAFF)
+        case SignerRole.REVIEWER:
+            return (submission.lecturer_id, submission.round_id) in actor.reviewing
         case SignerRole.DEPT_CHAIR:
             return actor.holds(PositionCode.DEPT_CHAIR, department)
         case SignerRole.DEPT_COMMITTEE:

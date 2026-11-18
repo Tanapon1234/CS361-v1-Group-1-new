@@ -9,9 +9,9 @@ from app.v3.dtos.lecturer_dto import LecturerResponse
 from app.v3.dtos.me_dto import MeResponse
 from app.v3.dtos.position_dto import PositionResponse
 from app.v3.dtos.round_dto import RoundResponse
-from app.v3.security import Actor, Role
+from app.v3.security import Actor
 
-# Positions that let their holder sign submissions; `receiver` comes from the staff role
+# Positions that let their holder sign submissions; `reviewer` comes from an active assignment
 _SIGNER_ROLE_OF = {
     PositionCode.DEPT_CHAIR: SignerRole.DEPT_CHAIR,
     PositionCode.DEPT_COMMITTEE: SignerRole.DEPT_COMMITTEE,
@@ -42,8 +42,8 @@ class MeService:
         signer_roles |= {
             _SIGNER_ROLE_OF[p.position] for p in positions if p.position in _SIGNER_ROLE_OF
         }
-        if actor.has_any(Role.STAFF):
-            signer_roles.add(SignerRole.RECEIVER)
+        if actor.reviewing:
+            signer_roles.add(SignerRole.REVIEWER)
         rounds, _ = self.round_dao.find_page(is_open=True, limit=_OPEN_ROUNDS_LIMIT, offset=0)
         return MeResponse(
             lecturer=LecturerResponse.model_validate(lecturer),

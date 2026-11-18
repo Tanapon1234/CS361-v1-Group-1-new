@@ -16,12 +16,12 @@ import type {
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
   draft: 'ร่าง',
-  submitted: 'ส่งแล้ว รอรับเรื่อง',
-  assessing: 'รอผู้บริหารประเมิน',
+  submitted: 'ส่งแล้ว รอผู้ตรวจ',
+  assessing: 'รอหัวหน้าสาขาตรวจ',
   dept_review: 'รอกรรมการสาขาพิจารณา',
   returned: 'ถูกตีกลับ',
   dept_approved: 'สาขาอนุมัติแล้ว',
-  sent_to_faculty: 'ส่งคณะแล้ว',
+  sent_to_faculty: 'ส่งต่อคณะแล้ว',
 };
 
 export const VERIFICATION_LABEL: Record<VerificationStatus, string> = {
@@ -61,7 +61,8 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 export const SIGNER_ROLE_LABEL: Record<SignerRole, string> = {
   performer: 'ผู้ปฏิบัติ (เจ้าของใบ)',
-  receiver: 'ผู้รับเรื่อง',
+  receiver: 'ผู้รับเรื่อง (ขั้นเดิม)',
+  reviewer: 'อาจารย์ผู้ตรวจ',
   dept_chair: 'หัวหน้าสาขาวิชา',
   dept_committee: 'กรรมการประจำสาขาวิชา',
 };
@@ -113,10 +114,8 @@ export const WORKFLOW_STEP: Partial<
 > = {
   draft: { role: 'performer', approve: 'ส่งใบภาระงาน', canReturn: false },
   returned: { role: 'performer', approve: 'ส่งใบภาระงานอีกครั้ง', canReturn: false },
-  submitted: { role: 'receiver', approve: 'รับเรื่อง', canReturn: true },
-  assessing: { role: 'dept_chair', approve: 'ยืนยันผลประเมิน ส่งต่อกรรมการสาขา', canReturn: true },
-  dept_review: { role: 'dept_committee', approve: 'อนุมัติระดับสาขา', canReturn: true },
-  dept_approved: { role: 'receiver', approve: 'ส่งต่อคณะ', canReturn: true },
+  submitted: { role: 'reviewer', approve: 'รับรองและส่งต่อหัวหน้าสาขา', canReturn: true },
+  assessing: { role: 'dept_chair', approve: 'หัวหน้าสาขารับรอง ส่งต่อคณะ', canReturn: true },
 };
 
 export const EDITABLE_STATUSES: readonly SubmissionStatus[] = ['draft', 'returned'];

@@ -24,7 +24,6 @@ from app.v2.models.submission import (
     SubmissionCategoryTotal,
     SubmissionEntry,
 )
-from app.v2.models.submission_review import SubmissionReview
 from app.v2.models.user_role import UserRole
 
 __all__ = [
@@ -53,6 +52,5 @@ __all__ = [
     "SubmissionApproval",
     "SubmissionCategoryTotal",
     "SubmissionEntry",
-    "SubmissionReview",
     "UserRole",
 ]

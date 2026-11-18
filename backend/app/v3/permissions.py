@@ -192,10 +192,6 @@ ROUTE_RULES: dict[tuple[str, str], Rule] = {
     ("GET", "/verifications/publications"): REVIEWERS,
     ("GET", "/verifications/evidence"): REVIEWERS,
     ("GET", "/verifications/assignments"): REVIEWERS,
-    # whole-sheet verdict (V4 #335): anyone who may see the sheet reads it; only its assigned
-    # reviewer writes (VerificationService)
-    ("GET", "/submissions/{submission_id}/review"): SIGNED_IN,
-    ("PUT", "/submissions/{submission_id}/review"): REVIEWERS,
     # audit log (006)
     ("GET", "/audit-log"): ADMIN,
     # reviewer assignment (V4 #293): executive assigns; a plain reviewer only lists

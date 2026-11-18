@@ -40,6 +40,11 @@ class ReviewerAssignmentDAO(ABC):
         is still accepting work."""
 
     @abstractmethod
+    def has_reviewer(self, reviewee_id: UUID, round_id: int) -> bool:
+        """True while someone is assigned to review this lecturer in this round and the round
+        is still accepting work (so the department head signs the first step when it is False)."""
+
+    @abstractmethod
     def add(self, assignment: ReviewerAssignment) -> ReviewerAssignment: ...
 
     @abstractmethod

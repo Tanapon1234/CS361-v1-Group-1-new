@@ -1,5 +1,5 @@
 """Models must mirror database/migrations/ 002 + 003 + 005 + 006 + 007 + 009 + 010 + 011 + 012
-+ 013 + 014 (no database needed).
++ 013 + 015 (no database needed).
 
 If you change the SQL, change the model too (and the other way round).
 """
@@ -28,7 +28,7 @@ MIGRATIONS = [
     MIGRATIONS_DIR / "011_reviewer_assignment.sql",
     MIGRATIONS_DIR / "012_reviewer_assignment_round.sql",
     MIGRATIONS_DIR / "013_user_role.sql",
-    MIGRATIONS_DIR / "014_submission_review.sql",
+    MIGRATIONS_DIR / "015_reviewer_workflow.sql",
 ]
 
 
@@ -47,12 +47,17 @@ def columns_in_migration() -> dict[str, set[str]]:
 
 
 def enums_in_migration() -> dict[str, list[str]]:
-    return {
+    sql = migration_sql()
+    enums = {
         name: re.findall(r"'(\w+)'", values)
-        for name, values in re.findall(
-            r'CREATE TYPE "(\w+)" AS ENUM \((.*?)\);', migration_sql(), flags=re.S
-        )
+        for name, values in re.findall(r'CREATE TYPE "(\w+)" AS ENUM \((.*?)\);', sql, flags=re.S)
     }
+    # ALTER TYPE ... ADD VALUE appends, in file order
+    for name, value in re.findall(
+        r'ALTER TYPE "(\w+)" ADD VALUE(?: IF NOT EXISTS)? \'(\w+)\'', sql
+    ):
+        enums[name].append(value)
+    return enums
 
 
 def columns_in_models() -> dict[str, set[str]]:
