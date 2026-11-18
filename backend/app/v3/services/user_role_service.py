@@ -1,6 +1,8 @@
-"""Roles an admin grants from the app. Staff, executive and admin are stored here;
-reviewer is derived from an active reviewer_assignment and lecturer is implicit, so
-neither can be granted. Grants and revokes are audited with every other change (audit.py).
+"""Roles an admin grants from the app. Staff and admin are granted here. The others are not:
+executive is the department head (derived from the dept_chair position), reviewer is derived
+from an active reviewer_assignment, and lecturer is implicit. A leftover executive row from
+before that rule can still be revoked. Grants and revokes are audited with every other
+change (audit.py).
 """
 
 from uuid import UUID
@@ -48,7 +50,8 @@ class UserRoleService:
         return self._to_response(row)
 
     def revoke(self, actor: Actor, lecturer_id: UUID, role: Role) -> None:
-        self._require_grantable(role)
+        if role not in GRANTABLE_ROLES | {Role.EXECUTIVE}:
+            raise BadRequestError("Only a role stored in user_role can be revoked here")
         row = self.user_role_dao.get(lecturer_id, role.value)
         if row is None:
             raise NotFoundError("This lecturer does not have this role")
@@ -65,8 +68,9 @@ class UserRoleService:
     def _require_grantable(role: Role) -> None:
         if role not in GRANTABLE_ROLES:
             raise BadRequestError(
-                "Only staff, executive and admin are granted here: reviewer comes from "
-                "a reviewer assignment and lecturer is implicit"
+                "Only staff and admin are granted here: executive is whoever holds the "
+                "department head position, reviewer comes from a reviewer assignment, "
+                "and lecturer is implicit"
             )
 
     def _to_response(self, row: UserRole) -> UserRoleResponse:

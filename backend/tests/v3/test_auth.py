@@ -283,6 +283,42 @@ def test_an_active_reviewer_assignment_makes_the_lecturer_a_reviewer(client: Tes
     assert "reviewer" in response.json()["roles"]
 
 
+def test_holding_the_department_head_position_makes_the_lecturer_executive(
+    client: TestClient,
+) -> None:
+    POSITION_DAO.list_active.return_value = [
+        MemberPosition(
+            lecturer_id=LECTURER.lecturer_id,
+            position=PositionCode.DEPT_CHAIR,
+            department_id=3,
+            start_date="2024-01-01",
+        ),
+    ]
+    try:
+        response = client.get("/who", headers=bearer(token(**{"cognito:groups": []})))
+    finally:
+        POSITION_DAO.list_active.return_value = []
+
+    assert response.json()["roles"] == ["executive", "lecturer"]
+
+
+def test_other_positions_do_not_make_the_lecturer_executive(client: TestClient) -> None:
+    POSITION_DAO.list_active.return_value = [
+        MemberPosition(
+            lecturer_id=LECTURER.lecturer_id,
+            position=PositionCode.DEPT_COMMITTEE,
+            department_id=3,
+            start_date="2024-01-01",
+        ),
+    ]
+    try:
+        response = client.get("/who", headers=bearer(token(**{"cognito:groups": []})))
+    finally:
+        POSITION_DAO.list_active.return_value = []
+
+    assert response.json()["roles"] == ["lecturer"]
+
+
 def test_the_cognito_reviewer_group_is_no_longer_honored(client: TestClient) -> None:
     response = client.get("/who", headers=bearer(token(**{"cognito:groups": ["reviewer"]})))
 

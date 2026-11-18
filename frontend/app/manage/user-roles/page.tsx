@@ -6,17 +6,13 @@ import { EmptyNote, Field, inputClass, Notice, PageHeader, Section, Table, Td } 
 import { isAdmin } from '@/lib/auth/permissions';
 import { listLecturers, listUserRoles, MAX_PAGE, settle } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
-import { formatDateTime } from '@/lib/backend/labels';
+import { formatDateTime, ROLE_LABEL } from '@/lib/backend/labels';
 
 export const metadata: Metadata = { title: 'กำหนดบทบาทผู้ใช้' };
 
-/** Roles an admin can grant. Reviewer comes from a reviewer assignment, lecturer is implicit. */
-const GRANTABLE = [
-  { value: 'staff', label: 'เจ้าหน้าที่ (staff)' },
-  { value: 'executive', label: 'ผู้บริหาร (executive)' },
-  { value: 'admin', label: 'ผู้ดูแลระบบ (admin)' },
-];
-const ROLE_LABEL = Object.fromEntries(GRANTABLE.map((role) => [role.value, role.label]));
+/** Roles an admin can grant. The department head comes from the head position and the
+ * reviewer from a reviewer assignment; lecturer is implicit. */
+const GRANTABLE = (['staff', 'admin'] as const).map((value) => ({ value, label: ROLE_LABEL[value] }));
 
 export default async function UserRolesPage() {
   const me = await getCurrentUser();
@@ -38,7 +34,7 @@ export default async function UserRolesPage() {
     <div className="space-y-6">
       <PageHeader
         title="กำหนดบทบาทผู้ใช้"
-        description="ให้หรือถอนบทบาทเจ้าหน้าที่ ผู้บริหาร และผู้ดูแลระบบ มีผลทันทีโดยไม่ต้องเข้าสู่ระบบใหม่ บทบาทผู้ตรวจไม่ตั้งที่นี่ แต่ได้จากการมอบหมายผู้ตรวจในแต่ละรอบ"
+        description="ให้หรือถอนบทบาทเจ้าหน้าที่สาขาและผู้ดูแลระบบ มีผลทันทีโดยไม่ต้องเข้าสู่ระบบใหม่ หัวหน้าสาขาได้จากตำแหน่งหัวหน้าสาขาที่เมนู อาจารย์ → ตำแหน่งบริหาร ส่วนอาจารย์ผู้ตรวจได้จากการมอบหมายผู้ตรวจในแต่ละรอบ"
       />
 
       <Section title="กำหนดบทบาทใหม่">

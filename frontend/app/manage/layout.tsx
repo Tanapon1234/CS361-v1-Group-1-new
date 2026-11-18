@@ -9,18 +9,12 @@ import { secondaryButtonClass } from '@/components/manage/ui';
 import { cognitoEnabled } from '@/lib/auth/cognito';
 import { canReview, isAdmin, isExecutive, isLecturerOnly, mayAssess } from '@/lib/auth/permissions';
 import { BackendError, getCurrentUser } from '@/lib/backend/client';
+import { ROLE_LABEL } from '@/lib/backend/labels';
 import type { Me } from '@/types/backend';
 
 export const metadata: Metadata = {
   title: { default: 'ระบบจัดการ', template: '%s | ระบบจัดการ' },
   robots: { index: false },
-};
-
-const ROLE_LABEL: Record<string, string> = {
-  staff: 'เจ้าหน้าที่',
-  reviewer: 'ผู้ตรวจสอบ',
-  executive: 'ผู้บริหาร',
-  admin: 'ผู้ดูแลระบบ',
 };
 
 /** Who is signed in, shown on every /manage page */
@@ -33,7 +27,9 @@ async function CurrentUserBar() {
   } catch (error) {
     problem = error instanceof BackendError ? error.message : 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ';
   }
-  const roles = (me?.roles ?? []).filter((role) => role in ROLE_LABEL).map((role) => ROLE_LABEL[role]);
+  const roles = (me?.roles ?? [])
+    .filter((role) => role !== 'lecturer' && role in ROLE_LABEL)
+    .map((role) => ROLE_LABEL[role]);
 
   return (
     <div className="border-b border-line bg-surface-alt">

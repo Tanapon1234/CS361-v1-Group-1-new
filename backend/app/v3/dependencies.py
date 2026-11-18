@@ -56,7 +56,7 @@ from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.daos.user_role_dao import UserRoleDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.permissions import rule_for
-from app.v3.security import Actor, HeldPosition, Role, roles_from_names
+from app.v3.security import EXECUTIVE_POSITION, Actor, HeldPosition, Role, roles_from_names
 from app.v3.services.assessment_service import AssessmentService
 from app.v3.services.audit_log_service import AuditLogService
 from app.v3.services.department_service import DepartmentService
@@ -239,20 +239,24 @@ def get_actor(
         groups = claims.get("cognito:groups") or []
         # reviewer is derived from an active assignment, so the Cognito group is not honored
         token_roles = roles_from_names(groups) - {Role.REVIEWER}
+        positions = _positions_held(position_dao, lecturer.lecturer_id)
         return Actor(
             lecturer.lecturer_id,
-            _effective_roles(token_roles, lecturer.lecturer_id, user_role_dao, assignment_dao),
-            _positions_held(position_dao, lecturer.lecturer_id),
+            _effective_roles(
+                token_roles, lecturer.lecturer_id, positions, user_role_dao, assignment_dao
+            ),
+            positions,
         )
 
     if settings.allows_dev_auth_header and (x_lecturer_id or x_dev_roles):
         roles = roles_from_names((x_dev_roles or "").split(","))
         if x_lecturer_id is None:
             return Actor(None, roles)
+        positions = _positions_held(position_dao, x_lecturer_id)
         return Actor(
             x_lecturer_id,
-            _effective_roles(roles, x_lecturer_id, user_role_dao, assignment_dao),
-            _positions_held(position_dao, x_lecturer_id),
+            _effective_roles(roles, x_lecturer_id, positions, user_role_dao, assignment_dao),
+            positions,
         )
 
     raise UnauthorizedError("Sign-in required")
@@ -261,14 +265,18 @@ def get_actor(
 def _effective_roles(
     given: frozenset[Role],
     lecturer_id: UUID,
+    positions: frozenset[HeldPosition],
     user_role_dao: UserRoleDAO,
     assignment_dao: ReviewerAssignmentDAO,
 ) -> frozenset[Role]:
-    """Roles from the token (or dev header), the ones an admin granted in the app, and
-    reviewer while the lecturer has an active reviewer assignment. Read on every request,
-    so a grant or revoke applies at once, without a new sign-in."""
+    """Roles from the token (or dev header), the ones an admin granted in the app, executive
+    while the lecturer holds the department head position, and reviewer while they have an
+    active reviewer assignment. Read on every request, so a change applies at once, without
+    a new sign-in."""
     roles = set(given) | {Role.LECTURER}
     roles |= roles_from_names(user_role_dao.roles_of(lecturer_id))
+    if any(held.position is EXECUTIVE_POSITION for held in positions):
+        roles.add(Role.EXECUTIVE)
     if assignment_dao.has_active(lecturer_id):
         roles.add(Role.REVIEWER)
     return frozenset(roles)

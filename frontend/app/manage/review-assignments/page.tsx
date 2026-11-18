@@ -41,7 +41,7 @@ export default async function ReviewAssignmentsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="มอบหมายผู้ตรวจ" />
-        <Notice tone="error">หน้านี้สำหรับผู้บริหารเท่านั้น</Notice>
+        <Notice tone="error">หน้านี้สำหรับหัวหน้าสาขาเท่านั้น</Notice>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default async function ReviewAssignmentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="มอบหมายผู้ตรวจ"
-        description="เลือกผู้ตรวจสอบ 1 คน แล้วติ๊กอาจารย์ที่ต้องถูกตรวจได้หลายคนในรอบประเมินเดียวกัน การมอบหมายมีผลจนกว่ารอบจะปิดหรือหมดเวลาส่ง"
+        description="เลือกอาจารย์ผู้ตรวจ 1 คน แล้วติ๊กอาจารย์ที่ต้องถูกตรวจได้หลายคนในรอบประเมินเดียวกัน การมอบหมายมีผลจนกว่ารอบจะปิดหรือหมดเวลาส่ง"
       />
 
       <Section title="มอบหมายใหม่">
@@ -107,7 +107,7 @@ export default async function ReviewAssignmentsPage() {
                     <article key={reviewer.id} className="overflow-hidden rounded-lg border border-line-soft">
                       <header className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-ink-muted">ผู้ตรวจสอบ</p>
+                          <p className="text-xs text-ink-muted">อาจารย์ผู้ตรวจ</p>
                           <p className="truncate font-semibold text-ink">{reviewer.name}</p>
                         </div>
                         <Badge>{reviewer.rows.length} คน</Badge>

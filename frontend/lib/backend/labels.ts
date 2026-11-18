@@ -5,6 +5,7 @@ import type {
   PositionCode,
   QuantityUnit,
   RangeBasis,
+  Role,
   SignerRole,
   SubmissionStatus,
   VerificationStatus,
@@ -47,6 +48,16 @@ export const DEPARTMENT_POSITIONS: readonly PositionCode[] = [
   'dept_secretary',
   'dept_committee',
 ];
+
+/** App roles as people know them: the department has one department head (executive), its
+ * office staff (staff), and fellow lecturers who review (reviewer). Codes are unchanged. */
+export const ROLE_LABEL: Record<Role, string> = {
+  lecturer: 'อาจารย์',
+  staff: 'เจ้าหน้าที่สาขา',
+  reviewer: 'อาจารย์ผู้ตรวจ',
+  executive: 'หัวหน้าสาขา',
+  admin: 'ผู้ดูแลระบบ',
+};
 
 export const SIGNER_ROLE_LABEL: Record<SignerRole, string> = {
   performer: 'ผู้ปฏิบัติ (เจ้าของใบ)',

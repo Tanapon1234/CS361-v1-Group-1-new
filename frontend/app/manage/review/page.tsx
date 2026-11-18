@@ -37,7 +37,7 @@ export default async function ReviewPage({
     return (
       <div className="space-y-6">
         <PageHeader title="ตรวจสอบและรับรอง" />
-        <Notice tone="error">หน้านี้สำหรับผู้ตรวจสอบเท่านั้น</Notice>
+        <Notice tone="error">หน้านี้สำหรับอาจารย์ผู้ตรวจเท่านั้น</Notice>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default async function ReviewPage({
     <div className="space-y-6">
       <PageHeader
         title="ตรวจสอบและรับรอง"
-        description="ผลงานตีพิมพ์และไฟล์หลักฐานที่รอผู้ตรวจสอบ เรียงจากเก่าไปใหม่ ห้ามรับรองงานของตัวเอง"
+        description="ผลงานตีพิมพ์และไฟล์หลักฐานที่รออาจารย์ผู้ตรวจ เรียงจากเก่าไปใหม่ ห้ามรับรองงานของตัวเอง"
       />
       <nav aria-label="สถานะ" className="flex gap-2">
         {STATUSES.map((value) => (
