@@ -3,9 +3,10 @@ import { redirect } from 'next/navigation';
 
 import { switchUser } from '@/app/manage/actions/session';
 import { EmptyNote, Notice, PageHeader, Pager, inputClass, intParam, param, secondaryButtonClass, withQuery } from '@/components/manage/ui';
-import { PAGE_SIZE, listDepartments, listLecturers } from '@/lib/backend/api';
+import { MAX_PAGE, PAGE_SIZE } from '@/lib/backend/api';
 import { cognitoEnabled } from '@/lib/auth/cognito';
-import { currentLecturerId } from '@/lib/backend/client';
+import { backend, currentLecturerId } from '@/lib/backend/client';
+import type { Department, Lecturer, PageResponse } from '@/types/backend';
 
 const ROLE_CHOICES = [
   ['staff', 'เจ้าหน้าที่'],
@@ -15,6 +16,13 @@ const ROLE_CHOICES = [
 ] as const;
 
 export const metadata: Metadata = { title: 'เลือกผู้ใช้งาน' };
+
+/**
+ * This page is how a visitor with no cookie picks a user, so it cannot wait for one: the
+ * backend refuses unsigned callers. The dev role header (accepted outside prod, with no
+ * lecturer id) lets the two lists load.
+ */
+const PICKER_HEADERS = { 'X-Dev-Roles': 'admin' };
 
 export default async function SwitchUserPage({
   searchParams,
@@ -27,8 +35,14 @@ export default async function SwitchUserPage({
   const q = param(params.q);
   const offset = intParam(params.offset) ?? 0;
   const [lecturers, departments, current] = await Promise.all([
-    listLecturers({ q, is_active: true, limit: PAGE_SIZE, offset }),
-    listDepartments(),
+    backend<PageResponse<Lecturer>>('GET', '/lecturers', {
+      query: { q, is_active: true, limit: PAGE_SIZE, offset },
+      headers: PICKER_HEADERS,
+    }),
+    backend<PageResponse<Department>>('GET', '/departments', {
+      query: { limit: MAX_PAGE },
+      headers: PICKER_HEADERS,
+    }),
     currentLecturerId(),
   ]);
   const departmentName = new Map(departments.items.map((d) => [d.id, d.name_th]));
