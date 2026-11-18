@@ -80,13 +80,6 @@ export default async function SubmissionsPage({
               description="แยกตามรอบประเมิน รอบที่เปิดรับอยู่ และรอบที่ฉันมีใบแล้ว"
             >
               <RoundSheetList rounds={myRounds} mine={submissions?.items ?? []} mayCreate={canCreate} />
-              {ownOnly ? null : (
-                <p className="mt-4 text-sm">
-                  <Link href="/manage/submissions?scope=all" className={linkClass}>
-                    ดูใบภาระงานของอาจารย์ทุกคน
-                  </Link>
-                </p>
-              )}
             </Section>
           ) : null}
 
