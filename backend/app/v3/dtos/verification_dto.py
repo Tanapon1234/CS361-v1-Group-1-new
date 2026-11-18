@@ -59,24 +59,11 @@ class EvidenceQueueItem(ResponseDTO):
     created_at: datetime
 
 
-class SubmissionReviewResponse(ResponseDTO):
-    """A reviewer's verdict on a whole sheet; `pending` until someone has looked."""
-
-    status: VerificationStatus
-    note: str | None
-    reviewed_by: UUID | None
-    reviewed_at: datetime | None
-
-
 class ReviewAssignmentItem(ResponseDTO):
-    """One lecturer the caller reviews in one round, with how far the review has got."""
+    """One lecturer the caller reviews in one round, and where their sheet stands."""
 
     round_id: int
     reviewee_id: UUID
     reviewee_name_th: str
     submission_id: UUID | None
     submission_status: SubmissionStatus | None
-    review_status: VerificationStatus | None
-    review_note: str | None
-    pending_evidence: int
-    pending_publications: int

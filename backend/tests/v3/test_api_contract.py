@@ -76,8 +76,6 @@ EXPECTED_ENDPOINTS = {
     ("GET", "/api/v3/verifications/publications"),
     ("GET", "/api/v3/verifications/evidence"),
     ("GET", "/api/v3/verifications/assignments"),
-    ("GET", "/api/v3/submissions/{submission_id}/review"),
-    ("PUT", "/api/v3/submissions/{submission_id}/review"),
     # reviewer assignment (V4 #293, migration 011)
     ("GET", "/api/v3/reviewer-assignments"),
     ("POST", "/api/v3/reviewer-assignments"),

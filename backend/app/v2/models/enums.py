@@ -41,6 +41,7 @@ class SignerRole(StrEnum):
     RECEIVER = "receiver"
     DEPT_CHAIR = "dept_chair"
     DEPT_COMMITTEE = "dept_committee"
+    REVIEWER = "reviewer"  # added by 015: signs the first step after the owner
 
 
 class ApprovalDecision(StrEnum):

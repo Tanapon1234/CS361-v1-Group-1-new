@@ -74,31 +74,3 @@ class SqlVerificationDAO(SqlDAO, VerificationDAO):
             .limit(limit)
         ).all()
         return [EvidenceQueueRow(*row) for row in rows], total
-
-    def count_pending_evidence(self, submission_id: UUID) -> int:
-        statement = (
-            select(func.count())
-            .select_from(EntryEvidence)
-            .join(SubmissionEntry, SubmissionEntry.id == EntryEvidence.entry_id)
-            .where(
-                SubmissionEntry.submission_id == submission_id,
-                EntryEvidence.verification_status == VerificationStatus.PENDING,
-                EntryEvidence.status == EvidenceStatus.UPLOADED,
-            )
-        )
-        return self.session.exec(statement).one()
-
-    def count_pending_publications(self, lecturer_id: UUID) -> int:
-        statement = (
-            select(func.count())
-            .select_from(Publication)
-            .where(
-                Publication.verification_status == VerificationStatus.PENDING,
-                col(Publication.publication_id).in_(
-                    select(FacultyPublication.publication_id).where(
-                        FacultyPublication.lecturer_id == lecturer_id
-                    )
-                ),
-            )
-        )
-        return self.session.exec(statement).one()

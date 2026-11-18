@@ -9,17 +9,17 @@ import { EmptyNote, buttonClass, linkClass, secondaryButtonClass } from '@/compo
 import { SUBMISSION_STATUS_LABEL, formatDateTime, formatNumber, formatScore } from '@/lib/backend/labels';
 import type { EvaluationRound, Submission, SubmissionStatus } from '@/types/backend';
 
-/** How far a sheet has travelled (1 to 5) on the way to the department's approval */
+/** How far a sheet has travelled (1 to 4): draft, with the reviewer, with the head, sent on */
 const STEP: Record<SubmissionStatus, number> = {
   draft: 1,
   returned: 1,
   submitted: 2,
   assessing: 3,
-  dept_review: 4,
-  dept_approved: 5,
-  sent_to_faculty: 5,
+  dept_review: 3, // the old committee step, kept for sheets already there
+  dept_approved: 4,
+  sent_to_faculty: 4,
 };
-const STEPS = 5;
+const STEPS = 4;
 
 const icon = 'size-4 shrink-0 text-ink-muted';
 
@@ -41,7 +41,7 @@ function BookIcon() {
   );
 }
 
-/** Five segments filled up to the sheet's current step; a returned sheet is drawn in the brand colour */
+/** Four segments filled up to the sheet's current step; a returned sheet is drawn in the brand colour */
 function SheetProgress({ status }: { status: SubmissionStatus }) {
   const step = STEP[status];
   const returned = status === 'returned';

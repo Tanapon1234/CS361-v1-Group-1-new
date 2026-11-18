@@ -15,13 +15,11 @@ from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.models.reviewer_assignment import ReviewerAssignment
 from app.v2.models.submission import EntryEvidence, Submission, SubmissionEntry
-from app.v2.models.submission_review import SubmissionReview
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.publication_dao import PublicationDAO
 from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.submission_dao import SubmissionDAO
-from app.v3.daos.submission_review_dao import SubmissionReviewDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.dtos.publication_dto import PublicationUpdateRequest
 from app.v3.dtos.verification_dto import VerificationPutRequest, VerificationQueueQuery
@@ -42,7 +40,6 @@ def daos() -> dict[str, MagicMock]:
         "evidence": create_autospec(EvidenceDAO, instance=True),
         "submission": create_autospec(SubmissionDAO, instance=True),
         "assignment": create_autospec(ReviewerAssignmentDAO, instance=True),
-        "review": create_autospec(SubmissionReviewDAO, instance=True),
         "lecturer": create_autospec(LecturerDAO, instance=True),
     }
     daos["assignment"].reviewee_ids.return_value = [AUTHOR]
@@ -62,7 +59,6 @@ def service(daos: dict[str, MagicMock]) -> VerificationService:
         daos["evidence"],
         daos["submission"],
         daos["assignment"],
-        daos["review"],
         daos["lecturer"],
     )
 
@@ -251,7 +247,7 @@ def test_a_reviewer_cannot_verify_evidence_outside_their_assignment_for_that_rou
     daos["evidence"].update.assert_not_called()
 
 
-# --- whole-sheet verdict (V4 #335) ----------------------------------------------------
+# --- the reviewer's own list (V4 #337, #341) -----------------------------------------
 
 
 def sheet(owner, status: SubmissionStatus = SubmissionStatus.SUBMITTED) -> Submission:
@@ -265,125 +261,24 @@ def sheet(owner, status: SubmissionStatus = SubmissionStatus.SUBMITTED) -> Submi
     )
 
 
-@pytest.fixture
-def reviews(daos: dict[str, MagicMock]) -> dict[str, MagicMock]:
-    daos["review"].get.return_value = None
-    daos["review"].add.side_effect = lambda row: row
-    daos["review"].update.side_effect = lambda row, values: row.sqlmodel_update(values) or row
-    return daos
-
-
-def test_the_assigned_reviewer_writes_a_verdict_on_a_submitted_sheet(
-    service: VerificationService, reviews: dict[str, MagicMock]
-) -> None:
-    target = sheet(AUTHOR)
-    reviews["submission"].get_by_id.return_value = target
-
-    result = service.set_submission_review(
-        target.id,
-        REVIEWER,
-        VerificationPutRequest(status=VerificationStatus.REJECTED, note="ขาดหลักฐานข้อ 1.2"),
-    )
-
-    assert (result.status, result.note) == (VerificationStatus.REJECTED, "ขาดหลักฐานข้อ 1.2")
-    assert result.reviewed_by == REVIEWER.lecturer_id
-    reviews["assignment"].is_assigned.assert_called_with(REVIEWER.lecturer_id, AUTHOR, 3)
-    # the verdict never touches the sheet itself
-    reviews["submission"].update.assert_not_called()
-
-
-def test_a_second_verdict_updates_the_same_row(
-    service: VerificationService, reviews: dict[str, MagicMock]
-) -> None:
-    target = sheet(AUTHOR)
-    reviews["submission"].get_by_id.return_value = target
-    reviews["review"].get.return_value = SubmissionReview(
-        submission_id=target.id, status=VerificationStatus.REJECTED, note="x"
-    )
-
-    result = service.set_submission_review(target.id, REVIEWER, VERIFY)
-
-    assert result.status is VerificationStatus.VERIFIED
-    reviews["review"].add.assert_not_called()
-    reviews["review"].update.assert_called_once()
-
-
-@pytest.mark.parametrize(
-    ("owner", "status", "assigned", "error", "match"),
-    [
-        (AUTHOR, SubmissionStatus.DRAFT, True, ConflictError, "not been submitted"),
-        (REVIEWER.lecturer_id, SubmissionStatus.SUBMITTED, True, ForbiddenError, "own"),
-        (AUTHOR, SubmissionStatus.SUBMITTED, False, ForbiddenError, "not assigned"),
-    ],
-    ids=["draft", "own-sheet", "not-assigned-in-that-round"],
-)
-def test_sheet_verdict_refusals(
-    service: VerificationService,
-    reviews: dict[str, MagicMock],
-    owner,
-    status,
-    assigned,
-    error,
-    match,
-) -> None:
-    target = sheet(owner, status)
-    reviews["submission"].get_by_id.return_value = target
-    reviews["assignment"].is_assigned.return_value = assigned
-
-    with pytest.raises(error, match=match):
-        service.set_submission_review(target.id, REVIEWER, VERIFY)
-
-    reviews["review"].add.assert_not_called()
-
-
-@pytest.mark.parametrize("role", [Role.STAFF, Role.EXECUTIVE, Role.ADMIN])
-def test_only_a_real_reviewer_writes_a_sheet_verdict(
-    service: VerificationService, reviews: dict[str, MagicMock], role: Role
-) -> None:
-    target = sheet(AUTHOR)
-    reviews["submission"].get_by_id.return_value = target
-    caller = Actor(uuid4(), frozenset({Role.LECTURER, role}))
-
-    with pytest.raises(ForbiddenError, match="reviewer"):
-        service.set_submission_review(target.id, caller, VERIFY)
-
-
-def test_a_sheet_nobody_looked_at_reads_as_pending(
-    service: VerificationService, reviews: dict[str, MagicMock]
-) -> None:
-    target = sheet(AUTHOR)
-    reviews["submission"].get_by_id.return_value = target
-    owner = Actor(AUTHOR, frozenset({Role.LECTURER}))
-
-    result = service.get_submission_review(target.id, owner)
-
-    assert result.status is VerificationStatus.PENDING
-    assert result.reviewed_by is None
-
-
-def test_my_assignments_come_with_sheet_verdict_and_pending_counts_newest_round_first(
-    service: VerificationService, reviews: dict[str, MagicMock]
+def test_my_assignments_come_with_the_sheet_status_newest_round_first(
+    service: VerificationService, daos: dict[str, MagicMock]
 ) -> None:
     mine = REVIEWER.lecturer_id
     ann, bob = uuid4(), uuid4()
-    reviews["assignment"].list_by_reviewer.return_value = [
+    daos["assignment"].list_by_reviewer.return_value = [
         ReviewerAssignment(round_id=2, reviewer_id=mine, reviewee_id=bob, assigned_by=mine),
         ReviewerAssignment(round_id=3, reviewer_id=mine, reviewee_id=ann, assigned_by=mine),
         ReviewerAssignment(round_id=3, reviewer_id=mine, reviewee_id=bob, assigned_by=mine),
     ]
     names = {ann: "Ann", bob: "Bob"}
-    reviews["lecturer"].get_by_id.side_effect = lambda lecturer_id: Lecturer(
+    daos["lecturer"].get_by_id.side_effect = lambda lecturer_id: Lecturer(
         lecturer_id=lecturer_id, name_th=names[lecturer_id], email="x@x"
     )
     ann_sheet = sheet(ann)
-    reviews["submission"].get_by_round_and_lecturer.side_effect = lambda round_id, lecturer_id: (
+    daos["submission"].get_by_round_and_lecturer.side_effect = lambda round_id, lecturer_id: (
         ann_sheet if (round_id, lecturer_id) == (3, ann) else None
     )
-    reviews["review"].get.return_value = SubmissionReview(
-        submission_id=ann_sheet.id, status=VerificationStatus.VERIFIED
-    )
-    reviews["verification"].count_pending_evidence.return_value = 4
-    reviews["verification"].count_pending_publications.return_value = 2
 
     items = service.list_assignments(REVIEWER)
 
@@ -393,11 +288,17 @@ def test_my_assignments_come_with_sheet_verdict_and_pending_counts_newest_round_
         (2, "Bob"),
     ]
     first, second, _ = items
-    assert (first.submission_id, first.review_status, first.pending_evidence) == (
+    assert (first.submission_id, first.submission_status) == (
         ann_sheet.id,
-        VerificationStatus.VERIFIED,
-        4,
+        SubmissionStatus.SUBMITTED,
     )
-    # no sheet yet: nothing to verdict, nothing pending on a sheet, publications still count
-    assert (second.submission_id, second.review_status, second.pending_evidence) == (None, None, 0)
-    assert second.pending_publications == 2
+    # no sheet yet
+    assert (second.submission_id, second.submission_status) == (None, None)
+
+
+@pytest.mark.parametrize("role", [Role.STAFF, Role.EXECUTIVE, Role.ADMIN])
+def test_only_a_real_reviewer_sees_the_assignment_list(
+    service: VerificationService, role: Role
+) -> None:
+    with pytest.raises(ForbiddenError, match="reviewer"):
+        service.list_assignments(Actor(uuid4(), frozenset({Role.LECTURER, role})))

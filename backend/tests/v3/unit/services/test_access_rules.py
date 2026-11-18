@@ -16,6 +16,7 @@ from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
 from app.v3.daos.publication_dao import PublicationDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.lecturer_dto import LecturerUpdateRequest
 from app.v3.dtos.publication_dto import PublicationCreateRequest, PublicationUpdateRequest
@@ -146,6 +147,7 @@ def submissions(submission_dao: MagicMock, submission_lecturer_dao: MagicMock) -
         create_autospec(EvidenceDAO, instance=True),
         create_autospec(ObjectStorage, instance=True),
         create_autospec(ScoreKeeper, instance=True),
+        create_autospec(ReviewerAssignmentDAO, instance=True),
     )
 
 

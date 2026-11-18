@@ -34,7 +34,6 @@ import type {
   Verification,
   AuditLogEntry,
   MyReviewAssignment,
-  SubmissionReview,
   ReviewerAssignment,
   UserRole,
 } from '@/types/backend';
@@ -235,9 +234,6 @@ export const listAssessmentQueue = (query: {
   });
 
 // --- review and audit ---------------------------------------------------------------
-
-export const getSubmissionReview = (id: string) =>
-  backend<SubmissionReview>('GET', `/submissions/${id}/review`);
 
 /** The caller's active reviewer assignments (reviewers only; anyone else gets 403) */
 export const listMyReviewAssignments = () =>

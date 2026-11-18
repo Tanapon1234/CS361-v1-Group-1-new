@@ -50,11 +50,9 @@ from app.v3.daos.sql.research_interest_dao import SqlResearchInterestDAO
 from app.v3.daos.sql.reviewer_assignment_dao import SqlReviewerAssignmentDAO
 from app.v3.daos.sql.rubric_dao import SqlRubricDAO
 from app.v3.daos.sql.submission_dao import SqlSubmissionDAO
-from app.v3.daos.sql.submission_review_dao import SqlSubmissionReviewDAO
 from app.v3.daos.sql.user_role_dao import SqlUserRoleDAO
 from app.v3.daos.sql.verification_dao import SqlVerificationDAO
 from app.v3.daos.submission_dao import SubmissionDAO
-from app.v3.daos.submission_review_dao import SubmissionReviewDAO
 from app.v3.daos.user_role_dao import UserRoleDAO
 from app.v3.daos.verification_dao import VerificationDAO
 from app.v3.permissions import rule_for
@@ -173,10 +171,6 @@ def get_user_role_dao(session: SessionDep) -> UserRoleDAO:
     return SqlUserRoleDAO(session)
 
 
-def get_submission_review_dao(session: SessionDep) -> SubmissionReviewDAO:
-    return SqlSubmissionReviewDAO(session)
-
-
 LecturerDAODep = Annotated[LecturerDAO, Depends(get_lecturer_dao)]
 LecturerWorkDAODep = Annotated[LecturerWorkDAO, Depends(get_lecturer_work_dao)]
 EducationDAODep = Annotated[EducationDAO, Depends(get_education_dao)]
@@ -195,7 +189,6 @@ PublicationEvidenceDAODep = Annotated[PublicationEvidenceDAO, Depends(get_public
 VerificationDAODep = Annotated[VerificationDAO, Depends(get_verification_dao)]
 ReviewerAssignmentDAODep = Annotated[ReviewerAssignmentDAO, Depends(get_reviewer_assignment_dao)]
 UserRoleDAODep = Annotated[UserRoleDAO, Depends(get_user_role_dao)]
-SubmissionReviewDAODep = Annotated[SubmissionReviewDAO, Depends(get_submission_review_dao)]
 
 # --- Caller (docs/v2/permissions.md) ------------------------------------------------
 
@@ -477,9 +470,10 @@ def get_submission_service(
     evidence_dao: EvidenceDAODep,
     storage: ObjectStorageDep,
     score_keeper: ScoreKeeperDep,
+    assignment_dao: ReviewerAssignmentDAODep,
 ) -> SubmissionService:
     return SubmissionService(
-        submission_dao, round_dao, lecturer_dao, evidence_dao, storage, score_keeper
+        submission_dao, round_dao, lecturer_dao, evidence_dao, storage, score_keeper, assignment_dao
     )
 
 
@@ -554,7 +548,6 @@ def get_verification_service(
     evidence_dao: EvidenceDAODep,
     submission_dao: SubmissionDAODep,
     assignment_dao: ReviewerAssignmentDAODep,
-    review_dao: SubmissionReviewDAODep,
     lecturer_dao: LecturerDAODep,
 ) -> VerificationService:
     return VerificationService(
@@ -563,7 +556,6 @@ def get_verification_service(
         evidence_dao,
         submission_dao,
         assignment_dao,
-        review_dao,
         lecturer_dao,
     )
 

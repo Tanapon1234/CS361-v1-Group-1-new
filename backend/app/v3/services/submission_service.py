@@ -22,6 +22,7 @@ from app.v2.models.submission import Submission, SubmissionApproval
 from app.v3.daos.evaluation_round_dao import EvaluationRoundDAO
 from app.v3.daos.evidence_dao import EvidenceDAO
 from app.v3.daos.lecturer_dao import LecturerDAO
+from app.v3.daos.reviewer_assignment_dao import ReviewerAssignmentDAO
 from app.v3.daos.submission_dao import SubmissionDAO
 from app.v3.dtos.common import ListMeta, ListResponse, PageMeta, PageResponse
 from app.v3.dtos.submission_dto import (
@@ -83,6 +84,7 @@ class SubmissionService:
         evidence_dao: EvidenceDAO,
         storage: ObjectStorage,
         score_keeper: ScoreKeeper,
+        assignment_dao: ReviewerAssignmentDAO,
     ) -> None:
         self.submission_dao = submission_dao
         self.round_dao = round_dao
@@ -90,6 +92,7 @@ class SubmissionService:
         self.evidence_dao = evidence_dao
         self.storage = storage
         self.score_keeper = score_keeper
+        self.assignment_dao = assignment_dao
 
     # --- submissions --------------------------------------------------------------
 
@@ -270,7 +273,7 @@ class SubmissionService:
         )
         signing_role = SignerRole.PERFORMER if withdraws else step.role
         if not withdraws:
-            require_signer(actor, submission, step.role)
+            self._require_step_signer(actor, submission, step.role)
 
         changes: dict[str, object] = {}
         if data.decision is ApprovalDecision.RETURNED:
@@ -312,6 +315,22 @@ class SubmissionService:
         return ApprovalResponse.model_validate(approval)
 
     # --- helpers ------------------------------------------------------------------
+
+    def _require_step_signer(self, actor: Actor, submission: Submission, role: SignerRole) -> None:
+        """The reviewer signs the first step. When nobody is assigned to this lecturer in this
+        round (or the assignment has expired), the department head may sign it instead, so a
+        sheet is never stuck; never on their own sheet."""
+        if role is SignerRole.REVIEWER and not can_sign(actor, submission, role):
+            is_head = can_sign(actor, submission, SignerRole.DEPT_CHAIR)
+            if (
+                is_head
+                and not actor.is_lecturer(submission.lecturer_id)
+                and not self.assignment_dao.has_reviewer(
+                    submission.lecturer_id, submission.round_id
+                )
+            ):
+                return
+        require_signer(actor, submission, role)
 
     def _require_submission(self, submission_id: UUID) -> Submission:
         submission = self.submission_dao.get_by_id(submission_id)

@@ -64,7 +64,9 @@ export function canSign(me: Me | null, role: SignerRole, submission: Submission)
     case 'performer':
       return isSelf(me, submission.lecturer_id);
     case 'receiver':
-      return hasRole(me, 'staff');
+      return hasRole(me, 'staff'); // the old first step, kept for history rows
+    case 'reviewer':
+      return false; // needs the assignment: decided on the sheet page
     case 'dept_chair':
       return holds('dept_chair');
     case 'dept_committee':
