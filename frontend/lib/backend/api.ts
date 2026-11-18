@@ -32,12 +32,9 @@ import type {
   SubmissionSummary,
   SubmissionTotals,
   Verification,
-  VerificationStatus,
   AuditLogEntry,
-  EvidenceQueueItem,
   MyReviewAssignment,
   SubmissionReview,
-  PublicationQueueItem,
   ReviewerAssignment,
   UserRole,
 } from '@/types/backend';
@@ -238,16 +235,6 @@ export const listAssessmentQueue = (query: {
   });
 
 // --- review and audit ---------------------------------------------------------------
-
-export const listPublicationQueue = (query: { status?: VerificationStatus; offset?: number }) =>
-  backend<PageResponse<PublicationQueueItem>>('GET', '/verifications/publications', {
-    query: { ...query, limit: PAGE_SIZE },
-  });
-
-export const listEvidenceQueue = (query: { status?: VerificationStatus; offset?: number }) =>
-  backend<PageResponse<EvidenceQueueItem>>('GET', '/verifications/evidence', {
-    query: { ...query, limit: PAGE_SIZE },
-  });
 
 export const getSubmissionReview = (id: string) =>
   backend<SubmissionReview>('GET', `/submissions/${id}/review`);
