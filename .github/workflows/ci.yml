@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run ruff check
+      # Integration tests skip without TEST_DATABASE_URL (they drop schema public)
+      - run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      # Builds in dev-auth mode: no Cognito or backend URL is needed to compile
+      - run: npm run build
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # W1030: the unused external-Aurora ARN parameters default to ''; an error still fails the job
+      - run: uvx cfn-lint -t infra/v2/*.yaml -i W1030
+      - run: bash -n scripts/*.sh
+      - run: scripts/deploy-all.sh --dry-run
+        env:
+          FOUNDATION_PARAMS: infra/v2/parameters.dev.example.json
