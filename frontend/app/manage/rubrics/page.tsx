@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { createRubricVersion } from '@/app/manage/actions/rubric';
 import { ActionForm } from '@/components/manage/action-form';
 import { Badge, EmptyNote, Field, PageHeader, Section, Table, Td, inputClass, linkClass } from '@/components/manage/ui';
+import { RoundsRubricTabs } from '@/components/manage/rounds-rubric-tabs';
 import { leaveIfLecturerOnly } from '@/lib/auth/guards';
-import { canManage } from '@/lib/auth/permissions';
+import { canManage, isAdmin } from '@/lib/auth/permissions';
 import { listRounds, listRubricVersions } from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { formatDate, formatNumber } from '@/lib/backend/labels';
@@ -23,6 +24,7 @@ export default async function RubricsPage() {
 
   return (
     <div className="space-y-6">
+      {isAdmin(me) ? <RoundsRubricTabs current="rubrics" /> : null}
       <PageHeader
         title="เกณฑ์ภาระงาน"
         description="เกณฑ์มีหลายฉบับ ฉบับที่รอบประเมินใช้แล้วจะถูกล็อก ถ้าจะแก้ให้สร้างฉบับใหม่โดยคัดลอกจากฉบับเดิม"
