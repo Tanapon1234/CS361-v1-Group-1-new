@@ -120,11 +120,12 @@ integration test ต้องตั้ง `TEST_DATABASE_URL` ชี้ไป Po
 region `ap-southeast-1` ลำดับคือ foundation (Aurora, S3, secret) -> migration -> Cognito -> backend API -> frontend
 
 ```bash
-scripts/setup-v2-aws-foundation.sh
-scripts/deploy-v2-cognito.sh
-scripts/deploy-v2-backend-api.sh
-scripts/smoke-v2-backend-api.sh
+export FOUNDATION_PARAMS=infra/v2/parameters.dev.local.json   # สำเนาของ parameters.dev.example.json
+scripts/deploy-all.sh --dry-run    # ดูลำดับและ input ที่ขาด ไม่เรียก AWS
+scripts/deploy-all.sh              # foundation -> migrations -> cognito -> backend -> smoke
 ```
+
+ทุก PR ถูกตรวจด้วย CI (`.github/workflows/ci.yml`) ขั้นตอนที่ยังทำมือและเหตุผลดู [docs/v5-automation.md](docs/v5-automation.md) ส่วนแต่ละขั้นรันแยกได้ด้วย `scripts/setup-v2-aws-foundation.sh`, `deploy-v2-cognito.sh`, `deploy-v2-backend-api.sh`, `smoke-v2-backend-api.sh`
 
 รายละเอียดและค่าพารามิเตอร์ดู [infra/v2/README.md](infra/v2/README.md) และ [docs/v2/deployment-env.md](docs/v2/deployment-env.md)
 
