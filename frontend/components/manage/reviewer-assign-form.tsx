@@ -3,7 +3,8 @@
 import { startTransition, useCallback, useMemo, useState } from 'react';
 
 import { ActionForm, type ActionState, type FormAction } from '@/components/manage/action-form';
-import { Badge, Notice, inputClass } from '@/components/manage/ui';
+import { RoundStatusBadge, roundStatusHint, type RoundStatus } from '@/components/manage/round-status';
+import { Notice, inputClass } from '@/components/manage/ui';
 
 export interface PickLecturer {
   id: string;
@@ -11,38 +12,14 @@ export interface PickLecturer {
   email: string | null;
 }
 
-/** open: takes assignments; overdue: marked open but past its deadline; closed: not open */
-export type PickRoundState = 'open' | 'overdue' | 'closed';
-
 export interface PickRound {
   id: number;
   name: string;
-  state: PickRoundState;
+  state: RoundStatus;
   /** Shown under the name: the period, then the submit deadline */
   period: string;
   deadline: string;
 }
-
-const ROUND_STATE: Record<PickRoundState, { label: string; hint: string; pill: string; dot: string }> = {
-  open: {
-    label: 'เปิดรับ',
-    hint: '',
-    pill: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    dot: 'bg-emerald-500',
-  },
-  overdue: {
-    label: 'เลยกำหนดส่ง',
-    hint: 'หมดเวลาส่งแล้ว มอบหมายไม่ได้',
-    pill: 'border-amber-200 bg-amber-50 text-amber-800',
-    dot: 'bg-amber-500',
-  },
-  closed: {
-    label: 'ปิดแล้ว',
-    hint: 'รอบนี้ปิดแล้ว มอบหมายไม่ได้',
-    pill: 'border-line bg-surface-alt text-ink-muted',
-    dot: 'bg-zinc-400',
-  },
-};
 
 function matchesRound(round: PickRound, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -185,7 +162,6 @@ export function ReviewerAssignForm({
             <p className="px-3 py-4 text-sm text-ink-muted">ไม่พบรอบ</p>
           ) : (
             roundChoices.map((candidate) => {
-              const info = ROUND_STATE[candidate.state];
               const usable = candidate.state === 'open';
               return (
                 <label
@@ -204,14 +180,11 @@ export function ReviewerAssignForm({
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                       <span className="font-medium text-ink">{candidate.name}</span>
-                      <Badge className={info.pill}>
-                        <span aria-hidden className={`mr-1.5 size-1.5 rounded-full ${info.dot}`} />
-                        {info.label}
-                      </Badge>
+                      <RoundStatusBadge status={candidate.state} />
                     </span>
                     <span className="block text-xs text-ink-muted">{candidate.period}</span>
                     <span className="block text-xs text-ink-muted">
-                      {usable ? candidate.deadline : `${candidate.deadline} · ${info.hint}`}
+                      {usable ? candidate.deadline : `${candidate.deadline} · ${roundStatusHint(candidate.state)}`}
                     </span>
                   </span>
                 </label>

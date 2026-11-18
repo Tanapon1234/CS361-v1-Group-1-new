@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { createReviewerAssignments, deleteReviewerAssignment } from '@/app/manage/actions/review';
 import { ActionForm } from '@/components/manage/action-form';
 import { ReviewerAssignForm } from '@/components/manage/reviewer-assign-form';
+import { RoundStatusBadge } from '@/components/manage/round-status';
 import { Badge, EmptyNote, Notice, PageHeader, Section } from '@/components/manage/ui';
 import { isExecutive } from '@/lib/auth/permissions';
 import { listLecturers, listReviewerAssignments, listRoundsWithState, MAX_PAGE, settle } from '@/lib/backend/api';
@@ -89,15 +90,12 @@ export default async function ReviewAssignmentsPage() {
           <div className="space-y-4">
             {groups.map((round, index) => (
               // Newest round open, the others folded
-              <details key={round.id} open={index === 0} className="group overflow-hidden rounded-xl border border-line">
+              <details key={round.id} open={index === 0} className="group overflow-hidden rounded-xl border border-line border-l-4 border-l-emerald-700">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-3 bg-surface-alt px-4 py-4">
                   <div className="min-w-0">
                     <p className="font-bold text-ink">{round.name}</p>
                     <div className="mt-1.5">
-                      <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">
-                        <span aria-hidden className="mr-1.5 size-1.5 rounded-full bg-emerald-500" />
-                        เปิดรับ
-                      </Badge>
+                      <RoundStatusBadge status="open" />
                     </div>
                   </div>
                   <span aria-hidden className="mt-1 shrink-0 text-ink-muted transition-transform group-open:rotate-180">
