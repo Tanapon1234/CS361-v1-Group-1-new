@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from app.core.exceptions import ForbiddenError
-from app.v2.models.enums import PositionCode, SignerRole
+from app.v2.models.enums import PositionCode, SignerRole, SubmissionStatus
 from app.v2.models.submission import Submission
 from app.v3.permissions import DEPARTMENT_SIGNERS
 from app.v3.security import Actor, Role
@@ -27,8 +27,12 @@ def can_view_submission(actor: Actor, submission: Submission) -> bool:
         actor.is_lecturer(submission.lecturer_id)
         or actor.views_all
         or submission.department_snapshot in signer_departments(actor)
-        # a reviewer reads the sheets of the lecturers assigned to them, in the assigned round
-        or (submission.lecturer_id, submission.round_id) in actor.reviewing
+        # a reviewer reads the sheets of the lecturers assigned to them, in the assigned round,
+        # once the lecturer has submitted: a draft is still the owner's own work
+        or (
+            submission.status is not SubmissionStatus.DRAFT
+            and (submission.lecturer_id, submission.round_id) in actor.reviewing
+        )
     )
 
 

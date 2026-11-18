@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from app.core.exceptions import ForbiddenError
-from app.v2.models.enums import AcademicRank, PositionCode
+from app.v2.models.enums import AcademicRank, PositionCode, SubmissionStatus
 from app.v2.models.lecturer import Lecturer
 from app.v2.models.publication import Publication
 from app.v2.models.submission import Submission
@@ -92,9 +92,34 @@ def test_a_reviewer_reads_the_sheet_only_in_the_round_they_are_assigned() -> Non
         reviewing=frozenset({(uuid4(), SUBMISSION.round_id)}),
     )
 
-    assert can_view_submission(in_round, SUBMISSION)
-    assert not can_view_submission(other_round, SUBMISSION)
-    assert not can_view_submission(other_lecturer, SUBMISSION)
+    submitted = SUBMISSION.model_copy(update={"status": SubmissionStatus.SUBMITTED})
+
+    assert can_view_submission(in_round, submitted)
+    assert not can_view_submission(other_round, submitted)
+    assert not can_view_submission(other_lecturer, submitted)
+
+
+@pytest.mark.parametrize(
+    ("status", "allowed"),
+    [
+        (SubmissionStatus.DRAFT, False),
+        (SubmissionStatus.SUBMITTED, True),
+        (SubmissionStatus.RETURNED, True),
+        (SubmissionStatus.ASSESSING, True),
+        (SubmissionStatus.SENT_TO_FACULTY, True),
+    ],
+)
+def test_a_reviewer_cannot_open_a_draft(status: SubmissionStatus, allowed: bool) -> None:
+    reviewer = Actor(
+        uuid4(),
+        frozenset({Role.LECTURER, Role.REVIEWER}),
+        reviewing=frozenset({(OWNER, SUBMISSION.round_id)}),
+    )
+    sheet = SUBMISSION.model_copy(update={"status": status})
+
+    assert can_view_submission(reviewer, sheet) is allowed
+    # the owner sees their own draft either way
+    assert can_view_submission(Actor(OWNER, frozenset({Role.LECTURER})), sheet)
 
 
 def test_department_lists_are_narrowed_for_department_signers() -> None:

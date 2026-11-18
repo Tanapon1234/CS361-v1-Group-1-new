@@ -52,7 +52,7 @@ export function ReviewRounds({
                     )}
                   </div>
 
-                  {person.submission_id ? (
+                  {person.submission_id && person.submission_status !== 'draft' ? (
                     <Link
                       href={`/manage/submissions/${person.submission_id}`}
                       className={`${person.submission_status === 'submitted' ? buttonClass : secondaryButtonClass} min-h-11 w-full px-4 sm:w-auto`}
@@ -60,7 +60,11 @@ export function ReviewRounds({
                       {person.submission_status === 'submitted' ? 'ตรวจใบนี้' : 'เปิดใบภาระงาน'}
                     </Link>
                   ) : (
-                    <p className="text-[13px] text-ink-muted">รอเจ้าของใบสร้างและส่งใบก่อนจึงจะตรวจใบได้</p>
+                    <p className="text-[13px] text-ink-muted">
+                      {person.submission_status === 'draft'
+                        ? 'ใบยังเป็นร่าง ตรวจได้เมื่อเจ้าของใบส่งแล้ว'
+                        : 'รอเจ้าของใบสร้างและส่งใบก่อนจึงจะตรวจใบได้'}
+                    </p>
                   )}
                 </li>
               ))}
