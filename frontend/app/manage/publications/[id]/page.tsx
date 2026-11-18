@@ -73,7 +73,7 @@ export default async function PublicationPage({ params }: { params: Promise<{ id
       />
       {verification.data?.verification_note ? (
         <Notice tone={status === 'rejected' ? 'error' : 'info'}>
-          หมายเหตุจากผู้ตรวจสอบ: {verification.data.verification_note}
+          หมายเหตุจากอาจารย์ผู้ตรวจ: {verification.data.verification_note}
           {verification.data.verified_at ? ` (${formatDateTime(verification.data.verified_at)})` : ''}
           {status === 'rejected' && isAuthor ? ' · แก้ไขแล้วบันทึก ผลงานจะกลับไปรอตรวจสอบอีกครั้ง' : ''}
         </Notice>

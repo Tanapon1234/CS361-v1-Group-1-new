@@ -5,15 +5,13 @@ import { switchUser } from '@/app/manage/actions/session';
 import { EmptyNote, Notice, PageHeader, Pager, inputClass, intParam, param, secondaryButtonClass, withQuery } from '@/components/manage/ui';
 import { MAX_PAGE, PAGE_SIZE } from '@/lib/backend/api';
 import { cognitoEnabled } from '@/lib/auth/cognito';
+import { ROLE_LABEL } from '@/lib/backend/labels';
 import { backend, currentLecturerId } from '@/lib/backend/client';
 import type { Department, Lecturer, PageResponse } from '@/types/backend';
 
-const ROLE_CHOICES = [
-  ['staff', 'เจ้าหน้าที่'],
-  ['reviewer', 'ผู้ตรวจสอบ'],
-  ['executive', 'ผู้บริหาร'],
-  ['admin', 'ผู้ดูแลระบบ'],
-] as const;
+const ROLE_CHOICES = (['staff', 'reviewer', 'executive', 'admin'] as const).map(
+  (role) => [role, ROLE_LABEL[role]] as const
+);
 
 export const metadata: Metadata = { title: 'เลือกผู้ใช้งาน' };
 

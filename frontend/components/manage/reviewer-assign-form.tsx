@@ -199,13 +199,13 @@ export function ReviewerAssignForm({
         </div>
       </Step>
 
-      <Step n={2} title="ผู้ตรวจสอบ (เลือก 1 คน)">
+      <Step n={2} title="อาจารย์ผู้ตรวจ (เลือก 1 คน)">
         <input
           type="search"
           value={reviewerQuery}
           onChange={(event) => setReviewerQuery(event.target.value)}
           placeholder="ค้นหาชื่อหรืออีเมล"
-          aria-label="ค้นหาผู้ตรวจสอบ"
+          aria-label="ค้นหาอาจารย์ผู้ตรวจ"
           className={`${inputClass} min-h-11`}
         />
         <div role="radiogroup" className="max-h-64 divide-y divide-line-soft overflow-y-auto rounded-lg border border-line">
@@ -232,7 +232,7 @@ export function ReviewerAssignForm({
 
       <Step n={3} title="อาจารย์ที่ต้องถูกตรวจ (เลือกได้หลายคน)">
         {!reviewer ? (
-          <p className="rounded-lg bg-surface-alt px-3 py-3 text-sm text-ink-muted">เลือกผู้ตรวจสอบก่อน</p>
+          <p className="rounded-lg bg-surface-alt px-3 py-3 text-sm text-ink-muted">เลือกอาจารย์ผู้ตรวจก่อน</p>
         ) : (
           <>
             <input
@@ -245,7 +245,7 @@ export function ReviewerAssignForm({
             />
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p aria-live="polite" className="text-ink-muted">
-                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · ผู้ตรวจ: {reviewer.name}{round ? ` · ${round.name}` : ''}
+                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · อาจารย์ผู้ตรวจ: {reviewer.name}{round ? ` · ${round.name}` : ''}
               </p>
               <div className="flex gap-2">
                 <button

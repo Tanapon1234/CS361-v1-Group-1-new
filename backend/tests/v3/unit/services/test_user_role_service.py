@@ -47,8 +47,8 @@ def test_admin_grants_a_role(service: UserRoleService, daos: dict[str, MagicMock
     assert result.granted_by == ADMIN.lecturer_id
 
 
-@pytest.mark.parametrize("role", [Role.REVIEWER, Role.LECTURER])
-def test_reviewer_and_lecturer_cannot_be_granted(
+@pytest.mark.parametrize("role", [Role.REVIEWER, Role.LECTURER, Role.EXECUTIVE])
+def test_derived_roles_cannot_be_granted(
     service: UserRoleService, daos: dict[str, MagicMock], role: Role
 ) -> None:
     with pytest.raises(BadRequestError):
@@ -133,3 +133,23 @@ def test_another_admin_can_be_revoked_when_more_remain(
     service.revoke(ADMIN, target, Role.ADMIN)
 
     daos["role"].delete.assert_called_once()
+
+
+def test_a_leftover_executive_row_can_still_be_revoked(
+    service: UserRoleService, daos: dict[str, MagicMock]
+) -> None:
+    target = uuid4()
+    daos["role"].get.return_value = row(target, Role.EXECUTIVE)
+
+    service.revoke(ADMIN, target, Role.EXECUTIVE)
+
+    daos["role"].delete.assert_called_once()
+
+
+@pytest.mark.parametrize("role", [Role.REVIEWER, Role.LECTURER])
+def test_a_role_that_is_never_stored_cannot_be_revoked(
+    service: UserRoleService, daos: dict[str, MagicMock], role: Role
+) -> None:
+    with pytest.raises(BadRequestError):
+        service.revoke(ADMIN, uuid4(), role)
+    daos["role"].delete.assert_not_called()
