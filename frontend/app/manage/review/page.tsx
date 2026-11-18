@@ -16,9 +16,16 @@ import {
   secondaryButtonClass,
   withQuery,
 } from '@/components/manage/ui';
+import { ReviewRounds } from '@/components/manage/review-rounds';
 import { VerdictForm } from '@/components/manage/verdict-form';
 import { canReview } from '@/lib/auth/permissions';
-import { listEvidenceQueue, listPublicationQueue, settle } from '@/lib/backend/api';
+import {
+  listEvidenceQueue,
+  listMyReviewAssignments,
+  listPublicationQueue,
+  listRoundsWithState,
+  settle,
+} from '@/lib/backend/api';
 import { getCurrentUser } from '@/lib/backend/client';
 import { VERIFICATION_LABEL, formatDate } from '@/lib/backend/labels';
 import type { VerificationStatus } from '@/types/backend';
@@ -48,9 +55,11 @@ export default async function ReviewPage({
     : 'pending';
   const pubOffset = intParam(params.pub_offset) ?? 0;
   const evOffset = intParam(params.ev_offset) ?? 0;
-  const [publications, evidence] = await Promise.all([
+  const [publications, evidence, assignments, rounds] = await Promise.all([
     settle(listPublicationQueue({ status, offset: pubOffset })),
     settle(listEvidenceQueue({ status, offset: evOffset })),
+    settle(listMyReviewAssignments()),
+    listRoundsWithState(),
   ]);
   const hrefFor = (extra: Record<string, string | number | undefined>) =>
     withQuery('/manage/review', { status, pub_offset: pubOffset, ev_offset: evOffset, ...extra });
@@ -59,8 +68,18 @@ export default async function ReviewPage({
     <div className="space-y-6">
       <PageHeader
         title="ตรวจสอบและรับรอง"
-        description="ผลงานตีพิมพ์และไฟล์หลักฐานที่รออาจารย์ผู้ตรวจ เรียงจากเก่าไปใหม่ ห้ามรับรองงานของตัวเอง"
+        description="อาจารย์ที่คุณต้องตรวจ แยกตามรอบประเมิน ตรวจใบภาระงาน หลักฐาน และผลงานตีพิมพ์ ห้ามรับรองงานของตัวเอง"
       />
+
+      <Section title="ที่ต้องตรวจตามรอบ" description="เปิดใบภาระงานเพื่อดูรายการและหลักฐาน แล้วบันทึกผลตรวจใบ">
+        {assignments.error ? (
+          <Notice tone="error">{assignments.error}</Notice>
+        ) : (
+          <ReviewRounds rounds={rounds} assignments={assignments.data?.items ?? []} />
+        )}
+      </Section>
+
+      <h2 className="pt-2 text-lg font-bold text-ink">ตรวจทีละรายการ</h2>
       <nav aria-label="สถานะ" className="flex gap-2">
         {STATUSES.map((value) => (
           <Link
