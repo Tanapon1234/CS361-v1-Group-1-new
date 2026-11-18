@@ -37,6 +37,8 @@ export function ActionForm({
   resetOnSuccess = false,
   className = 'space-y-4',
   inline = false,
+  submitDisabled = false,
+  large = false,
 }: {
   action: FormAction;
   children?: ReactNode;
@@ -47,6 +49,10 @@ export function ActionForm({
   className?: string;
   /** Just a button (plus hidden inputs) on one line, message underneath */
   inline?: boolean;
+  /** Keep the button off until the form is ready (for example, nothing ticked yet) */
+  submitDisabled?: boolean;
+  /** A touch-sized button (44px tall) */
+  large?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -64,7 +70,11 @@ export function ActionForm({
   }
 
   const button = (
-    <button type="submit" disabled={pending} className={VARIANT[variant]}>
+    <button
+      type="submit"
+      disabled={pending || submitDisabled}
+      className={`${VARIANT[variant]}${large ? ' min-h-11 px-5' : ''}`}
+    >
       {pending ? 'กำลังบันทึก…' : submitLabel}
     </button>
   );
