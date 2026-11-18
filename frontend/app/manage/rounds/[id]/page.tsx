@@ -90,6 +90,9 @@ export default async function RoundPage({
         back={{ href: '/manage/rounds', label: 'รอบประเมิน' }}
         actions={
           <>
+            <Link href={`/manage/rounds/${round.id}/criteria`} className={secondaryButtonClass}>
+              ดูเกณฑ์ของรอบนี้
+            </Link>
             {round.is_open ? (
               <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">เปิดกรอก</Badge>
             ) : (

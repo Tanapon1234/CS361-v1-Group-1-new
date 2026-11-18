@@ -4,7 +4,7 @@ import { createSubmission } from '@/app/manage/actions/workload';
 import { ActionForm } from '@/components/manage/action-form';
 import { RoundStatusMark, roundStatusRail } from '@/components/manage/round-status';
 import type { RoundStatus } from '@/components/manage/round-status';
-import { EmptyNote, StatusBadge, secondaryButtonClass } from '@/components/manage/ui';
+import { EmptyNote, StatusBadge, linkClass, secondaryButtonClass } from '@/components/manage/ui';
 import { formatDateTime, formatNumber, formatScore } from '@/lib/backend/labels';
 import type { EvaluationRound, Submission } from '@/types/backend';
 
@@ -38,6 +38,11 @@ export function RoundSheetList({
             </div>
             <p className="px-4 text-[13px] text-ink-muted">
               {round.submit_due_at ? `ส่งภายใน ${formatDateTime(round.submit_due_at)}` : 'ไม่กำหนดวันส่ง'}
+            </p>
+            <p className="px-4 pt-1 text-[13px]">
+              <Link href={`/manage/rounds/${round.id}/criteria`} className={linkClass}>
+                ดูเกณฑ์ของรอบนี้
+              </Link>
             </p>
 
             <div className="mt-3 border-t border-line-soft bg-surface-alt px-4 py-3">
