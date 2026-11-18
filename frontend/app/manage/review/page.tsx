@@ -84,7 +84,12 @@ export default async function ReviewPage() {
       ) : null}
       {head ? (
         <Section title="ที่ต้องตรวจในฐานะหัวหน้าสาขา" description="ใบในสาขาของคุณที่ผู้ตรวจรับรองแล้ว รอคุณรับรองและส่งต่อคณะ">
-          {head.error ? <Notice tone="error">{head.error}</Notice> : <HeadReviewRounds rounds={rounds} sheets={head.data ?? []} />}
+          {head.error ? <Notice tone="error">{head.error}</Notice> : <HeadReviewRounds
+              rounds={rounds}
+              sheets={(head.data ?? []).filter(
+                ({ submission }) => rounds.find(({ round }) => round.id === submission.round_id)?.state !== 'closed'
+              )}
+            />}
         </Section>
       ) : null}
     </div>

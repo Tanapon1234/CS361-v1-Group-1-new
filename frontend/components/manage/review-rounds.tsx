@@ -38,7 +38,7 @@ export function ReviewRounds({
               <h3 className="text-base font-bold text-ink">{found?.round.name_th ?? `รอบ #${roundId}`}</h3>
               {found ? <RoundStatusMark status={found.state} /> : null}
             </div>
-            <p className="px-5 pb-3 text-[13px] text-ink-muted">ต้องตรวจ {people.length} คน · รอคุณตรวจ {people.filter((p) => p.submission_status === 'submitted').length} ใบ</p>
+            <p className="px-5 pb-3 text-[13px] text-ink-muted">ต้องตรวจ {people.length} คน · รอคุณตรวจ {(found?.state === 'closed' ? 0 : people.filter((p) => p.submission_status === 'submitted').length)} ใบ{found?.state === 'closed' ? ' (รอบปิดแล้ว ดูได้อย่างเดียว)' : ''}</p>
 
             <ul className="divide-y divide-line-soft border-t border-line-soft bg-surface-alt">
               {people.map((person) => (
@@ -55,9 +55,9 @@ export function ReviewRounds({
                   {person.submission_id && person.submission_status !== 'draft' ? (
                     <Link
                       href={`/manage/submissions/${person.submission_id}`}
-                      className={`${person.submission_status === 'submitted' ? buttonClass : secondaryButtonClass} min-h-11 w-full px-4 sm:w-auto`}
+                      className={`${person.submission_status === 'submitted' && found?.state !== 'closed' ? buttonClass : secondaryButtonClass} min-h-11 w-full px-4 sm:w-auto`}
                     >
-                      {person.submission_status === 'submitted' ? 'ตรวจใบนี้' : 'เปิดใบภาระงาน'}
+                      {person.submission_status === 'submitted' && found?.state !== 'closed' ? 'ตรวจใบนี้' : 'เปิดใบภาระงาน'}
                     </Link>
                   ) : (
                     <p className="text-[13px] text-ink-muted">
