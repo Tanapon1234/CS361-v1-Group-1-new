@@ -57,6 +57,19 @@ class SqlReviewerAssignmentDAO(SqlDAO, ReviewerAssignmentDAO):
         )
         return self.session.exec(statement).all()
 
+    def is_assigned(self, reviewer_id: UUID, reviewee_id: UUID, round_id: int) -> bool:
+        statement = (
+            select(ReviewerAssignment.id)
+            .where(
+                ReviewerAssignment.reviewer_id == reviewer_id,
+                ReviewerAssignment.reviewee_id == reviewee_id,
+                ReviewerAssignment.round_id == round_id,
+                col(ReviewerAssignment.round_id).in_(_active_round_ids()),
+            )
+            .limit(1)
+        )
+        return self.session.exec(statement).first() is not None
+
     def has_active(self, reviewer_id: UUID) -> bool:
         statement = (
             select(ReviewerAssignment.id)

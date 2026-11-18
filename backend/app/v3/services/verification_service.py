@@ -52,9 +52,12 @@ class VerificationService:
         self, publication_id: int, actor: Actor, data: VerificationPutRequest
     ) -> VerificationResponse:
         publication = self._require_publication(publication_id)
-        reviewer = self._reviewer_id(actor)
-        if reviewer in self.publication_dao.get_author_ids(publication_id):
+        reviewer = self._require_reviewer(actor)
+        authors = self.publication_dao.get_author_ids(publication_id)
+        if reviewer in authors:
             raise ForbiddenError("You cannot verify your own publication")
+        if not set(authors) & set(self.assignment_dao.reviewee_ids(reviewer)):
+            raise ForbiddenError("You are not assigned to review any author of this publication")
         updated = self.publication_dao.update(publication, self._verdict(reviewer, data))
         return VerificationResponse.model_validate(updated)
 
@@ -100,9 +103,13 @@ class VerificationService:
         self, evidence_id: UUID, actor: Actor, data: VerificationPutRequest
     ) -> VerificationResponse:
         evidence, submission = self._require_evidence(evidence_id)
-        reviewer = self._reviewer_id(actor)
+        reviewer = self._require_reviewer(actor)
         if submission.lecturer_id == reviewer:
             raise ForbiddenError("You cannot verify evidence of your own submission")
+        if not self.assignment_dao.is_assigned(
+            reviewer, submission.lecturer_id, submission.round_id
+        ):
+            raise ForbiddenError("You are not assigned to review this lecturer in this round")
         if evidence.status is not EvidenceStatus.UPLOADED:
             raise ConflictError("The file has not been uploaded yet")
         updated = self.evidence_dao.update(evidence, self._verdict(reviewer, data))
@@ -139,19 +146,19 @@ class VerificationService:
 
     # --- helpers ------------------------------------------------------------------
 
-    def _reviewee_scope(self, actor: Actor) -> list[UUID] | None:
-        """V4 #293: a plain reviewer only sees items of a lecturer they are assigned
-        to; executive/admin (and anyone else let in by ROUTE_RULES) see everything."""
-        if actor.has_any(Role.EXECUTIVE) or not actor.has_any(Role.REVIEWER):
-            return None
-        if actor.lecturer_id is None:
-            return []
-        return list(self.assignment_dao.reviewee_ids(actor.lecturer_id))
+    def _reviewee_scope(self, actor: Actor) -> list[UUID]:
+        """The lecturers this reviewer is assigned to right now (open rounds only). Nobody
+        else sees the queue: staff, executives and admins may read sheets but do not verify."""
+        return list(self.assignment_dao.reviewee_ids(self._require_reviewer(actor)))
 
     @staticmethod
-    def _reviewer_id(actor: Actor) -> UUID:
+    def _require_reviewer(actor: Actor) -> UUID:
+        """The signed-in lecturer, who must hold the `reviewer` role itself: admin counts as
+        every role elsewhere (Actor.has_any) but cannot verify unless assigned."""
         if actor.lecturer_id is None:
             raise UnauthorizedError("Sign in as a person: a verification is signed")
+        if Role.REVIEWER not in actor.roles:
+            raise ForbiddenError("Only a reviewer assigned to this lecturer can verify")
         return actor.lecturer_id
 
     @staticmethod

@@ -35,6 +35,11 @@ class ReviewerAssignmentDAO(ABC):
         """Just the lecturer_ids this reviewer may see in the verification queue (active rounds)."""
 
     @abstractmethod
+    def is_assigned(self, reviewer_id: UUID, reviewee_id: UUID, round_id: int) -> bool:
+        """True while this reviewer is assigned to this lecturer in this round and the round
+        is still accepting work."""
+
+    @abstractmethod
     def has_active(self, reviewer_id: UUID) -> bool:
         """True while this lecturer reviews someone in a round that is still accepting work."""
 

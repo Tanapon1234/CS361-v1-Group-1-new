@@ -130,7 +130,7 @@ def test_any_signed_in_lecturer_is_let_in(client: TestClient, method: str, path:
         (m, p, role)
         for m, p in ENDPOINTS
         if not rule(m, p).anyone
-        for role in sorted({*rule(m, p).roles, Role.ADMIN})
+        for role in sorted(rule(m, p).roles | (set() if rule(m, p).strict else {Role.ADMIN}))
     ],
     ids=lambda value: str(value),
 )
@@ -139,3 +139,16 @@ def test_roles_named_in_the_rule_pass_the_route_check(
 ) -> None:
     status = call(client, method, path, headers=LECTURER_ONLY | {"X-Dev-Roles": role.value})
     assert status not in {401, 403}
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [(m, p) for m, p in ENDPOINTS if rule(m, p).strict],
+    ids=lambda value: str(value),
+)
+@pytest.mark.parametrize("role", [Role.ADMIN, Role.EXECUTIVE, Role.STAFF], ids=lambda r: r.value)
+def test_strict_rules_refuse_admin_executive_and_staff(
+    client: TestClient, method: str, path: str, role: Role
+) -> None:
+    """Verification is for the assigned reviewer only; admin is not implicitly allowed."""
+    assert call(client, method, path, headers=LECTURER_ONLY | {"X-Dev-Roles": role.value}) == 403
