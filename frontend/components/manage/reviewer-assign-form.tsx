@@ -14,6 +14,9 @@ export interface PickLecturer {
 export interface PickRound {
   id: number;
   name: string;
+  /** Shown under the name: the period, then the submit deadline */
+  period: string;
+  deadline: string;
 }
 
 function matches(lecturer: PickLecturer, query: string): boolean {
@@ -50,7 +53,7 @@ export function ReviewerAssignForm({
   rounds: PickRound[];
   action: FormAction;
 }) {
-  const [roundId, setRoundId] = useState<number | null>(rounds.length === 1 ? rounds[0].id : null);
+  const [roundId, setRoundId] = useState<number | null>(rounds[0]?.id ?? null);
   const [reviewerId, setReviewerId] = useState<string | null>(null);
   const [reviewees, setReviewees] = useState<Set<string>>(new Set());
   const [reviewerQuery, setReviewerQuery] = useState('');
@@ -66,6 +69,7 @@ export function ReviewerAssignForm({
     [lecturers, reviewerId, revieweeQuery]
   );
   const reviewer = lecturers.find((lecturer) => lecturer.id === reviewerId);
+  const round = rounds.find((candidate) => candidate.id === roundId);
 
   function chooseReviewer(id: string) {
     setReviewerId(id);
@@ -117,25 +121,27 @@ export function ReviewerAssignForm({
       ))}
 
       <Step n={1} title="รอบประเมิน">
-        {rounds.length === 1 ? (
-          <p className="rounded-lg bg-surface-alt px-3 py-3 text-sm text-ink">{rounds[0].name}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {rounds.map((round) => (
-              <button
-                key={round.id}
-                type="button"
-                aria-pressed={roundId === round.id}
-                onClick={() => setRoundId(round.id)}
-                className={`min-h-11 rounded-lg border px-4 text-sm font-semibold ${
-                  roundId === round.id ? 'border-brand bg-brand-soft text-brand' : 'border-line bg-surface text-ink'
-                }`}
-              >
-                {round.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <div
+          role="radiogroup"
+          aria-label="รอบประเมิน"
+          className="max-h-60 divide-y divide-line-soft overflow-y-auto rounded-lg border border-line"
+        >
+          {rounds.map((candidate) => (
+            <label key={candidate.id} className={`${ROW} ${roundId === candidate.id ? 'bg-brand-soft' : ''}`}>
+              <input
+                type="radio"
+                checked={roundId === candidate.id}
+                onChange={() => setRoundId(candidate.id)}
+                className="size-5 accent-brand"
+              />
+              <span className="min-w-0">
+                <span className="block truncate text-ink">{candidate.name}</span>
+                <span className="block text-xs text-ink-muted">{candidate.period}</span>
+                <span className="block text-xs text-ink-muted">{candidate.deadline}</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </Step>
 
       <Step n={2} title="ผู้ตรวจสอบ (เลือก 1 คน)">
@@ -184,7 +190,7 @@ export function ReviewerAssignForm({
             />
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p aria-live="polite" className="text-ink-muted">
-                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · ผู้ตรวจ: {reviewer.name}
+                เลือกแล้ว <strong className="text-ink">{count}</strong> คน · ผู้ตรวจ: {reviewer.name}{round ? ` · ${round.name}` : ''}
               </p>
               <div className="flex gap-2">
                 <button
